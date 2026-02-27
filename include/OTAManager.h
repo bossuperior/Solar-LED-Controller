@@ -11,5 +11,5 @@ private:
 
 public:
   bool isUpdating = false;
-  void checkUpdate(const char *currentVersion);
+  void checkUpdate(String currentVersion);
 };

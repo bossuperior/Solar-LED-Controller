@@ -9,9 +9,8 @@ void TimeManager::begin()
 
 void TimeManager::handle()
 {
-    Serial.print("[System] Waiting for NTP time sync ");
     struct tm timeinfo;
-    while (!getLocalTime(&timeinfo)) {
+    if (getLocalTime(&timeinfo)) { 
         _lastSyncTime = time(nullptr);
         _lastSyncMillis = millis();
         if (!_isTimeSynced) {
