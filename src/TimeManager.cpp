@@ -45,3 +45,15 @@ void TimeManager::printTime() {
                   info.tm_hour, info.tm_min, info.tm_sec,
                   _isTimeSynced ? "Online" : "Offline-Internal");
 }
+
+int TimeManager::getHour() {
+    struct tm timeinfo;
+    getCurrentTime(timeinfo);
+    return timeinfo.tm_hour;
+}
+
+int TimeManager::getMinute() {
+    struct tm timeinfo;
+    getCurrentTime(timeinfo);
+    return timeinfo.tm_min;
+}

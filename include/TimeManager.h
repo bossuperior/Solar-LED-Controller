@@ -18,5 +18,6 @@ public:
     void getCurrentTime(struct tm &timeinfo);
     void printTime();
     bool isSynced();
+    int getHour();
+    int getMinute();
 };
-
