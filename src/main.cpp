@@ -34,22 +34,19 @@ void setup()
     delay(500);
   }
   Serial.println("\n[System] Time Synchronized!");
-
   Serial.printf("Firmware Version: %s\n", FIRMWARE_VERSION);
-  ota.checkUpdate(FIRMWARE_VERSION);
 }
 
 void loop()
 {
   network.handle();
-  if (network.isInternetAvailable()) {
-    timer.handle();
-  }
+  timer.handle();
+
   if (timer.getHour() == UPDATE_HOUR && timer.getMinute() == UPDATE_MINUTE)
   {
     if (!hasCheckedToday && !ota.isUpdating && network.isInternetAvailable())
     {
-      Serial.println("[System] It's update time. Connecting to GitHub...");
+      Serial.println("[System] Scheduled update check...");
       ota.checkUpdate(FIRMWARE_VERSION);
       hasCheckedToday = true;
     }

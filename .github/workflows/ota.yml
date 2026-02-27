@@ -42,6 +42,7 @@ jobs:
           #define SECRET_OTA_HOSTNAME "${{ secrets.OTA_HOSTNAME }}"
           #define SECRET_OTA_PASS "${{ secrets.OTA_PASS }}"
           #define SECRET_OTA_UPDATE_URL "${{ secrets.OTA_UPDATE_URL }}"
+          #define SECRET_OTA_UPDATE_API "${{ secrets.OTA_UPDATE_API }}"
           EOF
 
       - name: Build Firmware

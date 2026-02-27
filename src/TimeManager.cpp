@@ -10,7 +10,7 @@ void TimeManager::begin()
 void TimeManager::handle()
 {
     struct tm timeinfo;
-    if (getLocalTime(&timeinfo)) { 
+    if (getCurrentTime(&timeinfo)) { 
         _lastSyncTime = time(nullptr);
         _lastSyncMillis = millis();
         if (!_isTimeSynced) {
