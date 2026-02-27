@@ -29,14 +29,13 @@ jobs:
 
       - name: Build Firmware
         run: |
-          # 1. ดึงชื่อ Tag เช่น v0.0.1 มาเก็บไว้
+          # ดึงชื่อ Tag มาเก็บในตัวแปร VERSION
           VERSION=${GITHUB_REF#refs/tags/}
           
-          # 2. ใช้ PLATFORMIO_BUILD_FLAGS เพื่อฉีดตัวแปรเข้าไปในโค้ด C++
-          # หมายเหตุ: ต้องใช้การครอบ String ซ้อนกันเพื่อให้ C++ มองเห็นเป็นข้อความจริงๆ
-          export PLATFORMIO_BUILD_FLAGS="-D FIRMWARE_VERSION='\"$VERSION\"'"
+          # ใช้ PLATFORMIO_BUILD_FLAGS เพื่อฉีดเลขเวอร์ชันเข้าไปใน C++
+          export PLATFORMIO_BUILD_FLAGS="-DFIRMWARE_VERSION='\"$VERSION\"'"
           
-          # 3. สั่ง Build ตามปกติ
+          # สั่งคอมไพล์ตามปกติ (ไม่ต้องมี --build-property แล้ว)
           pio run -e esp32doit-devkit-v1
 
       - name: Create GitHub Release
