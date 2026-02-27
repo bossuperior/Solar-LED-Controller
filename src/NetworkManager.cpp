@@ -1,5 +1,6 @@
 #include "NetworkManager.h"
 #include "secret.h"
+#include <HTTPClient.h>
 
 void NetworkManager::begin()
 {
@@ -26,4 +27,23 @@ void NetworkManager::handle()
         }
         lastStatus = (wl_status_t)currentStatus;
     }
+}
+
+bool NetworkManager::isInternetAvailable() {
+    if (WiFi.status() != WL_CONNECTED) return false;
+
+    if (millis() - lastNetCheck > netInterval) {
+        lastNetCheck = millis();
+        HTTPClient http;
+        http.begin("http://clients3.google.com/generate_204");
+        http.setTimeout(2000); // ตั้ง Timeout สั้นๆ เพื่อไม่ให้บอร์ดค้างนาน
+        int httpCode = http.GET();
+        http.end();
+        _hasInternet = (httpCode == 204);
+        if (!_hasInternet) {
+            Serial.println("[Net] Router connected but No Internet! Disconnecting...");
+            WiFi.disconnect();
+        }
+    }
+    return _hasInternet;
 }
