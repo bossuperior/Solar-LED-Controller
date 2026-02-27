@@ -1,7 +1,4 @@
-#ifndef NETWORK_MANAGER_H
-#define NETWORK_MANAGER_H
-
-#include <WiFi.h>
+#pragma once
 #include <WiFiMulti.h>
 
 class NetworkManager
@@ -14,5 +11,3 @@ public:
   void addAP(const char* ssid, const char* pass);
   void handle();
 };
-
-#endif
