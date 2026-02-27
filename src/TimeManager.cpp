@@ -15,6 +15,7 @@ void TimeManager::handle()
         _lastSyncMillis = millis();
         if (!_isTimeSynced) {
             Serial.println("[Time] Success! System clock is now synchronized.");
+            printTime();
             _isTimeSynced = true;
         }
     }
@@ -38,8 +39,8 @@ void TimeManager::getCurrentTime(struct tm &timeinfo) {
 
 void TimeManager::printTime() {
     struct tm info;
-    getCurrentTime(info); 
-    Serial.printf("[Clock] %02d/%02d/%04d %02d:%02d:%02d (%s)\n", 
+    getCurrentTime(info);
+    Serial.printf("[Clock] %02d/%02d/%04d %02d:%02d:%02d (%s)\n",
                   info.tm_mday, info.tm_mon + 1, info.tm_year + 1900,
                   info.tm_hour, info.tm_min, info.tm_sec,
                   _isTimeSynced ? "Online" : "Offline-Internal");
