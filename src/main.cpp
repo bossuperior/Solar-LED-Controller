@@ -18,8 +18,13 @@ const int UPDATE_MINUTE = 0;
 void setup()
 {
   Serial.begin(115200);
-  Serial.println("\n--- Solar LED Controller Starting ---");
-  network.begin();
+  delay(1000);
+  Serial.println("---Solar LED Controller Starting---");
+  while (network.isInternetAvailable() == false)
+  {
+    network.handle();
+    delay(500);
+  }
   timer.begin();
   Serial.printf("Firmware Version: %s\n", FIRMWARE_VERSION);
   ota.checkUpdate(FIRMWARE_VERSION);

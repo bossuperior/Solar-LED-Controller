@@ -30,19 +30,25 @@ void NetworkManager::handle()
 }
 
 bool NetworkManager::isInternetAvailable() {
-    if (WiFi.status() != WL_CONNECTED) return false;
+    if (WiFi.status() != WL_CONNECTED) {
+        _hasInternet = false;
+        return false;
+    }
 
     if (millis() - lastNetCheck > netInterval) {
         lastNetCheck = millis();
         HTTPClient http;
         http.begin("http://clients3.google.com/generate_204");
-        http.setTimeout(2000); // ตั้ง Timeout สั้นๆ เพื่อไม่ให้บอร์ดค้างนาน
+        http.setTimeout(2000); 
         int httpCode = http.GET();
         http.end();
+        
         _hasInternet = (httpCode == 204);
+        
         if (!_hasInternet) {
-            Serial.println("[Net] Router connected but No Internet! Disconnecting...");
-            WiFi.disconnect();
+            Serial.println("[Net] Router connected but No Internet! Waiting for recovery...");
+        } else {
+            Serial.println("[Net] Internet is fully accessible.");
         }
     }
     return _hasInternet;
