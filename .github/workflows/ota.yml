@@ -30,6 +30,19 @@ jobs:
 
       - name: Install PlatformIO
         run: pip install -U platformio
+      
+      - name: Create secret.h
+        run: |
+          cat <<EOF > include/secret.h
+          #pragma once
+          #define SECRET_SSID_HOME "${{ secrets.WIFI_SSID_HOME }}"
+          #define SECRET_PASS_HOME "${{ secrets.WIFI_PASS_HOME }}"
+          #define SECRET_SSID_BOSS "${{ secrets.WIFI_SSID_BOSS }}"
+          #define SECRET_PASS_BOSS "${{ secrets.WIFI_PASS_BOSS }}"
+          #define SECRET_OTA_HOSTNAME "${{ secrets.OTA_HOSTNAME }}"
+          #define SECRET_OTA_PASS "${{ secrets.OTA_PASS }}"
+          #define SECRET_OTA_UPDATE_URL "${{ secrets.OTA_UPDATE_URL }}"
+          EOF
 
       - name: Build Firmware
         env:

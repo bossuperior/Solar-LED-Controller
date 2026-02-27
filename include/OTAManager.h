@@ -1,7 +1,7 @@
 #pragma once
 #include <ArduinoOTA.h>
 #include <HTTPClient.h>
-#include <httpUpdate.h>
+#include <HTTPUpdate.h>
 #include <WiFiClientSecure.h>
 
 class OTAManager
