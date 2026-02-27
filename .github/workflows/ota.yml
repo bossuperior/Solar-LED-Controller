@@ -8,43 +8,42 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Cache PlatformIO
-        uses: actions/cache@v3
-        with:
-          path: ~/.platformio
-          key: ${{ runner.os }}-platformio
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.11'
+          cache: 'pip' # Restore pip cache for faster builds
+
+      - name: Cache PlatformIO & Build Files
+        uses: actions/cache@v4
+        with:
+          # Keep both PlatformIO global cache and project-specific .pio folder to speed up subsequent builds
+          path: |
+            ~/.platformio
+            .pio
+          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
 
       - name: Install PlatformIO
         run: pip install -U platformio
 
       - name: Build Firmware
+        env:
+          VERSION: ${{ github.ref_name }}
         run: |
-          # ดึงชื่อ Tag มาเก็บในตัวแปร VERSION
-          VERSION=${GITHUB_REF#refs/tags/}
-          
-          # ใช้ PLATFORMIO_BUILD_FLAGS เพื่อฉีดเลขเวอร์ชันเข้าไปใน C++
           export PLATFORMIO_BUILD_FLAGS="-DFIRMWARE_VERSION='\"$VERSION\"'"
-          
-          # สั่งคอมไพล์ตามปกติ (ไม่ต้องมี --build-property แล้ว)
           pio run -e esp32doit-devkit-v1
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: .pio/build/esp32doit-devkit-v1/firmware.bin
           name: Release ${{ github.ref_name }}
           body: "Auto-generated release for version ${{ github.ref_name }}"
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
