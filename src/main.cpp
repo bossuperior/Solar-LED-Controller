@@ -29,18 +29,23 @@ void setup()
   timer.begin();
   Serial.print("[System] Waiting for NTP time sync ");
   struct tm timeinfo;
-  while (!getLocalTime(&timeinfo)) {
+  while (!getLocalTime(&timeinfo))
+  {
     Serial.print(".");
     delay(500);
   }
   Serial.println("\n[System] Time Synchronized!");
   Serial.printf("Firmware Version: %s\n", FIRMWARE_VERSION);
+  ota.checkUpdate(FIRMWARE_VERSION);
 }
 
 void loop()
 {
   network.handle();
-  timer.handle();
+  if (network.isInternetAvailable())
+  {
+    timer.handle();
+  }
 
   if (timer.getHour() == UPDATE_HOUR && timer.getMinute() == UPDATE_MINUTE)
   {

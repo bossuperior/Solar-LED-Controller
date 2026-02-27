@@ -10,34 +10,42 @@ void TimeManager::begin()
 void TimeManager::handle()
 {
     struct tm timeinfo;
-    if (getCurrentTime(&timeinfo)) { 
+    if (getLocalTime(&timeinfo))
+    {
         _lastSyncTime = time(nullptr);
         _lastSyncMillis = millis();
-        if (!_isTimeSynced) {
+        if (!_isTimeSynced)
+        {
             Serial.println("[Time] Success! System clock is now synchronized.");
             printTime();
             _isTimeSynced = true;
         }
     }
 }
-void TimeManager::getCurrentTime(struct tm &timeinfo) {
-    if (getLocalTime(&timeinfo)) {
+
+void TimeManager::getCurrentTime(struct tm &timeinfo)
+{
+    if (getLocalTime(&timeinfo))
+    {
         _isTimeSynced = true;
         return;
     }
-    if (_isTimeSynced) {
+    if (_isTimeSynced)
+    {
         unsigned long elapsedSeconds = (millis() - _lastSyncMillis) / 1000;
         time_t calculatedTime = _lastSyncTime + elapsedSeconds;
-        struct tm* fallbackTime = localtime(&calculatedTime);
+        struct tm *fallbackTime = localtime(&calculatedTime);
         timeinfo = *fallbackTime;
     }
-    else {
+    else
+    {
         time_t zero = 0;
         timeinfo = *localtime(&zero);
     }
 }
 
-void TimeManager::printTime() {
+void TimeManager::printTime()
+{
     struct tm info;
     getCurrentTime(info);
     Serial.printf("[Clock] %02d/%02d/%04d %02d:%02d:%02d (%s)\n",
@@ -46,13 +54,15 @@ void TimeManager::printTime() {
                   _isTimeSynced ? "Online" : "Offline-Internal");
 }
 
-int TimeManager::getHour() {
+int TimeManager::getHour()
+{
     struct tm timeinfo;
     getCurrentTime(timeinfo);
     return timeinfo.tm_hour;
 }
 
-int TimeManager::getMinute() {
+int TimeManager::getMinute()
+{
     struct tm timeinfo;
     getCurrentTime(timeinfo);
     return timeinfo.tm_min;
