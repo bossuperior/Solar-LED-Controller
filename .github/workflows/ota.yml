@@ -1,0 +1,46 @@
+name: Build and Release Firmware
+
+on:
+  push:
+    tags:
+      - 'v*' # สคริปต์จะทำงานเมื่อคุณสร้าง Tag เช่น v1.0.0, v1.1.0
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v3
+        with:
+          path: ~/.platformio
+          key: ${{ runner.os }}-platformio
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install PlatformIO
+        run: pip install -U platformio
+
+      - name: Build Firmware
+        run: |
+          # ดึงชื่อ Tag มาเก็บในตัวแปร VERSION
+          VERSION=${GITHUB_REF#refs/tags/}
+          # คอมไพล์และฉีดเลขเวอร์ชันเข้าไปในโค้ด C++ ผ่าน build_flags
+          pio run -e esp32doit-devkit-v1 --build-property "build_flags=-DFIRMWARE_VERSION=\"$VERSION\""
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: .pio/build/esp32doit-devkit-v1/firmware.bin
+          name: Release ${{ github.ref_name }}
+          body: "Auto-generated release for version ${{ github.ref_name }}"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
