@@ -2,6 +2,7 @@
 #include "NetworkManager.h"
 #include "TimeManager.h"
 #include "OTAManager.h"
+#include "LightManager.h"
 #ifndef FIRMWARE_VERSION
 #define FIRMWARE_VERSION "v0.0.0-dev"
 #endif
@@ -9,6 +10,7 @@
 NetworkManager network;
 TimeManager timer;
 OTAManager ota;
+LightManager light;
 
 // Check for updates time setup
 bool hasCheckedToday = false;
@@ -27,16 +29,15 @@ void setup()
     delay(500);
   }
   timer.begin();
-  Serial.print("[System] Waiting for NTP time sync ");
   struct tm timeinfo;
   while (!getLocalTime(&timeinfo))
   {
     Serial.print(".");
     delay(500);
   }
-  Serial.println("\n[System] Time Synchronized!");
   Serial.printf("Firmware Version: %s\n", FIRMWARE_VERSION);
   ota.checkUpdate(FIRMWARE_VERSION);
+  light.begin();
 }
 
 void loop()
@@ -46,8 +47,10 @@ void loop()
   {
     timer.handle();
   }
-
-  if (timer.getHour() == UPDATE_HOUR && timer.getMinute() == UPDATE_MINUTE)
+  int hourNow = timer.getHour();
+  int minuteNow = timer.getMinute();
+  light.handle(hourNow, minuteNow);
+  if (hourNow == UPDATE_HOUR && minuteNow == UPDATE_MINUTE)
   {
     if (!hasCheckedToday && !ota.isUpdating && network.isInternetAvailable())
     {
@@ -57,7 +60,7 @@ void loop()
     }
   }
 
-  if (timer.getHour() != UPDATE_HOUR)
+  if (hourNow != UPDATE_HOUR)
   {
     hasCheckedToday = false;
   }
@@ -66,4 +69,5 @@ void loop()
   {
     // sensor.read();
   }
+  delay(10);
 }

@@ -4,7 +4,7 @@
 void TimeManager::begin()
 {
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer, "time.nist.gov");
-    Serial.println("NTP Configured. Waiting for sync...");
+    Serial.println("[System] NTP Configured. Waiting for sync...");
 }
 
 void TimeManager::handle()
