@@ -1,20 +1,20 @@
 #include <Arduino.h>
+#include <Preferences.h>
 #include "NetworkManager.h"
 #include "TimeManager.h"
 #include "OTAManager.h"
 #include "LightManager.h"
-#ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "v0.0.0-dev"
-#endif
 
 NetworkManager network;
 TimeManager timer;
 OTAManager ota;
 LightManager light;
+Preferences preferences;
+String firmwareVersion;
 
 // Check for updates time setup
 bool hasCheckedToday = false;
-const int UPDATE_HOUR = 3;
+const int UPDATE_HOUR = 18;
 const int UPDATE_MINUTE = 0;
 
 void setup()
@@ -35,8 +35,11 @@ void setup()
     Serial.print(".");
     delay(500);
   }
-  Serial.printf("Firmware Version: %s\n", FIRMWARE_VERSION);
-  ota.checkUpdate(FIRMWARE_VERSION);
+  preferences.begin("app_info", false);
+  firmwareVersion = preferences.getString("fw_ver", "v0.0.0-dev");
+  preferences.end();
+  Serial.printf("Firmware Version: %s\n", firmwareVersion.c_str());
+  ota.checkUpdate(firmwareVersion);
   light.begin();
 }
 
@@ -55,7 +58,7 @@ void loop()
     if (!hasCheckedToday && !ota.isUpdating && network.isInternetAvailable())
     {
       Serial.println("[System] Scheduled update check...");
-      ota.checkUpdate(FIRMWARE_VERSION);
+      ota.checkUpdate(firmwareVersion);
       hasCheckedToday = true;
     }
   }

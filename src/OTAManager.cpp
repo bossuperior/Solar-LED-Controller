@@ -1,17 +1,19 @@
 #include "OTAManager.h"
 #include "secret.h"
 
+Preferences preferences;
+
 void OTAManager::checkUpdate(String currentVersion)
 {
     Serial.println("[OTA] Checking GitHub for new release...");
     
     WiFiClientSecure client;
-    client.setInsecure(); 
+    client.setInsecure();
     client.setTimeout(12000);
     HTTPClient http;
-    http.begin(client, SECRET_OTA_UPDATE_API); 
+    http.begin(client, SECRET_OTA_UPDATE_API);
     http.addHeader("User-Agent", "ESP32-OTA");
-    
+    String latestTag = "";
     int httpCode = http.GET();
     if (httpCode == HTTP_CODE_OK) {
         String payload = http.getString();
@@ -35,6 +37,7 @@ void OTAManager::checkUpdate(String currentVersion)
 
     Serial.println("[OTA] New version found! Starting download...");
     httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    httpUpdate.rebootOnUpdate(false);
     
     t_httpUpdate_return ret = httpUpdate.update(client, SECRET_OTA_UPDATE_URL);
 
@@ -46,7 +49,12 @@ void OTAManager::checkUpdate(String currentVersion)
             Serial.println("[OTA] No new updates available.");
             break;
         case HTTP_UPDATE_OK:
+            preferences.begin("app_info", false);
+            preferences.putString("fw_ver", latestTag);
+            preferences.end();
             Serial.println("[OTA] Update successful! Rebooting...");
+            delay(500);
+            ESP.restart();
             break;
     }
 }
