@@ -24,7 +24,7 @@ void NetworkManager::handle()
         }
         else
         {
-            Serial.println("\nWiFi Connection Lost / Seeking...");
+            Serial.println("\n[NET] WiFi Connection Lost / Seeking...");
         }
         lastStatus = (wl_status_t)currentStatus;
     }
@@ -53,17 +53,17 @@ bool NetworkManager::isInternetAvailable()
             _hasInternet = (httpCode == 204);
             if (_hasInternet)
             {
-                Serial.println("[Net] Internet is fully accessible.");
+                Serial.println("[NET] Internet is fully accessible.");
             }
             else
             {
-                Serial.printf("[Net] Server responded with unexpected code: %d\n", httpCode);
+                Serial.printf("[NET] Server responded with unexpected code: %d\n", httpCode);
             }
         }
         else
         {
             _hasInternet = false;
-            Serial.printf("[Net] GET request failed, error: %s\n", http.errorToString(httpCode).c_str());
+            Serial.printf("[NET] GET request failed, error: %s\n", http.errorToString(httpCode).c_str());
         }
         http.end();
     }

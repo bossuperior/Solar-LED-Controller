@@ -4,25 +4,34 @@
 #include "TimeManager.h"
 #include "OTAManager.h"
 #include "LightManager.h"
+#include "TempManager.h"
+#include "LogManager.h"
+// #include "PowerManager.h"
 
 NetworkManager network;
 TimeManager timer;
 OTAManager ota;
 LightManager light;
 Preferences preferences;
+TempManager temp;
+LogManager sysLogger;
+// PowerManager power;
 String firmwareVersion;
+String LedTempMsg;
+String BatTempMsg;
 
 // Check for updates time setup
 bool hasCheckedToday = false;
 const int UPDATE_HOUR = 18;
 const int UPDATE_MINUTE = 0;
+const int TEMP_CHECK_INTERVAL = 2000; // 2 seconds
 
 void setup()
 {
   Serial.begin(115200);
   delay(1000);
   network.begin();
-  Serial.println("---Solar LED Controller Starting---");
+  sysLogger.sysLog("SYSTEM", "Solar LED Controller Starting...");
   while (network.isInternetAvailable() == false)
   {
     network.handle();
@@ -36,11 +45,12 @@ void setup()
     delay(500);
   }
   preferences.begin("app_info", false);
-  firmwareVersion = preferences.getString("fw_ver", "v0.0.0-dev");
+  firmwareVersion = preferences.getString("fw_ver", "v0.0.0-dev"); 
   preferences.end();
-  Serial.printf("Firmware Version: %s\n", firmwareVersion.c_str());
+  sysLogger.sysLog("SYSTEM", "Firmware Version: " + firmwareVersion);
   ota.checkUpdate(firmwareVersion);
-  light.begin();
+  light.begin(&sysLogger);
+  temp.begin();
 }
 
 void loop()
@@ -52,12 +62,11 @@ void loop()
   }
   int hourNow = timer.getHour();
   int minuteNow = timer.getMinute();
-  light.handle(hourNow, minuteNow);
   if (hourNow == UPDATE_HOUR && minuteNow == UPDATE_MINUTE)
   {
     if (!hasCheckedToday && !ota.isUpdating && network.isInternetAvailable())
     {
-      Serial.println("[System] Scheduled update check...");
+      sysLogger.sysLog("OTA", "Scheduled update check...");
       ota.checkUpdate(firmwareVersion);
       hasCheckedToday = true;
     }
@@ -70,7 +79,15 @@ void loop()
 
   if (!ota.isUpdating)
   {
-    // sensor.read();
+    temp.update();
+    // power.update();
+    light.handle(hourNow, minuteNow, &temp, nullptr);
+    static unsigned long lastTempPrint = 0;
+    if(millis() - lastTempPrint >= TEMP_CHECK_INTERVAL) {
+        String tempMsg = "LED Temp: " + String(temp.getLEDTemp(), 1) + " C, Bat Temp: " + String(temp.getBatteryTemp(), 1) + " C";
+        sysLogger.sysLog("TEMP", tempMsg);
+        lastTempPrint = millis();
+    }
   }
   delay(10);
 }

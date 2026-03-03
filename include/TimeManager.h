@@ -20,4 +20,5 @@ public:
     bool isSynced();
     int getHour();
     int getMinute();
+    String getTimeString();
 };
