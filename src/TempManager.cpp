@@ -31,8 +31,3 @@ void TempManager::update()
 
 float TempManager::getLEDTemp() { return tempLED; }
 float TempManager::getBatteryTemp() { return tempBattery; }
-
-bool TempManager::isSensorError()
-{
-    return (tempLED <= -100.0 || tempBattery <= -100.0);
-}

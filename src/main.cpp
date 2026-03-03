@@ -30,14 +30,14 @@ void setup()
 {
   Serial.begin(115200);
   delay(1000);
-  network.begin();
+  network.begin(&sysLogger);
   sysLogger.sysLog("SYSTEM", "Solar LED Controller Starting...");
   while (network.isInternetAvailable() == false)
   {
     network.handle();
     delay(500);
   }
-  timer.begin();
+  timer.begin(&sysLogger);
   struct tm timeinfo;
   while (!getLocalTime(&timeinfo))
   {

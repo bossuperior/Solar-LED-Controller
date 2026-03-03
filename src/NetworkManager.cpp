@@ -1,8 +1,9 @@
 #include "NetworkManager.h"
 #include "secret.h"
 
-void NetworkManager::begin()
+void NetworkManager::begin(LogManager* sysLoggerPtr)
 {
+    m_logger = sysLoggerPtr;
     WiFi.mode(WIFI_STA);
     delay(100);
     wifiMulti.addAP(SECRET_SSID_HOME, SECRET_PASS_HOME);
@@ -16,15 +17,15 @@ void NetworkManager::handle()
     {
         if (currentStatus == WL_CONNECTED)
         {
-            Serial.println("\nWiFi Connected!");
-            Serial.print("SSID: ");
-            Serial.println(WiFi.SSID());
-            Serial.print("IP: ");
-            Serial.println(WiFi.localIP());
+            if (m_logger != nullptr) {
+                m_logger->sysLog("NETWORK", "WiFi Connected to SSID: " + WiFi.SSID()+", IP: " + WiFi.localIP().toString());
+            }
         }
         else
         {
-            Serial.println("\n[NET] WiFi Connection Lost / Seeking...");
+            if (m_logger != nullptr) { 
+                m_logger->sysLog("NETWORK", "WiFi Connection Lost / Seeking...");
+            }
         }
         lastStatus = (wl_status_t)currentStatus;
     }
@@ -48,23 +49,27 @@ bool NetworkManager::isInternetAvailable()
         http.begin("http://clients3.google.com/generate_204");
         http.setTimeout(2000);
         int httpCode = http.GET();
+        bool currentInternetStatus = false;
         if (httpCode > 0)
         {
-            _hasInternet = (httpCode == 204);
-            if (_hasInternet)
-            {
-                Serial.println("[NET] Internet is fully accessible.");
-            }
-            else
-            {
-                Serial.printf("[NET] Server responded with unexpected code: %d\n", httpCode);
+            currentInternetStatus = (httpCode == 204);
+            if (currentInternetStatus != _hasInternet) {
+                if (currentInternetStatus && m_logger != nullptr) {
+                    m_logger->sysLog("NETWORK", "Internet is fully accessible.");
+                }
+                else if (!currentInternetStatus && m_logger != nullptr) {
+                    m_logger->sysLog("NETWORK", "Connected to WiFi but no Internet access.");
+                }
             }
         }
         else
         {
-            _hasInternet = false;
-            Serial.printf("[NET] GET request failed, error: %s\n", http.errorToString(httpCode).c_str());
+            currentInternetStatus = false;
+            if (currentInternetStatus != _hasInternet && m_logger != nullptr) {
+                m_logger->sysLog("NETWORK", "GET request failed, error: " + http.errorToString(httpCode));
+            }
         }
+        _hasInternet = currentInternetStatus;
         http.end();
     }
     return _hasInternet;

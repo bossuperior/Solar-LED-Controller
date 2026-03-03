@@ -8,7 +8,6 @@ public:
     void update();
     float getLEDTemp();
     float getBatteryTemp();
-    bool isSensorError();
 
 private:
     float tempLED = 0.0;

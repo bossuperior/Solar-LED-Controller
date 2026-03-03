@@ -10,7 +10,7 @@ private:
     const int pwmChannel = 0;
     const int pwmFreq = 5000;
     const int pwmResolution = 8; // 0-255
-    LogManager* m_logger = nullptr;;
+    LogManager* m_logger = nullptr;
 
 public:
     void begin(LogManager* sysLogger);
