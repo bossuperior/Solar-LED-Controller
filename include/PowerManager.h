@@ -14,6 +14,8 @@ class PowerManager {
         float getDischargeRate();
         void printPowerInfo();
         bool isPowerSafe();
+        bool isInaAvailable() { return _inaAvailable; }
+        
     private:
         LogManager *m_logger;
         INA226_WE ina226 = INA226_WE(0x40);

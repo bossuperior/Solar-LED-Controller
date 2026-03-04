@@ -1,11 +1,12 @@
 #pragma once
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include "LogManager.h"
 
 class TempManager
 {
 public:
-    void begin();
+    void begin(LogManager* sysLogger);
     void update();
     float getLedTemp();
     float getBuckTemp();
@@ -20,4 +21,5 @@ private:
     DeviceAddress buckAddress;
     bool _ledSensorOk = true;
     bool _buckSensorOk = true;
+    LogManager* m_sysLogger;
 };

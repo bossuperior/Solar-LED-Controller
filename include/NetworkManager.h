@@ -2,6 +2,7 @@
 #include <WiFiMulti.h>
 #include <HTTPClient.h>
 #include "LogManager.h"
+#include "secret.h"
 
 class NetworkManager
 {
@@ -16,7 +17,6 @@ private:
 
 public:
   void begin(LogManager* sysLogger);
-  void addAP(const char *ssid, const char *pass);
   void handle();
   bool isInternetAvailable();
 };

@@ -10,6 +10,7 @@ private:
     const char *OLD_LOG = "/log_old.txt";
     const size_t MAX_LOG_SIZE = 150 * 1024;
     void rotateLog();
+    LogManager* m_logger = nullptr;
 public:
     void begin();
     void sysLog(String module, String message);

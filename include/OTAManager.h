@@ -5,6 +5,7 @@
 #include <WiFiClientSecure.h>
 #include <Preferences.h>
 #include "LogManager.h"
+#include "secret.h"
 
 class OTAManager
 {

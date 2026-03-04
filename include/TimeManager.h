@@ -4,8 +4,7 @@
 #include <Wire.h>
 #include <RTClib.h>
 
-#include "LogManager.h"
-
+class LogManager;
 class TimeManager
 {
 private:
@@ -26,5 +25,6 @@ public:
     void printTime();
     int getHour();
     int getMinute();
+    int getYear();
     String getTimeString();
 };

@@ -1,11 +1,18 @@
 #include "OTAManager.h"
-#include "secret.h"
 
-Preferences preferences;
+extern Preferences preferences;
 
 void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger)
 {
+    isUpdating = true;
     m_logger = sysLogger;
+    if (WiFi.status() != WL_CONNECTED) {
+        if (m_logger != nullptr) {
+            isUpdating = false;
+            m_logger->sysLog("OTA", "Skip check: WiFi not connected.");
+        }
+        return; 
+    }
     if (m_logger != nullptr)
     {
         m_logger->sysLog("OTA", "Checking GitHub for new release...");
@@ -41,6 +48,7 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger)
                     m_logger->sysLog("OTA", "Firmware is up to date. Skipping...");
                 }
                 http.end();
+                isUpdating = false;
                 return;
             }
         }else {
@@ -48,6 +56,7 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger)
                 m_logger->sysLog("OTA", "Invalid JSON payload from GitHub API.");
             }
             http.end();
+            isUpdating = false;
             return;
         }
     }
@@ -58,6 +67,7 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger)
             m_logger->sysLog("OTA", "Failed to fetch API. Error: " + String(httpCode));
         }
         http.end();
+        isUpdating = false;
         return;
     }
     http.end();
@@ -69,6 +79,9 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger)
     httpUpdate.rebootOnUpdate(false);
 
     t_httpUpdate_return ret = httpUpdate.update(client, SECRET_OTA_UPDATE_URL);
+    if (ret != HTTP_UPDATE_OK) {
+        isUpdating = false;
+    }
 
     switch (ret)
     {

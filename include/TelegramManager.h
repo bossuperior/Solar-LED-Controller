@@ -1,0 +1,19 @@
+#pragma once
+#include <WiFiClientSecure.h>
+#include <UniversalTelegramBot.h>
+#include <ArduinoJson.h>
+#include "secret.h"
+#include "LogManager.h"
+
+class TelegramManager {
+private:
+    WiFiClientSecure client;
+    UniversalTelegramBot* bot;
+    String m_token;
+    String m_chatId;
+    LogManager* m_sysLogger;
+
+public:
+    void begin(LogManager* sysLogger);
+    void sendAlert(String module, String message);
+};

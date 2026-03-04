@@ -4,10 +4,10 @@ extern TimeManager timer;
 
 void LogManager::begin() {
     if (!LittleFS.begin(true)) {
-        Serial.println("[ERROR] LittleFS Mount Failed!");
+        Serial.println("[SYSTEM] ERROR: LittleFS Mount Failed!");
         return;
     }
-    Serial.println("[SYSTEM] LittleFS Mounted Successfully.");
+    Serial.println("[SYSTEM] Log Manager initialized with LittleFS.");
 }
 
 void LogManager::rotateLog() {
@@ -24,19 +24,16 @@ void LogManager::sysLog(String module, String message) {
     String timeNow = timer.getTimeString();
     String logEntry = "[" + timeNow + "] [" + module + "] " + message + "\n";
     Serial.print(logEntry);
-    if (LittleFS.exists(CURRENT_LOG)) {
-        File file = LittleFS.open(CURRENT_LOG, FILE_READ);
-        size_t fileSize = file.size();
-        file.close();
-        if (fileSize >= MAX_LOG_SIZE) {
-            rotateLog();
-        }
-    }
     File file = LittleFS.open(CURRENT_LOG, FILE_APPEND);
     if (!file) {
         Serial.println("[ERROR] Failed to open log file for appending!");
         return;
     }
     file.print(logEntry);
+    size_t fileSize = file.size();
     file.close();
+    
+    if (fileSize >= MAX_LOG_SIZE) {
+        rotateLog();
+    }
 }

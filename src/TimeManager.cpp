@@ -1,5 +1,6 @@
 #include "TimeManager.h"
 #include "NetworkManager.h"
+#include "LogManager.h"
 
 void TimeManager::begin(LogManager *sysLogger)
 {
@@ -108,6 +109,13 @@ int TimeManager::getMinute()
     struct tm timeinfo;
     getCurrentTime(timeinfo);
     return timeinfo.tm_min;
+}
+
+int TimeManager::getYear()
+{
+    struct tm timeinfo;
+    getCurrentTime(timeinfo);
+    return timeinfo.tm_year + 1900;
 }
 
 String TimeManager::getTimeString()

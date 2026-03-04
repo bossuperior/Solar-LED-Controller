@@ -3,8 +3,9 @@
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
-void TempManager::begin()
+void TempManager::begin(LogManager* sysLogger)
 {
+    m_sysLogger = sysLogger;
     sensors.begin();
     sensors.setWaitForConversion(false); // Non-blocking mode
 
@@ -15,6 +16,9 @@ void TempManager::begin()
     sensors.setResolution(ledAddress, 10);
     sensors.setResolution(buckAddress, 10);
     sensors.requestTemperatures();
+    if (m_sysLogger != nullptr) {
+        m_sysLogger->sysLog("TEMP", "Temperature sensors initialized");
+    }
 }
 
 float TempManager::getLedTemp()
@@ -62,6 +66,3 @@ void TempManager::update()
         lastReq = millis();
     }
 }
-bool TempManager::isSensorHealthy() { return _ledSensorOk && _buckSensorOk; }
-bool TempManager::isLedSensorOk() { return _ledSensorOk; }
-bool TempManager::isBuckSensorOk() { return _buckSensorOk; }

@@ -1,9 +1,8 @@
 #include "NetworkManager.h"
-#include "secret.h"
 
-void NetworkManager::begin(LogManager* sysLoggerPtr)
+void NetworkManager::begin(LogManager* sysLogger)
 {
-    m_logger = sysLoggerPtr;
+    m_logger = sysLogger;
     WiFi.mode(WIFI_STA);
     delay(100);
     wifiMulti.addAP(SECRET_SSID_HOME, SECRET_PASS_HOME);
@@ -23,7 +22,7 @@ void NetworkManager::handle()
         }
         else
         {
-            if (m_logger != nullptr) { 
+            if (m_logger != nullptr) {
                 m_logger->sysLog("NETWORK", "WiFi Connection Lost / Seeking...");
             }
         }

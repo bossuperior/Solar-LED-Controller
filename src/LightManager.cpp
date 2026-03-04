@@ -5,7 +5,7 @@ void LightManager::begin(LogManager *sysLoggerPtr)
     m_logger = sysLoggerPtr;
 
     ledcSetup(pwmChannel, pwmFreq, pwmResolution);
-    fanAttachPin(ledPin, pwmChannel);
+    ledcAttachPin(ledPin, pwmChannel);
     targetBrightness(0);
 
     String LightInitMsg = "Light Manager initialized on pin " + String(ledPin) + " with PWM channel " + String(pwmChannel);
@@ -54,7 +54,7 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
     static bool isBatLow = false;
 
     if (tm != nullptr) {
-        float temp = tm->getLEDTemp();
+        float temp = tm->getLedTemp();
         if (temp > 65.0) {
             isTempThrottled = true;
         } else if (temp < 60.0) {
