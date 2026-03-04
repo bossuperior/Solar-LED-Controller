@@ -9,7 +9,7 @@ private:
   WiFiMulti wifiMulti;
   wl_status_t lastStatus = WL_IDLE_STATUS;
   unsigned long lastNetCheck = 0;
-  const unsigned long netInterval = 30000; // Check Internet every 30 seconds
+  const unsigned long netInterval = 60000; // Check Internet every 60 seconds
   bool _hasInternet = false;
   bool _firstCheck = true;
   LogManager* m_logger = nullptr;

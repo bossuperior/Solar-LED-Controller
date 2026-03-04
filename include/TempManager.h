@@ -2,16 +2,22 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-class TempManager {
+class TempManager
+{
 public:
     void begin();
     void update();
-    float getLEDTemp();
-    float getBatteryTemp();
+    float getLedTemp();
+    float getBuckTemp();
+    bool isSensorHealthy() { return _ledSensorOk && _buckSensorOk; }
+    bool isLedSensorOk() { return _ledSensorOk; }
+    bool isBuckSensorOk() { return _buckSensorOk; }
 
 private:
-    float tempLED = 0.0;
-    float tempBattery = 0.0;
+    float tempLed = 0.0;
+    float tempBuck = 0.0;
     DeviceAddress ledAddress;
-    DeviceAddress batAddress;
+    DeviceAddress buckAddress;
+    bool _ledSensorOk = true;
+    bool _buckSensorOk = true;
 };

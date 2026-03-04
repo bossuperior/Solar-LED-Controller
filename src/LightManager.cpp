@@ -5,7 +5,7 @@ void LightManager::begin(LogManager *sysLoggerPtr)
     m_logger = sysLoggerPtr;
 
     ledcSetup(pwmChannel, pwmFreq, pwmResolution);
-    ledcAttachPin(ledPin, pwmChannel);
+    fanAttachPin(ledPin, pwmChannel);
     targetBrightness(0);
 
     String LightInitMsg = "Light Manager initialized on pin " + String(ledPin) + " with PWM channel " + String(pwmChannel);
@@ -26,7 +26,6 @@ void LightManager::targetBrightness(int percent)
 void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, PowerManager *pm)
 {
     int currentTotalMinutes = (currentHour * 60) + currentMinute;
-
     // Time thresholds in total minutes
     int timeEvening = (18 * 60) + 0;
     int timeNight = (22 * 60) + 30;
@@ -51,13 +50,30 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
         newBrightness = 0;
     }
 
-    if (tm != nullptr && tm->getLEDTemp() > 65.0)
-    {
+    static bool isTempThrottled = false;
+    static bool isBatLow = false;
+
+    if (tm != nullptr) {
+        float temp = tm->getLEDTemp();
+        if (temp > 65.0) {
+            isTempThrottled = true;
+        } else if (temp < 60.0) {
+            isTempThrottled = false;
+        }
+    }
+    if (isTempThrottled) {
         newBrightness = newBrightness / 2;
     }
 
-    if (pm != nullptr && pm->getVoltage() <= 3.15 && newBrightness > 0)
-    {
+    if (pm != nullptr) {
+        float v = pm->getVoltage();
+        if (v <= 3.15) {
+            isBatLow = true; 
+        } else if (v >= 3.22) {
+            isBatLow = false;
+        }
+    }
+    if (isBatLow && newBrightness > 0) {
         newBrightness = 10;
     }
 

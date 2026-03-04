@@ -16,4 +16,5 @@ public:
     void begin(LogManager* sysLogger);
     void targetBrightness(int percent);
     void handle(int currentHour , int currentMinute, TempManager* tm, PowerManager* pm);
+    void forceOff() { targetBrightness(0); }
 };
