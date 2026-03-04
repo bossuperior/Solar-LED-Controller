@@ -48,6 +48,8 @@ jobs:
           #define SECRET_OTA_PASS "${{ secrets.OTA_PASS }}"
           #define SECRET_OTA_UPDATE_URL "${{ secrets.OTA_UPDATE_URL }}"
           #define SECRET_OTA_UPDATE_API "${{ secrets.OTA_UPDATE_API }}"
+          #define TELEGRAM_BOT_TOKEN "${{ secrets.TELEGRAM_BOT_TOKEN }}"
+          #define TELEGRAM_CHAT_ID "${{ secrets.TELEGRAM_CHAT_ID }}"
           EOF
 
       - name: Build Firmware

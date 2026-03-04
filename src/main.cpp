@@ -54,9 +54,9 @@ void setup()
 void loop()
 {
   network.handle();
+  timer.handle();
   if (network.isInternetAvailable())
   {
-    timer.handle();
     if (!initialOtaChecked && !ota.isUpdating)
     {
       ota.checkUpdate(firmwareVersion, &sysLogger);
@@ -68,9 +68,9 @@ void loop()
   static bool powerErrorLogged = false;
   if (!power.isPowerSafe())
   {
-    light.forceOff();
     if (!powerErrorLogged)
     {
+      light.setManualMode(true, 0);
       sysLogger.sysLog("POWER", "Power is unsafe! Lighting turned off.");
       powerErrorLogged = true;
     }
@@ -99,7 +99,8 @@ void loop()
     temp.update();
     light.handle(hourNow, minuteNow, &temp, &power);
     fan.handle(&temp);
-    monitor.monitor(&power, &temp, &fan, &timer, &telegram);
+    monitor.monitor(&power, &temp, &fan, &timer, &telegram, &light);
+    telegram.checkMessages(&power, &temp, &fan, &light);
     static unsigned long lastLogPrint = 0;
     if (millis() - lastLogPrint >= LOG_INTERVAL)
     {

@@ -7,6 +7,7 @@
 #include "TimeManager.h"
 #include "NetworkManager.h"
 #include "TelegramManager.h"
+#include "LightManager.h"
 
 class SystemMonitor {
 private:
@@ -17,9 +18,15 @@ private:
     bool errTemp = false;
     bool errTime = false;
     bool errFan = false;
+    bool errDiode = false;
+    bool errMosfetShort = false;
+    bool errMosfetOpen = false;
+    bool errBuckBoost = false;
+    bool errBuckHighTemp = false;
+    bool errBuckVoltage = false;
     unsigned long fanStartTime = 0; //Variable to track when the fan started
 
 public:
-    void begin(LogManager* logger);
-    void monitor(PowerManager* pm, TempManager* tm, FanManager* fm, TimeManager* tr, TelegramManager* tg);
+    void begin(LogManager* sysLogger);
+    void monitor(PowerManager* pm, TempManager* tm, FanManager* fm, TimeManager* tr, TelegramManager* tg,LightManager* lm);
 };
