@@ -29,6 +29,9 @@ float TempManager::getLedTemp()
 }
 float TempManager::getBuckTemp()
 {
+    if (_isTesting){
+        return _testBuckTemp;
+    }
     if (!_buckSensorOk)
         return 50.0;
     return tempBuck;

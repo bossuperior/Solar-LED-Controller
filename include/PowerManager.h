@@ -8,6 +8,7 @@ class PowerManager {
     public:
         void begin(LogManager* sysLogger);
         float getVoltage();
+        void setVoltage(float v) { _isTesting = true; _testVolt = v; }
         float getCurrent();
         float getPower();
         float getChargeRate();
@@ -20,4 +21,6 @@ class PowerManager {
         LogManager *m_logger;
         INA226_WE ina226 = INA226_WE(0x40);
         bool _inaAvailable = false;
+        float _testVolt = 0.0;
+        bool _isTesting = false;
 };

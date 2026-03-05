@@ -11,7 +11,7 @@
 #include "SystemMonitor.h"
 #include "TelegramManager.h"
 
-// #ifndef PIO_UNIT_TESTING
+#ifndef PIO_UNIT_TESTING
 
 NetworkManager network;
 TimeManager timer;
@@ -115,4 +115,4 @@ void loop()
   delay(10);
 }
 
-// #endif
+#endif

@@ -9,6 +9,10 @@ public:
     void begin(LogManager* sysLogger);
     void update();
     float getLedTemp();
+    void setBuckTemp(float temp) {
+        _isTesting = true;
+        _testBuckTemp = temp;
+    }
     float getBuckTemp();
     bool isSensorHealthy() { return _ledSensorOk && _buckSensorOk; }
     bool isLedSensorOk() { return _ledSensorOk; }
@@ -22,4 +26,6 @@ private:
     bool _ledSensorOk = true;
     bool _buckSensorOk = true;
     LogManager* m_sysLogger;
+    float _testBuckTemp = 0.0;
+    bool _isTesting = false;
 };
