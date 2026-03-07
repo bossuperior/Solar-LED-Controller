@@ -41,8 +41,8 @@ void setup()
   delay(1000);
   sysLogger.begin();
   network.begin(&sysLogger);
-  timer.begin(&sysLogger);
   sysLogger.sysLog("SYSTEM", "Solar LED Controller Starting...");
+  timer.begin(&sysLogger);
   temp.begin(&sysLogger);
   power.begin(&sysLogger);
   light.begin(&sysLogger);

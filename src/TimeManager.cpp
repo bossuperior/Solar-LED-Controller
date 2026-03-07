@@ -15,10 +15,12 @@ void TimeManager::begin(LogManager *sysLogger)
     else
     {
         _rtcAvailable = true;
-        if (m_logger != nullptr){
+        if (m_logger != nullptr)
+        {
             m_logger->sysLog("TIME", "DS3231 RTC initialized successfully.");
         }
-        if( rtc.lostPower() ) {
+        if (rtc.lostPower())
+        {
             if (m_logger != nullptr)
                 m_logger->sysLog("TIME", "DS3231 RTC lost power, please check battery.");
             rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
@@ -63,9 +65,11 @@ void TimeManager::handle()
             {
                 m_logger->sysLog("TIME", "Success! System clock is now synchronized.");
             }
-            if (!_rtcAvailable)
-            {
-                rtc.adjust(DateTime(timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec));
+            if (_rtcAvailable){
+                rtc.adjust(DateTime(timeinfo.tm_year + 1900, timeinfo.tm_mon + 1,
+                                    timeinfo.tm_mday, timeinfo.tm_hour,
+                                    timeinfo.tm_min, timeinfo.tm_sec));
+
                 if (m_logger != nullptr)
                     m_logger->sysLog("TIME", "DS3231 RTC automatically calibrated with NTP time.");
             }
@@ -83,7 +87,8 @@ void TimeManager::getCurrentTime(struct tm &timeinfo)
         timeinfo = *localtime(&zero);
         _isTimeSynced = false;
     }
-    else {
+    else
+    {
         _isTimeSynced = true;
     }
 }
