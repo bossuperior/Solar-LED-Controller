@@ -2,6 +2,7 @@
 #include <WiFiClientSecure.h>
 #include <UniversalTelegramBot.h>
 #include <ArduinoJson.h>
+#include <esp_task_wdt.h>
 #include "secret.h"
 #include "LogManager.h"
 #include "PowerManager.h"

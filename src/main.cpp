@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Preferences.h>
+#include <esp_task_wdt.h>
 #include "NetworkManager.h"
 #include "TimeManager.h"
 #include "OTAManager.h"
@@ -12,6 +13,7 @@
 #include "TelegramManager.h"
 
 #ifndef PIO_UNIT_TESTING
+#define WDT_TIMEOUT 20
 
 NetworkManager network;
 TimeManager timer;
@@ -39,22 +41,25 @@ void setup()
   delay(1000);
   sysLogger.begin();
   network.begin(&sysLogger);
+  timer.begin(&sysLogger);
   sysLogger.sysLog("SYSTEM", "Solar LED Controller Starting...");
   temp.begin(&sysLogger);
   power.begin(&sysLogger);
   light.begin(&sysLogger);
   fan.begin(&sysLogger);
   telegram.begin(&sysLogger);
-  timer.begin(&sysLogger);
   monitor.begin(&sysLogger);
   preferences.begin("app_info", false);
   firmwareVersion = preferences.getString("fw_ver", "v0.0.0-dev");
   preferences.end();
   sysLogger.sysLog("SYSTEM", "Firmware Version: " + firmwareVersion);
+  esp_task_wdt_init(WDT_TIMEOUT, true);
+  esp_task_wdt_add(NULL);
 }
 
 void loop()
 {
+  esp_task_wdt_reset();
   network.handle();
   timer.handle();
   if (network.isInternetAvailable())

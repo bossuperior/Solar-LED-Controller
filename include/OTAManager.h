@@ -4,6 +4,7 @@
 #include <HTTPUpdate.h>
 #include <WiFiClientSecure.h>
 #include <Preferences.h>
+#include <esp_task_wdt.h>
 #include "LogManager.h"
 #include "secret.h"
 

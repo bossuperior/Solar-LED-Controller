@@ -21,6 +21,7 @@ void TimeManager::begin(LogManager *sysLogger)
         if( rtc.lostPower() ) {
             if (m_logger != nullptr)
                 m_logger->sysLog("TIME", "DS3231 RTC lost power, please check battery.");
+            rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
         }
 
         else

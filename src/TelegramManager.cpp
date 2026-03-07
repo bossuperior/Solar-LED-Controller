@@ -23,6 +23,7 @@ void TelegramManager::sendAlert(String module, String message)
 
 void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManager *fm, LightManager *lm)
 {
+    esp_task_wdt_reset();
     int numNewMessages = bot->getUpdates(bot->last_message_received + 1);
 
     while (numNewMessages)
@@ -151,6 +152,7 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 bot->sendMessageWithReplyKeyboard(chat_id, "👇 เลือกคำสั่งจากปุ่มด้านล่างได้เลย", "", keyboardJson, true);
             }
         }
+        esp_task_wdt_reset();
         numNewMessages = bot->getUpdates(bot->last_message_received + 1);
     }
 }

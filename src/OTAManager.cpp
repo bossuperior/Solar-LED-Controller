@@ -6,6 +6,7 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger)
 {
     isUpdating = true;
     m_logger = sysLogger;
+    esp_task_wdt_reset();
     if (WiFi.status() != WL_CONNECTED) {
         if (m_logger != nullptr) {
             isUpdating = false;
@@ -19,12 +20,13 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger)
     }
     WiFiClientSecure client;
     client.setInsecure();
-    client.setTimeout(12000);
+    client.setTimeout(15000);
     HTTPClient http;
     http.begin(client, SECRET_OTA_UPDATE_API);
     http.addHeader("User-Agent", "ESP32-OTA");
 
     String latestTag = "";
+    esp_task_wdt_reset();
     int httpCode = http.GET();
 
     if (httpCode == HTTP_CODE_OK)
@@ -75,9 +77,12 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger)
     {
         m_logger->sysLog("OTA", "New version found! Starting download...");
     }
+    httpUpdate.onProgress([](size_t current, size_t total) {
+        esp_task_wdt_reset();
+    });
     httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
     httpUpdate.rebootOnUpdate(false);
-
+    esp_task_wdt_reset();
     t_httpUpdate_return ret = httpUpdate.update(client, SECRET_OTA_UPDATE_URL);
     if (ret != HTTP_UPDATE_OK) {
         isUpdating = false;

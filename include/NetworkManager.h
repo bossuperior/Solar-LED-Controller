@@ -1,6 +1,7 @@
 #pragma once
 #include <WiFiMulti.h>
 #include <HTTPClient.h>
+#include <esp_task_wdt.h>
 #include "LogManager.h"
 #include "secret.h"
 

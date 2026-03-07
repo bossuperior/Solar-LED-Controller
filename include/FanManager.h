@@ -5,7 +5,7 @@
 
 class FanManager {
 private:
-    const int fanPin = 23;   
+    const int fanPin = 12;   
     const int pwmChannel = 2;  
     const int pwmFreq = 25000;  // 25kHz for quieter fan operation
     const int pwmRes = 8;       // 0-255

@@ -44,10 +44,12 @@ bool NetworkManager::isInternetAvailable()
     {
         lastNetCheck = millis();
         _firstCheck = false;
+        esp_task_wdt_reset();
         HTTPClient http;
         http.begin("http://clients3.google.com/generate_204");
         http.setTimeout(2000);
         int httpCode = http.GET();
+        esp_task_wdt_reset();
         bool currentInternetStatus = false;
         if (httpCode > 0)
         {
