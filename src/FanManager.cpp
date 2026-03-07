@@ -18,7 +18,7 @@ void FanManager::handle(TempManager* tm) {
     float buckTemp = tm->getBuckTemp();
     int targetSpeed = currentSpeed;
 
-    if (buckTemp > 30.0) {
+    if (buckTemp > 45.0) {
         targetSpeed = 210; //210/255*100 = 82% 
         isFanRunning = true;
     } 

@@ -41,8 +41,8 @@ void setup()
   delay(1000);
   sysLogger.begin();
   network.begin(&sysLogger);
-  sysLogger.sysLog("SYSTEM", "Solar LED Controller Starting...");
   timer.begin(&sysLogger);
+  sysLogger.sysLog("SYSTEM", "Solar LED Controller Starting...");
   temp.begin(&sysLogger);
   power.begin(&sysLogger);
   light.begin(&sysLogger);
@@ -84,7 +84,11 @@ void loop()
   }
   else
   {
-    powerErrorLogged = false;
+    if (powerErrorLogged) { 
+      light.setManualMode(false, 0); 
+      sysLogger.sysLog("POWER", "Power restored! Returning to AUTO mode.");
+      powerErrorLogged = false;
+    }
   }
   if (hourNow == UPDATE_HOUR && minuteNow == UPDATE_MINUTE)
   {

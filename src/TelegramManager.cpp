@@ -50,7 +50,7 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
 
                         lm->setPeriodBrightness(period, percent);
 
-                       if (period == 1)
+                        if (period == 1)
                         {
                             String keyboardJson = "[[{\"text\":\"40%\",\"callback_data\":\"TL_2_40\"},{\"text\":\"50%\",\"callback_data\":\"TL_2_50\"},{\"text\":\"70%\",\"callback_data\":\"TL_2_70\"}],[{\"text\":\"80%\",\"callback_data\":\"TL_2_80\"},{\"text\":\"100%\",\"callback_data\":\"TL_2_100\"}]]";
                             bot->sendMessageWithInlineKeyboard(chat_id, "✅ บันทึกช่วง 18:00-20:00 เป็น *" + String(percent) + "%* แล้ว\n\n⚙️ *(ขั้นตอน 2/4)*\n🕒 *ช่วงที่ 2: 20:00 - 00:00 น.*\nเลือกระดับความสว่าง:", "Markdown", keyboardJson);
@@ -77,7 +77,7 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
 
                     if (valStr == "AUTO")
                     {
-                        lm->setManualMode(false); 
+                        lm->setManualMode(false);
                         bot->sendMessage(chat_id, "✅ *โหมดของระบบ: ออโต้*\nระบบกลับไปควบคุมแสงตามเวลาปกติแล้ว", "Markdown");
                     }
                     else
@@ -132,7 +132,7 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 // แถว 1: 20, 40, 60
                 keyboardJson += "[{\"text\":\"20%\",\"callback_data\":\"MAN_20\"},{\"text\":\"40%\",\"callback_data\":\"MAN_40\"},{\"text\":\"60%\",\"callback_data\":\"MAN_60\"}],";
                 // แถว 2: 80, 100
-                keyboardJson += "[{\"text\":\"80%\",\"callback_data\":\"MAN_80\"},{\"text\":\"100%\",\"callback_data\":\"MAN_100\"}],";
+                keyboardJson += "[{\"text\":\"80%\",\"callback_data\":\"MAN_80\"},{\"text\":\"100%\",\"callback_data\":\"MAN_100\"}]";
                 keyboardJson += "]";
 
                 bot->sendMessageWithInlineKeyboard(chat_id, "💡 *เปิดไฟ 100% แล้ว*\nสามารถปรับลดระดับความสว่างได้:", "Markdown", keyboardJson);

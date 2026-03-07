@@ -93,20 +93,6 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
     }
     float vBus = pm->getVoltage();
     float cCharge = pm->getCurrent();
-    if (vBus > 14.5 && cCharge < 0.01)
-    {
-        if (!errDiode)
-        {
-            String msg = "⚠️ ระวัง: แดดแรงแต่ไฟไม่ชาร์จเข้าแบตเตอรี่ อุปกรณ์กันไฟย้อนอาจเสีย (ตรวจสอบไดโอดชาร์จ)";
-            m_logger->sysLog("ALARM", msg);
-            tg->sendAlert("HARDWARE", msg);
-            errDiode = true;
-        }
-    }
-    else
-    {
-        errDiode = false;
-    }
     int currentBrightness = 0;
     lm->getBrightness(currentBrightness);
     float currentLoad = pm->getCurrent();
@@ -145,7 +131,7 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
         }
     } else { errBuckHighTemp = false; }
 
-    if (vBat > 15.5) {
+    if (vBat > 3.8) {
         if (!errBuckVoltage) {
             String msg = "⚠️ ระวัง: เครื่องแปลงไฟแรงดันสูงเกินไป (" + String(vBat, 2) + "V) อาจทำให้แบตเตอรี่เสียหาย";
             m_logger->sysLog("CRITICAL", msg);
