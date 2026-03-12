@@ -22,11 +22,9 @@ void FanManager::handle(TempManager* tm) {
 
     if (maxTemp > 45.0) {
         targetSpeed = 210; //210/255*100 = 82% 
-        isFanRunning = true;
     } 
     else if (maxTemp < 40.0) {
         targetSpeed = 0;
-        isFanRunning = false;
     }
     // 40.1 - 44.9 default speed
     if (targetSpeed != currentSpeed) {
