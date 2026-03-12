@@ -93,8 +93,8 @@ void WebDashboardManager::handleStatus()
         v = m_power->getVoltage();
         t_buck = m_temp->getBuckTemp();
         t_led = m_temp->getLedTemp(); 
-        fan = m_fan->isFanRunning();     
-        pct = m_light->getBrightness();
+        fan = m_fan->isFanRunning();    
+        m_light->getBrightness(pct); 
         xSemaphoreGive(*m_mutex); 
 
         DynamicJsonDocument doc(256);
@@ -106,7 +106,6 @@ void WebDashboardManager::handleStatus()
         
         String jsonResponse;
         serializeJson(doc, jsonResponse);
-
         server.send(200, "application/json", jsonResponse);
     }
     else
