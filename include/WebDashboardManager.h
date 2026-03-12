@@ -1,7 +1,8 @@
 #pragma once
 #include <Arduino.h>
 #include <WebServer.h>
-#include <semphr.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include <ArduinoJson.h>
 #include <LittleFS.h>
 #include "LogManager.h"

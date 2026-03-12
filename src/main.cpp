@@ -12,8 +12,9 @@
 #include <Arduino.h>
 #include <Preferences.h>
 #include <esp_task_wdt.h>
-#include <Arduino_FreeRTOS.h>
-#include <semphr.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/semphr.h>
 #include "NetworkManager.h"
 #include "TimeManager.h"
 #include "OTAManager.h"
