@@ -99,7 +99,6 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
             else if (text == "/status" || text == "📊 สถานะระบบ")
             {
                 float v = pm->getVoltage();
-                float c = pm->getCurrent();
                 float tLed = tm->getLedTemp();
                 float tBuck = tm->getBuckTemp();
                 int fanSpeed = fm->getFanSpeed();
@@ -108,7 +107,7 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 lm->getBrightness(lightPct);
 
                 String msg = "📊 *รายงานสถานะระบบ*\n\n";
-                msg += "⚡ *พลังงาน:* " + String(v, 2) + "V | " + String(c, 2) + "A\n";
+                msg += "⚡ *พลังงาน:* " + String(v, 2) + "V\n";
                 msg += "💡 *แสง:* " + String(lightPct) + "%\n";
                 msg += "🌡️ *อุณหภูมิ:* LED " + String(tLed, 1) + "°C | Buck " + String(tBuck, 1) + "°C\n";
                 msg += "🌀 *พัดลม:* " + String(fanSpeed > 0 ? "เปิด" : "ปิด") + "\n";

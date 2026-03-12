@@ -9,10 +9,6 @@ class PowerManager {
         void begin(LogManager* sysLogger);
         float getVoltage();
         void setVoltage(float v) { _isTesting = true; _testVolt = v; }
-        float getCurrent();
-        float getPower();
-        float getChargeRate();
-        float getDischargeRate();
         void printPowerInfo();
         bool isPowerSafe();
         bool isInaAvailable() { return _inaAvailable; }

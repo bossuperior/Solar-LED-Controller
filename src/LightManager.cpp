@@ -69,7 +69,7 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
     if (tm != nullptr)
     {
         float temp = tm->getLedTemp();
-        if (temp > 65.0)
+        if (temp > 65.0 && temp != 85.0 && temp != -127.0)
         {
             isTempThrottled = true;
         }

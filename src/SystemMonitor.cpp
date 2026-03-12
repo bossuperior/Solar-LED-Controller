@@ -25,20 +25,6 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
     {
         errPower = false;
     }
-    if (!pm->isInaAvailable() && tr->getYear() < 2024)
-    {
-        if (!errBuckBoost)
-        {
-            String msg = "⚠️ ระวัง: ระบบไฟฟ้าไม่เสถียร! (ตรวจสอบ TPS63020)";
-            m_logger->sysLog("CRITICAL", msg);
-            tg->sendAlert("HARDWARE", msg);
-            errBuckBoost = true;
-        }
-    }
-    else
-    {
-        errBuckBoost = false;
-    }
 
     if (!tm->isSensorHealthy())
     {
@@ -92,36 +78,7 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
         errTime = false;
     }
     float vBus = pm->getVoltage();
-    float cCharge = pm->getCurrent();
-    int currentBrightness = 0;
-    lm->getBrightness(currentBrightness);
-    float currentLoad = pm->getCurrent();
-    if (currentBrightness == 0 && currentLoad > 0.10)
-    {
-        if (!errMosfetShort)
-        {
-            tg->sendAlert("HARDWARE", "🚨 อันตราย: ไฟรั่วกินกระแสขณะปิดไฟ (ตรวจสอบ MOSFET)");
-            errMosfetShort = true;
-        }
-    }
-    else
-    {
-        errMosfetShort = false;
-    }
-    if (currentBrightness > 80 && currentLoad < 0.02)
-    {
-        if (!errMosfetOpen)
-        {
-            tg->sendAlert("HARDWARE", "⚠️ ระวัง: ไม่มีกระแสขณะเปิดไฟ (ตรวจสอบ MOSFET)");
-            errMosfetOpen = true;
-        }
-    }
-    else
-    {
-        errMosfetOpen = false;
-    }
     float bTemp = tm->getBuckTemp(); 
-    float vBat = pm->getVoltage(); 
     if (bTemp > 75.0) {
         if (!errBuckHighTemp) {
             String msg = "⚠️ ระวัง: เครื่องแปลงไฟร้อนจัดเกินไป (" + String(bTemp, 1) + "°C) ระบบกำลังลดไฟเพื่อป้องกันไฟไหม้";
@@ -131,9 +88,9 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
         }
     } else { errBuckHighTemp = false; }
 
-    if (vBat > 3.8) {
+    if (vBus > 3.8) {
         if (!errBuckVoltage) {
-            String msg = "⚠️ ระวัง: เครื่องแปลงไฟแรงดันสูงเกินไป (" + String(vBat, 2) + "V) อาจทำให้แบตเตอรี่เสียหาย";
+            String msg = "⚠️ ระวัง: เครื่องแปลงไฟแรงดันสูงเกินไป (" + String(vBus, 2) + "V) อาจทำให้แบตเตอรี่เสียหาย";
             m_logger->sysLog("CRITICAL", msg);
             tg->sendAlert("POWER", msg);
             errBuckVoltage = true;
