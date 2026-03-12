@@ -16,13 +16,15 @@ void FanManager::handle(TempManager* tm) {
     if (tm == nullptr) return;
 
     float buckTemp = tm->getBuckTemp();
+    float ledTemp = tm->getLedTemp();
+    float maxTemp = max(buckTemp, ledTemp);
     int targetSpeed = currentSpeed;
 
-    if (buckTemp > 45.0) {
+    if (maxTemp > 45.0) {
         targetSpeed = 210; //210/255*100 = 82% 
         isFanRunning = true;
     } 
-    else if (buckTemp < 40.0) {
+    else if (maxTemp < 40.0) {
         targetSpeed = 0;
         isFanRunning = false;
     }
@@ -32,7 +34,7 @@ void FanManager::handle(TempManager* tm) {
         
         if (m_logger != nullptr) {
             String status = (targetSpeed > 0) ? "ON (" + String(targetSpeed) + ")" : "OFF";
-            m_logger->sysLog("FAN", "Buck Temp: " + String(buckTemp, 1) + "C, Fan " + status);
+            m_logger->sysLog("FAN", "Max Temp: " + String(maxTemp, 1) + "C, Fan " + status);
         }
     }
 }

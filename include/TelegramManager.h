@@ -4,6 +4,7 @@
 #include <ArduinoJson.h>
 #include <esp_task_wdt.h>
 #include <Preferences.h>
+#include <WiFi.h>
 #include "secret.h"
 #include "LogManager.h"
 #include "PowerManager.h"

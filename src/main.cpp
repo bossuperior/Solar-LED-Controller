@@ -25,6 +25,7 @@
 #include "SystemMonitor.h"
 #include "TelegramManager.h"
 #include "GsheetManager.h"
+#include "WebDashboardManager.h"
 
 #ifndef PIO_UNIT_TESTING
 #define WDT_TIMEOUT 20
@@ -47,6 +48,7 @@ PowerManager power;
 FanManager fan;
 TelegramManager telegram;
 GsheetManager gsheet;
+WebDashboardManager dashboard;
 
 // --- Global Shared Variables ---
 String firmwareVersion;
@@ -111,6 +113,7 @@ void CommLoop(void *pvParameters)
   for (;;)
   {
     network.handle();
+    dashboard.handle();
     if (network.isInternetAvailable() && xSemaphoreTake(mutexKey, pdMS_TO_TICKS(100)) == pdTRUE)
     {
       int h = timer.getHour();
@@ -160,6 +163,7 @@ void setup()
   telegram.begin(&sysLogger);
   gsheet.begin(&sysLogger, &timer);
   monitor.begin(&sysLogger);
+  dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey);
 
   // Load Metadata
   preferences.begin("app_info", false);

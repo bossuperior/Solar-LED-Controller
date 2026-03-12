@@ -1,0 +1,33 @@
+#pragma once
+#include <Arduino.h>
+#include <WebServer.h>
+#include <semphr.h>
+#include <ArduinoJson.h>
+#include <LittleFS.h>
+#include "LogManager.h"
+#include "LightManager.h"
+#include "PowerManager.h"
+#include "TempManager.h"
+#include "FanManager.h"
+
+class WebDashboardManager
+{
+private:
+    WebServer server;
+    LogManager* m_sysLogger;
+    LightManager* m_light;
+    PowerManager* m_power;
+    TempManager* m_temp;
+    SemaphoreHandle_t* m_mutex;
+
+    void handleautoSetting();
+    void handleManOn();
+    void handleManOff();
+    void handleStatus();
+    void handleUpdateSchedule();
+
+public:
+    WebDashboardManager();
+    void begin(LogManager* sysLogger, LightManager* light, PowerManager* power, TempManager* temp,FanManager* fan, SemaphoreHandle_t* mutex);
+    void handle();
+};

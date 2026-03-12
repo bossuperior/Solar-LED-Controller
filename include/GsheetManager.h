@@ -1,3 +1,4 @@
+#pragma once
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <esp_task_wdt.h>
