@@ -122,7 +122,9 @@ void loop()
       String tempMsg = "LED Temp: " + String(temp.getLedTemp(), 1) + " C, Buck Temp: " + String(temp.getBuckTemp(), 1) + " C";
       sysLogger.sysLog("TEMP", tempMsg);
       lastLogPrint = millis();
-      gsheet.sendData(power.getVoltage(), temp.getLedTemp(), temp.getBuckTemp(), fan.getFanSpeed(), light.getBrightness());
+      int currentLightPct = 0;
+      light.getBrightness(currentLightPct);
+      gsheet.sendData(power.getVoltage(), temp.getLedTemp(), temp.getBuckTemp(), fan.getFanSpeed(), currentLightPct);
     }
   }
   delay(10);
