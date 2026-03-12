@@ -94,7 +94,7 @@ void WebDashboardManager::handleStatus()
         t_buck = m_temp->getBuckTemp();
         t_led = m_temp->getLedTemp(); 
         fan = m_fan->isFanRunning();     
-        pct = m_light->getBrightnessPercent();
+        pct = m_light->getBrightness();
         xSemaphoreGive(*m_mutex); 
 
         DynamicJsonDocument doc(256);

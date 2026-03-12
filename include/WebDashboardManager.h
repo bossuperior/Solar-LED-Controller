@@ -20,6 +20,8 @@ private:
     PowerManager* m_power;
     TempManager* m_temp;
     SemaphoreHandle_t* m_mutex;
+    LogManager* m_logger;
+    FanManager* m_fan;
 
     void handleautoSetting();
     void handleManOn();
