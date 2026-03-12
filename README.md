@@ -8,7 +8,8 @@ An industrial-grade, dual-core ESP32 controller designed for solar-powered LED l
 
 ## ✨ Key Features
 
-* **🧠 Dual-Core Architecture (FreeRTOS):** * **Core 1 (Hardware):** Handles real-time PWM lighting, temperature monitoring, fan speed, and power safety.
+* **🧠 Dual-Core Architecture (FreeRTOS):** 
+    * **Core 1 (Hardware):** Handles real-time PWM lighting, temperature monitoring, fan speed, and power safety.
     * **Core 0 (Network):** Handles Wi-Fi, Telegram Bot, Google Sheets logging, and OTA updates.
     * *Data synchronized safely using FreeRTOS Mutex.*
 * **🔋 Power & Safety Management:** Continuously monitors battery/solar voltage. Automatically shuts down the lighting system if the power is deemed unsafe and recovers automatically when stable.
