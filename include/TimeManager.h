@@ -22,6 +22,7 @@ public:
     void begin(LogManager* sysLogger);
     void handle();
     void getCurrentTime(struct tm &timeinfo);
+    String getCurrentTime();
     void printTime();
     int getHour();
     int getMinute();

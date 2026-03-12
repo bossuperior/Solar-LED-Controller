@@ -43,5 +43,5 @@ void FanManager::setFanSpeed(int speed) {
 }
 
 int FanManager::getFanSpeed() {
-    return currentSpeed;
+    return map(currentSpeed, 0, 255, 0, 100);
 }

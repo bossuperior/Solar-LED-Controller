@@ -5,7 +5,7 @@ void TelegramManager::begin(LogManager *sysLogger)
 {
     m_sysLogger = sysLogger;
     client.setInsecure();
-    bot = new UniversalTelegramBot(TELEGRAM_BOT_TOKEN, client);
+    bot = new UniversalTelegramBot(SECRET_TELEGRAM_BOT_TOKEN, client);
     if (m_sysLogger != nullptr)
     {
         m_sysLogger->sysLog("TELEGRAM", "Telegram Bot initialized");
@@ -18,7 +18,7 @@ void TelegramManager::sendAlert(String module, String message)
     text += "📌 *โมดูล:* " + module + "\n";
     text += "⚠️ *สถานะ:* " + message;
 
-    bot->sendMessage(TELEGRAM_CHAT_ID, text, "Markdown");
+    bot->sendMessage(SECRET_TELEGRAM_CHAT_ID, text, "Markdown");
 }
 
 void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManager *fm, LightManager *lm)
@@ -102,15 +102,20 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 float tLed = tm->getLedTemp();
                 float tBuck = tm->getBuckTemp();
                 int fanSpeed = fm->getFanSpeed();
-
                 int lightPct = 0;
                 lm->getBrightness(lightPct);
+                Preferences preferences;
+                String firmwareVersion;
+                preferences.begin("app_info", false);
+                firmwareVersion = preferences.getString("fw_ver", "v0.0.0-dev");
+                preferences.end();
 
                 String msg = "📊 *รายงานสถานะระบบ*\n\n";
                 msg += "⚡ *พลังงาน:* " + String(v, 2) + "V\n";
                 msg += "💡 *แสง:* " + String(lightPct) + "%\n";
                 msg += "🌡️ *อุณหภูมิ:* LED " + String(tLed, 1) + "°C | Buck " + String(tBuck, 1) + "°C\n";
-                msg += "🌀 *พัดลม:* " + String(fanSpeed > 0 ? "เปิด" : "ปิด") + "\n";
+                msg += "🌀 *พัดลม:* " + String(fanSpeed > 0 ? "เปิด" : "ปิด")+" | ความเร็ว: " + String(fanSpeed) + "%\n";
+                msg += "🔄 *เวอร์ชันเฟิร์มแวร์:* " + firmwareVersion + "\n";
 
                 bot->sendMessage(chat_id, msg, "Markdown");
             }

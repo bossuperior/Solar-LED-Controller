@@ -113,10 +113,10 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
         }
     }
 }
-void LightManager::getBrightness(int &currentPercent)
+void LightManager::getBrightness(int &intensityPercent)
 {
     int dutyCycle = ledcRead(pwmChannel);
-    currentPercent = map(dutyCycle, 0, 255, 0, 100);
+    intensityPercent = map(dutyCycle, 0, 255, 0, 100);
 }
 
 void LightManager::setPeriodBrightness(int period, int percent)

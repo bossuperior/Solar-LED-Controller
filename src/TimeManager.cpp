@@ -92,6 +92,20 @@ void TimeManager::getCurrentTime(struct tm &timeinfo)
         _isTimeSynced = true;
     }
 }
+String TimeManager::getCurrentTime()
+{
+    struct tm timeinfo;
+    // เรียกใช้ร่างที่ 1 มาช่วยดึงเวลา
+    getCurrentTime(timeinfo); 
+
+    if (!_isTimeSynced) {
+        return "1970-01-01 00:00:00";
+    }
+    char timeStringBuff[50];
+    strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", &timeinfo);
+    
+    return String(timeStringBuff);
+}
 
 void TimeManager::printTime()
 {

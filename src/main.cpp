@@ -11,6 +11,7 @@
 #include "FanManager.h"
 #include "SystemMonitor.h"
 #include "TelegramManager.h"
+#include "GsheetManager.h"
 
 #ifndef PIO_UNIT_TESTING
 #define WDT_TIMEOUT 20
@@ -26,6 +27,7 @@ LogManager sysLogger;
 PowerManager power;
 FanManager fan;
 TelegramManager telegram;
+GsheetManager gsheet;
 String firmwareVersion;
 
 // Check for updates time setup
@@ -48,6 +50,7 @@ void setup()
   light.begin(&sysLogger);
   fan.begin(&sysLogger);
   telegram.begin(&sysLogger);
+  gsheet.begin(&sysLogger, &timer);
   monitor.begin(&sysLogger);
   preferences.begin("app_info", false);
   firmwareVersion = preferences.getString("fw_ver", "v0.0.0-dev");
@@ -119,6 +122,7 @@ void loop()
       String tempMsg = "LED Temp: " + String(temp.getLedTemp(), 1) + " C, Buck Temp: " + String(temp.getBuckTemp(), 1) + " C";
       sysLogger.sysLog("TEMP", tempMsg);
       lastLogPrint = millis();
+      gsheet.sendData(power.getVoltage(), temp.getLedTemp(), temp.getBuckTemp(), fan.getFanSpeed(), light.getBrightness());
     }
   }
   delay(10);
