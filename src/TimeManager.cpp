@@ -1,3 +1,14 @@
+/*
+ * Copyright 2026 Komkrit Tungtatiyapat
+ *
+ * Personal and Educational Use Only.
+ * This software is provided for educational and non-commercial purposes. 
+ * Any commercial use, modification for commercial purposes, manufacturing, 
+ * or distribution for profit is strictly prohibited without prior written 
+ * permission from the author.
+ * * To request a commercial license, please contact: komkrit.tungtatiyapat@gmail.com
+ */
+
 #include "TimeManager.h"
 #include "NetworkManager.h"
 #include "LogManager.h"
@@ -95,7 +106,6 @@ void TimeManager::getCurrentTime(struct tm &timeinfo)
 String TimeManager::getCurrentTime()
 {
     struct tm timeinfo;
-    // เรียกใช้ร่างที่ 1 มาช่วยดึงเวลา
     getCurrentTime(timeinfo); 
 
     if (!_isTimeSynced) {

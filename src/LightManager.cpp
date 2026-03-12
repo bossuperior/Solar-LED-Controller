@@ -1,3 +1,14 @@
+/*
+ * Copyright 2026 Komkrit Tungtatiyapat
+ *
+ * Personal and Educational Use Only.
+ * This software is provided for educational and non-commercial purposes. 
+ * Any commercial use, modification for commercial purposes, manufacturing, 
+ * or distribution for profit is strictly prohibited without prior written 
+ * permission from the author.
+ * * To request a commercial license, please contact: komkrit.tungtatiyapat@gmail.com
+ */
+
 #include "LightManager.h"
 
 extern Preferences preferences;
