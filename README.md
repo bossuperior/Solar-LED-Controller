@@ -1,6 +1,6 @@
 # Solar-LED-Controller
 
-<img width="4827" height="2697" alt="Solar_LED Circuit_Sketch" src="https://github.com/user-attachments/assets/7c7bde6c-bc2e-4f62-b7bc-4089253ebe0f" />
+<img width="4944" height="2697" alt="Solar_LED_Circuit_Smart" src="https://github.com/user-attachments/assets/e328cd19-2e8a-4bdb-95d4-b7937f000d6c" />
 
 # 🌞 Solar LED Controller (ESP32 + FreeRTOS)
 
@@ -12,6 +12,9 @@ An industrial-grade, dual-core ESP32 controller designed for solar-powered LED l
   - **Core 0 (Network):** Handles Wi-Fi, Telegram Bot, Google Sheets logging, Local Web API, and OTA updates.
   - _Data synchronized safely using FreeRTOS Mutex._
 - **🌐 Local Web Dashboard:** Sleek, responsive UI built with Vite, TypeScript, and Tailwind CSS. Hosted directly on the ESP32 via LittleFS for real-time monitoring and schedule configuration without cloud dependency.
+  
+  <img width="1890" height="934" alt="image" src="https://github.com/user-attachments/assets/b3ad4c06-3f78-4ab6-80b1-bc2488ff0b87" />
+
 - **📴 Offline AP Fallback:** Automatically switches to Access Point mode (`SOLAR_LED_AP`) if the primary Wi-Fi drops, ensuring the dashboard remains 100% accessible via `192.168.4.1` anywhere, anytime.
 - **🔋 Power & Safety Management:** Continuously monitors battery/solar voltage. Automatically shuts down the lighting system if the power is deemed unsafe and recovers automatically when stable.
 - **🌡️ Active Thermal Control:** Reads temperatures from both the LED module and Buck converter to dynamically adjust cooling fan speed via PWM based on the highest temperature (Max Temp).
