@@ -119,6 +119,7 @@ void CommLoop(void *pvParameters)
 
     if (network.isInternetAvailable())
     {
+      ota.validateUpdate();
       int h = 0, m = 0;
       float send_v = 0, send_led_t = 0, send_buck_t = 0;
       int send_fan = 0, send_light = 0;
@@ -156,7 +157,7 @@ void CommLoop(void *pvParameters)
       if (doOTA)
       {
         sysLogger.sysLog("OTA", "Scheduled update check...");
-        ota.checkUpdate(firmwareVersion, &sysLogger);
+        ota.checkUpdate(firmwareVersion, &sysLogger, &power);
       }
       if (doLog)
       {
@@ -165,7 +166,7 @@ void CommLoop(void *pvParameters)
         gsheet.sendData(send_v, send_led_t, send_buck_t, send_fan, send_light);
       }
     }
-    
+    ota.handleSafetyTimer();
     esp_task_wdt_reset();
     vTaskDelay(100 / portTICK_PERIOD_MS);
   }
@@ -196,6 +197,7 @@ void setup()
   gsheet.begin(&sysLogger, &timer);
   monitor.begin(&sysLogger);
   dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey);
+  ota.begin();
 
   // Load Metadata
   preferences.begin("app_info", false);

@@ -2,15 +2,17 @@
  * Copyright 2026 Komkrit Tungtatiyapat
  *
  * Personal and Educational Use Only.
- * This software is provided for educational and non-commercial purposes. 
- * Any commercial use, modification for commercial purposes, manufacturing, 
- * or distribution for profit is strictly prohibited without prior written 
+ * This software is provided for educational and non-commercial purposes.
+ * Any commercial use, modification for commercial purposes, manufacturing,
+ * or distribution for profit is strictly prohibited without prior written
  * permission from the author.
  * * To request a commercial license, please contact: komkrit.tungtatiyapat@gmail.com
  */
 
 #include "TelegramManager.h"
 #include "LightManager.h"
+
+extern Preferences preferences;
 
 void TelegramManager::begin(LogManager *sysLogger)
 {
@@ -35,6 +37,9 @@ void TelegramManager::sendAlert(String module, String message)
 void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManager *fm, LightManager *lm)
 {
     esp_task_wdt_reset();
+    preferences.begin("app_info", true);
+    String firmwareVersion = preferences.getString("fw_ver", "v0.0.0-dev");
+    preferences.end();
     int numNewMessages = bot->getUpdates(bot->last_message_received + 1);
 
     while (numNewMessages)
@@ -106,6 +111,11 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                         }
                     }
                 }
+                else if (data == "FORCE_UPDATE")
+                {
+                    bot->sendMessage(chat_id, "⏳ กำลังเริ่มกระบวนการ OTA... ระบบจะรีบูตอัตโนมัติหากพบเวอร์ชันใหม่", "Markdown");
+                    ota.checkUpdate(firmwareVersion, m_sysLogger, pm);
+                }
             }
             else if (text == "/status" || text == "📊 สถานะระบบ")
             {
@@ -115,17 +125,12 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 int fanSpeed = fm->getFanSpeed();
                 int lightPct = 0;
                 lm->getBrightness(lightPct);
-                Preferences preferences;
-                String firmwareVersion;
-                preferences.begin("app_info", false);
-                firmwareVersion = preferences.getString("fw_ver", "v0.0.0-dev");
-                preferences.end();
 
                 String msg = "📊 *รายงานสถานะระบบ*\n\n";
                 msg += "⚡ *พลังงาน:* " + String(v, 2) + "V\n";
                 msg += "💡 *แสง:* " + String(lightPct) + "%\n";
                 msg += "🌡️ *อุณหภูมิ:* LED " + String(tLed, 1) + "°C | Buck " + String(tBuck, 1) + "°C\n";
-                msg += "🌀 *พัดลม:* " + String(fanSpeed > 0 ? "เปิด" : "ปิด")+" | ความเร็ว: " + String(fanSpeed) + "%\n";
+                msg += "🌀 *พัดลม:* " + String(fanSpeed > 0 ? "เปิด" : "ปิด") + " | ความเร็ว: " + String(fanSpeed) + "%\n";
                 msg += "🔄 *เวอร์ชันเฟิร์มแวร์:* " + firmwareVersion + "\n";
 
                 bot->sendMessage(chat_id, msg, "Markdown");
@@ -157,21 +162,32 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 lm->setManualMode(false, 0);
                 bot->sendMessage(chat_id, "💡 ปิดไฟแล้วและกลับสู่โหมดอัตโนมัติ", "Markdown");
             }
-            else if (text == "/dashboard" || text == "🌐 หน้าเว็บควบคุม") 
+            else if (text == "/dashboard" || text == "🌐 หน้าเว็บควบคุม")
             {
                 String ipStr = WiFi.localIP().toString();
-                
+
                 String msg = "🌐 *หน้าเว็บควบคุม (ใช้ตอนเชื่อมต่อเน็ตไม่ได้)*\n\n";
                 msg += "⚠️ คลิกลิงก์ด้านล่างเพื่อเข้าสู่หน้าเว็บควบคุม (คุณต้องเชื่อมต่อ WiFi  ชื่อ `T_SOLAR_LED_AP` ก่อนการใช้งาน):\n";
                 msg += "👉 http://192.168.4.1\n\n";
                 bot->sendMessage(chat_id, msg, "Markdown");
+            }
+            else if (text == "/update" || text == "🔄 ตรวจสอบอัปเดต")
+            {
+                String keyboardJson = "[[{\"text\":\"🚀 ยืนยันอัปเดตเดี๋ยวนี้\",\"callback_data\":\"FORCE_UPDATE\"}]]";
+                bot->sendMessageWithInlineKeyboard(chat_id, "🔍 *ระบบตรวจสอบเวอร์ชันปัจจุบัน:* " + firmwareVersion + "\n\nต้องการตรวจสอบและบังคับอัปเดตจาก GitHub ตอนนี้เลยไหมครับ?", "Markdown", keyboardJson);
+            }
+            else if (text == "/rollback" || text == "↩️ ย้อนเวอร์ชันอัปเดต")
+            {
+                ota.triggerRollback();
             }
             else
             {
                 String keyboardJson = "[";
                 keyboardJson += "[\"💡 เปิดไฟ (แมนนวล)\", \"🌑 ปิดไฟ (กลับโหมด AUTO)\"],";
                 keyboardJson += "[\"⏱️ ตั้งเวลาแสง\", \"📊 สถานะระบบ\"],";
-                keyboardJson += "[\"🌐 หน้าเว็บควบคุม\"]";
+                keyboardJson += "[\"🌐 หน้าเว็บควบคุม\"],";
+                keyboardJson += "[\"🔄 ตรวจสอบอัปเดต\"],";
+                keyboardJson += "[\"↩️ ย้อนเวอร์ชันอัปเดต\"]";
                 keyboardJson += "]";
                 bot->sendMessageWithReplyKeyboard(chat_id, "👇 เลือกคำสั่งจากปุ่มด้านล่างได้เลย", "", keyboardJson, true);
             }

@@ -78,22 +78,38 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
         errTime = false;
     }
     float vBus = pm->getVoltage();
-    float bTemp = tm->getBuckTemp(); 
-    if (bTemp > 75.0) {
-        if (!errBuckHighTemp) {
+    float bTemp = tm->getBuckTemp();
+    if (bTemp > 75.0)
+    {
+        if (!errBuckHighTemp)
+        {
             String msg = "⚠️ ระวัง: เครื่องแปลงไฟร้อนจัดเกินไป (" + String(bTemp, 1) + "°C) ระบบกำลังลดไฟเพื่อป้องกันไฟไหม้";
             m_logger->sysLog("ALARM", msg);
             tg->sendAlert("HARDWARE", msg);
             errBuckHighTemp = true;
         }
-    } else { errBuckHighTemp = false; }
+    }
+    else if (bTemp < 65.0)
+    {
+        errBuckHighTemp = false;
+    }
+    else
+    {
+        errBuckHighTemp = false;
+    }
 
-    if (vBus > 3.8) {
-        if (!errBuckVoltage) {
+    if (vBus > 3.8)
+    {
+        if (!errBuckVoltage)
+        {
             String msg = "⚠️ ระวัง: เครื่องแปลงไฟแรงดันสูงเกินไป (" + String(vBus, 2) + "V) อาจทำให้แบตเตอรี่เสียหาย";
             m_logger->sysLog("CRITICAL", msg);
             tg->sendAlert("POWER", msg);
             errBuckVoltage = true;
         }
-    } else { errBuckVoltage = false; }
+    }
+    else
+    {
+        errBuckVoltage = false;
+    }
 }
