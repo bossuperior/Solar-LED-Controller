@@ -30,7 +30,7 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
     m_power = pm;
     float voltage = pm->getVoltage();
     int rssi = WiFi.RSSI();
-    if (!force)
+    if (force == false)
     {
         if (pm->isInaAvailable() && voltage < 0.1)
         {
@@ -95,7 +95,7 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
 
             if (latestTag == currentVersion)
             {
-                if (!force) 
+                if (force == false) 
                 {
                     if (m_logger != nullptr)
                     {

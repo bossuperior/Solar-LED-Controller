@@ -30,7 +30,7 @@
 #include "WebDashboardManager.h"
 
 #ifndef PIO_UNIT_TESTING
-#define WDT_TIMEOUT 20
+#define WDT_TIMEOUT 45
 
 // --- Task & Sync Handles ---
 TaskHandle_t TaskHardware;
@@ -125,6 +125,7 @@ void CommLoop(void *pvParameters)
       int send_fan = 0, send_light = 0;
       bool doOTA = false;
       bool doLog = false;
+      bool canUpdateTelegram = false;
 
       // Mutex to safely read shared data and check conditions without blocking for too long
       if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(100)) == pdTRUE)
@@ -133,7 +134,7 @@ void CommLoop(void *pvParameters)
         m = timer.getMinute();
 
         if (!ota.isUpdating) {
-          telegram.checkMessages(&power, &temp, &fan, &light, &ota);
+          canUpdateTelegram = true;
           send_v = power.getVoltage();
           send_led_t = temp.getLedTemp();
           send_buck_t = temp.getBuckTemp();
@@ -153,6 +154,10 @@ void CommLoop(void *pvParameters)
           lastLogSent = millis();
         }
         xSemaphoreGive(mutexKey);
+      }
+      if (canUpdateTelegram) {
+        telegram.checkMessages(&power, &temp, &fan, &light, &ota);
+        esp_task_wdt_reset();
       }
       if (doOTA)
       {
