@@ -133,7 +133,7 @@ void CommLoop(void *pvParameters)
         m = timer.getMinute();
 
         if (!ota.isUpdating) {
-          telegram.checkMessages(&power, &temp, &fan, &light);
+          telegram.checkMessages(&power, &temp, &fan, &light, &ota);
           send_v = power.getVoltage();
           send_led_t = temp.getLedTemp();
           send_buck_t = temp.getBuckTemp();

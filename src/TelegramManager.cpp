@@ -10,7 +10,6 @@
  */
 
 #include "TelegramManager.h"
-#include "LightManager.h"
 
 extern Preferences preferences;
 
@@ -34,13 +33,15 @@ void TelegramManager::sendAlert(String module, String message)
     bot->sendMessage(SECRET_TELEGRAM_CHAT_ID, text, "Markdown");
 }
 
-void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManager *fm, LightManager *lm)
+void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManager *fm, LightManager *lm, OTAManager *ota)
 {
     esp_task_wdt_reset();
     preferences.begin("app_info", true);
     String firmwareVersion = preferences.getString("fw_ver", "v0.0.0-dev");
     preferences.end();
     int numNewMessages = bot->getUpdates(bot->last_message_received + 1);
+    m_ota = ota;
+    m_light = lm;
 
     while (numNewMessages)
     {
@@ -114,7 +115,7 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 else if (data == "FORCE_UPDATE")
                 {
                     bot->sendMessage(chat_id, "⏳ กำลังเริ่มกระบวนการ OTA... ระบบจะรีบูตอัตโนมัติหากพบเวอร์ชันใหม่", "Markdown");
-                    ota.checkUpdate(firmwareVersion, m_sysLogger, pm);
+                    m_ota->checkUpdate(firmwareVersion, m_sysLogger, pm);
                 }
             }
             else if (text == "/status" || text == "📊 สถานะระบบ")
@@ -178,16 +179,15 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
             }
             else if (text == "/rollback" || text == "↩️ ย้อนเวอร์ชันอัปเดต")
             {
-                ota.triggerRollback();
+                m_ota->triggerRollback();
             }
             else
             {
                 String keyboardJson = "[";
                 keyboardJson += "[\"💡 เปิดไฟ (แมนนวล)\", \"🌑 ปิดไฟ (กลับโหมด AUTO)\"],";
                 keyboardJson += "[\"⏱️ ตั้งเวลาแสง\", \"📊 สถานะระบบ\"],";
-                keyboardJson += "[\"🌐 หน้าเว็บควบคุม\"],";
-                keyboardJson += "[\"🔄 ตรวจสอบอัปเดต\"],";
-                keyboardJson += "[\"↩️ ย้อนเวอร์ชันอัปเดต\"]";
+                keyboardJson += "[\"🔄 ตรวจสอบอัปเดต\",\"↩️ ย้อนเวอร์ชันอัปเดต\"],";
+                keyboardJson += "[\"🌐 หน้าเว็บควบคุม\"]";
                 keyboardJson += "]";
                 bot->sendMessageWithReplyKeyboard(chat_id, "👇 เลือกคำสั่งจากปุ่มด้านล่างได้เลย", "", keyboardJson, true);
             }
