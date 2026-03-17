@@ -4,7 +4,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include <ArduinoJson.h>
-#include <LittleFS.h>
+#include <SPIFFS.h>
 #include "LogManager.h"
 #include "LightManager.h"
 #include "PowerManager.h"

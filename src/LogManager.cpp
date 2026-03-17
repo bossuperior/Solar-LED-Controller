@@ -14,20 +14,20 @@
 extern TimeManager timer;
 
 void LogManager::begin() {
-    if (!LittleFS.begin(true)) {
-        Serial.println("[SYSTEM] ERROR: LittleFS Mount Failed!");
+    if (!SPIFFS.begin(true)) {
+        Serial.println("[SYSTEM] ERROR: SPIFFS Mount Failed!");
         return;
     }
-    Serial.println("[SYSTEM] Log Manager initialized with LittleFS.");
+    Serial.println("[SYSTEM] Log Manager initialized with SPIFFS.");
 }
 
 void LogManager::rotateLog() {
     Serial.println("[SYSTEM] Rotating logs... (Max size reached)");
-    if (LittleFS.exists(OLD_LOG)) {
-        LittleFS.remove(OLD_LOG);
+    if (SPIFFS.exists(OLD_LOG)) {
+        SPIFFS.remove(OLD_LOG);
     }
-    if (LittleFS.exists(CURRENT_LOG)) {
-        LittleFS.rename(CURRENT_LOG, OLD_LOG);
+    if (SPIFFS.exists(CURRENT_LOG)) {
+        SPIFFS.rename(CURRENT_LOG, OLD_LOG);
     }
 }
 
@@ -35,7 +35,7 @@ void LogManager::sysLog(String module, String message) {
     String timeNow = timer.getTimeString();
     String logEntry = "[" + timeNow + "] [" + module + "] " + message + "\n";
     Serial.print(logEntry);
-    File file = LittleFS.open(CURRENT_LOG, FILE_APPEND);
+    File file = SPIFFS.open(CURRENT_LOG, FILE_APPEND);
     if (!file) {
         Serial.println("[ERROR] Failed to open log file for appending!");
         return;

@@ -163,8 +163,8 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 
                 String msg = "🌐 *หน้าเว็บควบคุม*\n\n";
                 msg += "คลิกลิงก์ด้านล่างเพื่อเข้าสู่หน้าเว็บควบคุม (คุณต้องเชื่อมต่อ WiFi วงเดียวกันกับระบบ):\n";
-                msg += "👉 http://" + ipStr + "\n\n";
-                msg += "⚠️ *หมายเหตุ:* กรณีอินเทอร์เน็ตล่ม ให้ใช้มือถือเชื่อมต่อ WiFi ชื่อ `T_SOLAR_LED_AP` แล้วเข้าเว็บผ่าน `http://192.168.4.1` แทนครับ";
+                msg += "👉 http://192.168.4.1\n\n";
+                msg += "⚠️ *หมายเหตุ:* กรณีอินเทอร์เน็ตล่ม ให้ใช้มือถือเชื่อมต่อ WiFi ชื่อ `T_SOLAR_LED_AP` แล้วเข้าเว็บผ่านลิงก์ด้านบนแทนครับ";
 
                 bot->sendMessage(chat_id, msg, "Markdown");
             }
@@ -172,7 +172,7 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
             {
                 String keyboardJson = "[";
                 keyboardJson += "[\"💡 เปิดไฟ (แมนนวล)\", \"🌑 ปิดไฟ (กลับโหมด AUTO)\"],";
-                keyboardJson += "[\"⏱️ ตั้งเวลาแสง\", \"📊 สถานะระบบ\"]";
+                keyboardJson += "[\"⏱️ ตั้งเวลาแสง\", \"📊 สถานะระบบ\"],";
                 keyboardJson += "[\"🌐 หน้าเว็บควบคุม\"]";
                 keyboardJson += "]";
                 bot->sendMessageWithReplyKeyboard(chat_id, "👇 เลือกคำสั่งจากปุ่มด้านล่างได้เลย", "", keyboardJson, true);

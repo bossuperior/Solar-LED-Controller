@@ -15,6 +15,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/semphr.h>
+#include <nvs_flash.h>
 #include "NetworkManager.h"
 #include "TimeManager.h"
 #include "OTAManager.h"
@@ -115,38 +116,58 @@ void CommLoop(void *pvParameters)
   {
     network.handle();
     dashboard.handle();
-    if (network.isInternetAvailable() && xSemaphoreTake(mutexKey, pdMS_TO_TICKS(100)) == pdTRUE)
-    {
-      int h = timer.getHour();
-      int m = timer.getMinute();
 
-      if ((!initialOtaChecked || (h == UPDATE_HOUR && m == UPDATE_MINUTE && !hasCheckedToday)) && !ota.isUpdating)
+    if (network.isInternetAvailable())
+    {
+      int h = 0, m = 0;
+      float send_v = 0, send_led_t = 0, send_buck_t = 0;
+      int send_fan = 0, send_light = 0;
+      bool doOTA = false;
+      bool doLog = false;
+
+      // Mutex to safely read shared data and check conditions without blocking for too long
+      if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(100)) == pdTRUE)
+      {
+        h = timer.getHour();
+        m = timer.getMinute();
+
+        if (!ota.isUpdating) {
+          telegram.checkMessages(&power, &temp, &fan, &light);
+          send_v = power.getVoltage();
+          send_led_t = temp.getLedTemp();
+          send_buck_t = temp.getBuckTemp();
+          send_fan = fan.getFanSpeed();
+          send_light = sharedLightPct;
+        }
+        if ((!initialOtaChecked || (h == UPDATE_HOUR && m == UPDATE_MINUTE && !hasCheckedToday)) && !ota.isUpdating) {
+          doOTA = true;
+          initialOtaChecked = true;
+          hasCheckedToday = (h == UPDATE_HOUR);
+        }
+        if (h != UPDATE_HOUR) {
+          hasCheckedToday = false;
+        }
+        if (!ota.isUpdating && (millis() - lastLogSent >= LOG_INTERVAL)) {
+          doLog = true;
+          lastLogSent = millis();
+        }
+        xSemaphoreGive(mutexKey);
+      }
+      if (doOTA)
       {
         sysLogger.sysLog("OTA", "Scheduled update check...");
         ota.checkUpdate(firmwareVersion, &sysLogger);
-        initialOtaChecked = true;
-        hasCheckedToday = (h == UPDATE_HOUR);
       }
-      if (h != UPDATE_HOUR)
+      if (doLog)
       {
-        hasCheckedToday = false;
+        power.printPowerInfo();
+        sysLogger.sysLog("TEMP", "LED: " + String(send_led_t, 1) + "C | Buck: " + String(send_buck_t, 1) + "C");
+        gsheet.sendData(send_v, send_led_t, send_buck_t, send_fan, send_light);
       }
-
-      if (!ota.isUpdating)
-      {
-        telegram.checkMessages(&power, &temp, &fan, &light);
-        if (millis() - lastLogSent >= LOG_INTERVAL)
-        {
-          power.printPowerInfo();
-          sysLogger.sysLog("TEMP", "LED: " + String(temp.getLedTemp(), 1) + "C | Buck: " + String(temp.getBuckTemp(), 1) + "C");
-          gsheet.sendData(power.getVoltage(), temp.getLedTemp(), temp.getBuckTemp(), fan.getFanSpeed(), sharedLightPct);
-          lastLogSent = millis();
-        }
-      }
-      xSemaphoreGive(mutexKey);
     }
+    
     esp_task_wdt_reset();
-    vTaskDelay(100 / portTICK_PERIOD_MS); // Delay to prevent watchdog reset
+    vTaskDelay(100 / portTICK_PERIOD_MS);
   }
 }
 
@@ -154,9 +175,19 @@ void setup()
 {
   Serial.begin(115200);
   delay(1000);
+  esp_err_t err = nvs_flash_init();
+  if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND)
+  {
+    nvs_flash_erase();
+    err = nvs_flash_init();
+  }
+  sysLogger.begin();
+  if (err == ESP_OK)
+  {
+    sysLogger.sysLog("SYSTEM", "NVS Initialized successfully.");
+  }
   network.begin(&sysLogger);
   timer.begin(&sysLogger);
-  sysLogger.sysLog("SYSTEM", "Solar LED Controller Starting...");
   temp.begin(&sysLogger);
   power.begin(&sysLogger);
   light.begin(&sysLogger);

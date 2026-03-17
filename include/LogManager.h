@@ -1,6 +1,6 @@
 #pragma once
 #include <Arduino.h>
-#include <LittleFS.h>
+#include <SPIFFS.h>
 #include "TimeManager.h"
 
 class LogManager

@@ -21,12 +21,12 @@ void WebDashboardManager::begin(LogManager *sysLogger, LightManager *light, Powe
     m_temp = temp;
     m_fan = fan;
     m_mutex = mutex;
-    if (!LittleFS.begin(true)) {
-        if (m_logger) m_logger->sysLog("WEB", "LittleFS Mount Failed");
+    if (!SPIFFS.begin(true)) {
+        if (m_logger) m_logger->sysLog("WEB", "SPIFFS Mount Failed");
         return;
     }
 
-    server.serveStatic("/", LittleFS, "/");
+    server.serveStatic("/", SPIFFS, "/");
     // Create Routing
     server.on("/autosetting", std::bind(&WebDashboardManager::handleautoSetting, this));
     server.on("/lighton", std::bind(&WebDashboardManager::handleManOn, this));

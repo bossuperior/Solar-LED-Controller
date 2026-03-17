@@ -21,10 +21,10 @@ void LightManager::begin(LogManager *sysLoggerPtr)
     ledcAttachPin(ledPin, pwmChannel);
     targetBrightness(0);
     preferences.begin("light_cfg", true);
-    brightP1 = preferences.getInt("p1", 80);
-    brightP2 = preferences.getInt("p2", 50);
+    brightP1 = preferences.getInt("p1", 70);
+    brightP2 = preferences.getInt("p2", 80);
     brightP3 = preferences.getInt("p3", 50);
-    brightP4 = preferences.getInt("p4", 80);
+    brightP4 = preferences.getInt("p4", 70);
     preferences.end();
 
     String LightInitMsg = "Light Manager initialized on pin " + String(ledPin) + " with PWM channel " + String(pwmChannel);
