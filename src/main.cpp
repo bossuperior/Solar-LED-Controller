@@ -169,13 +169,13 @@ void CommLoop(void *pvParameters)
       {
         ota.pendingForceUpdate = false;
         sysLogger.sysLog("OTA", "Force Update triggered from Telegram!");
-        ota.checkUpdate(firmwareVersion, &sysLogger, &power, true);
+        ota.checkUpdate(firmwareVersion, &sysLogger, &power, &telegram, true);
         esp_task_wdt_reset();
       }
       if (doOTA)
       {
         sysLogger.sysLog("OTA", "Scheduled update check...");
-        ota.checkUpdate(firmwareVersion, &sysLogger, &power);
+        ota.checkUpdate(firmwareVersion, &sysLogger, &power, &telegram);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
       }
       if (doLog)
