@@ -5,6 +5,7 @@
 #include <esp_task_wdt.h>
 #include <Preferences.h>
 #include <WiFi.h>
+#include <HTTPClient.h>
 #include "secret.h"
 #include "LogManager.h"
 #include "PowerManager.h"

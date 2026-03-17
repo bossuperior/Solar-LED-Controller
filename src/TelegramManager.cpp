@@ -115,7 +115,7 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 else if (data == "FORCE_UPDATE")
                 {
                     bot->sendMessage(chat_id, "⏳ กำลังเริ่มกระบวนการ OTA... ระบบจะรีบูตอัตโนมัติหากพบเวอร์ชันใหม่", "Markdown");
-                    m_ota->checkUpdate(firmwareVersion, m_sysLogger, pm);
+                    m_ota->checkUpdate(firmwareVersion, m_sysLogger, pm, true);
                 }
             }
             else if (text == "/status" || text == "📊 สถานะระบบ")
@@ -174,8 +174,51 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
             }
             else if (text == "/update" || text == "🔄 ตรวจสอบอัปเดต")
             {
-                String keyboardJson = "[[{\"text\":\"🚀 ยืนยันอัปเดตเดี๋ยวนี้\",\"callback_data\":\"FORCE_UPDATE\"}]]";
-                bot->sendMessageWithInlineKeyboard(chat_id, "🔍 *ระบบตรวจสอบเวอร์ชันปัจจุบัน:* " + firmwareVersion + "\n\nต้องการตรวจสอบและบังคับอัปเดตจาก GitHub ตอนนี้เลยไหมครับ?", "Markdown", keyboardJson);
+                bot->sendMessage(chat_id, "⏳ กำลังเชื่อมต่อกับเซิร์ฟเวอร์เพื่อตรวจสอบเวอร์ชันล่าสุด...", "Markdown");
+                esp_task_wdt_reset();
+
+                //Fetch latest release tag from GitHub API
+                WiFiClientSecure client;
+                client.setInsecure();
+                client.setTimeout(10000);
+                HTTPClient http;
+                http.begin(client, SECRET_OTA_UPDATE_API);
+                http.addHeader("User-Agent", "ESP32-Telegram");
+
+                int httpCode = http.GET();
+                String latestTag = "";
+
+                if (httpCode == HTTP_CODE_OK)
+                {
+                    String payload = http.getString();
+                    int tagIndex = payload.indexOf("\"tag_name\":\"");
+                    if (tagIndex != -1)
+                    {
+                        latestTag = payload.substring(tagIndex + 12);
+                        latestTag = latestTag.substring(0, latestTag.indexOf("\""));
+                    }
+                }
+                http.end();
+                if (latestTag == "")
+                {
+                    bot->sendMessage(chat_id, "❌ *ตรวจสอบล้มเหลว*\nไม่สามารถดึงข้อมูลจากเซิร์ฟเวอร์ได้ (Error: " + String(httpCode) + ")", "Markdown");
+                }
+                else if (latestTag == firmwareVersion)
+                {
+                    String msg = "✅ *ระบบของคุณอัปเดตล่าสุดแล้ว*\n\n";
+                    msg += "📌 เวอร์ชันปัจจุบัน: `" + firmwareVersion + "`\n";
+                    msg += "🌐 เวอร์ชันบนคลาวด์: `" + latestTag + "`";
+                    bot->sendMessage(chat_id, msg, "Markdown");
+                }
+                else
+                {
+                    String msg = "🎉 *พบเฟิร์มแวร์เวอร์ชันใหม่!*\n\n";
+                    msg += "📌 เวอร์ชันปัจจุบัน: `" + firmwareVersion + "`\n";
+                    msg += "🆕 เวอร์ชันใหม่: `" + latestTag + "`\n\n";
+                    msg += "ต้องการอัปเดตระบบตอนนี้เลยไหม?";
+                    String keyboardJson = "[[{\"text\":\"🚀 ยืนยันอัปเดตเป็น " + latestTag + "\",\"callback_data\":\"FORCE_UPDATE\"}]]";
+                    bot->sendMessageWithInlineKeyboard(chat_id, msg, "Markdown", keyboardJson);
+                }
             }
             else if (text == "/rollback" || text == "↩️ ย้อนเวอร์ชันอัปเดต")
             {

@@ -95,13 +95,23 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
 
             if (latestTag == currentVersion)
             {
-                if (m_logger != nullptr)
+                if (!force) 
                 {
-                    m_logger->sysLog("OTA", "Firmware is up to date. Skipping...");
+                    if (m_logger != nullptr)
+                    {
+                        m_logger->sysLog("OTA", "Firmware is up to date. Skipping...");
+                    }
+                    http.end();
+                    isUpdating = false;
+                    return;
                 }
-                http.end();
-                isUpdating = false;
-                return;
+                else 
+                {
+                    if (m_logger != nullptr)
+                    {
+                        m_logger->sysLog("OTA", "Force update! Re-flashing the same version.");
+                    }
+                }
             }
         }
         else
