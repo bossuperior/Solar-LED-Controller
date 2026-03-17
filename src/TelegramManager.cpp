@@ -161,11 +161,9 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
             {
                 String ipStr = WiFi.localIP().toString();
                 
-                String msg = "🌐 *หน้าเว็บควบคุม*\n\n";
-                msg += "คลิกลิงก์ด้านล่างเพื่อเข้าสู่หน้าเว็บควบคุม (คุณต้องเชื่อมต่อ WiFi วงเดียวกันกับระบบ):\n";
+                String msg = "🌐 *หน้าเว็บควบคุม (ใช้ตอนเชื่อมต่อเน็ตไม่ได้)*\n\n";
+                msg += "⚠️ คลิกลิงก์ด้านล่างเพื่อเข้าสู่หน้าเว็บควบคุม (คุณต้องเชื่อมต่อ WiFi  ชื่อ `T_SOLAR_LED_AP` ก่อนการใช้งาน):\n";
                 msg += "👉 http://192.168.4.1\n\n";
-                msg += "⚠️ *หมายเหตุ:* กรณีอินเทอร์เน็ตล่ม ให้ใช้มือถือเชื่อมต่อ WiFi ชื่อ `T_SOLAR_LED_AP` แล้วเข้าเว็บผ่านลิงก์ด้านบนแทนครับ";
-
                 bot->sendMessage(chat_id, msg, "Markdown");
             }
             else
