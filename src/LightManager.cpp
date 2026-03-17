@@ -16,9 +16,7 @@ extern Preferences preferences;
 void LightManager::begin(LogManager *sysLoggerPtr)
 {
     m_logger = sysLoggerPtr;
-
-    ledcSetup(pwmChannel, pwmFreq, pwmResolution);
-    ledcAttachPin(ledPin, pwmChannel);
+    ledcAttach(ledPin, pwmFreq, pwmResolution);
     targetBrightness(0);
     preferences.begin("light_cfg", true);
     brightP1 = preferences.getInt("p1", 70);

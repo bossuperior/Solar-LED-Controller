@@ -27,18 +27,29 @@ void NetworkManager::handle()
 {
     static unsigned long lastScanTime = 0;
     uint8_t currentStatus = WiFi.status();
-    if (_apModeStarted) 
+    if (_apModeStarted)
     {
-        if (millis() - lastScanTime > 10000) 
+        if (millis() - lastScanTime > 60000)
         {
+            if (m_logger)
+                m_logger->sysLog("NETWORK", "Checking if Home WiFi is back...");
             currentStatus = wifiMulti.run();
             lastScanTime = millis();
+
+            if (currentStatus == WL_CONNECTED)
+            {
+                WiFi.softAPdisconnect(true);
+                delay(100);
+                WiFi.mode(WIFI_STA);
+                _apModeStarted = false;
+                if (m_logger)
+                    m_logger->sysLog("NETWORK", "Home WiFi is back! Returning to STA mode.");
+                return;
+            }
         }
-    } 
-    else 
-    {
-        currentStatus = wifiMulti.run();
+        return;
     }
+    currentStatus = wifiMulti.run();
     if (currentStatus != WL_CONNECTED && !_apModeStarted)
     {
         if (millis() - _startAttemptTime > maxAttemptTime)
@@ -47,14 +58,17 @@ void NetworkManager::handle()
             {
                 m_logger->sysLog("NETWORK", "WiFi Not Found. Starting AP Fallback Mode.");
             }
-            WiFi.disconnect(); 
+            WiFi.disconnect();
             delay(100);
             WiFi.mode(WIFI_AP_STA);
             delay(100);
-            bool apStatus = WiFi.softAP("T_SOLAR_LED_AP",SECRET_AP_PASS);
-            if (apStatus && m_logger != nullptr) {
+            bool apStatus = WiFi.softAP("T_SOLAR_LED_AP", SECRET_AP_PASS);
+            if (apStatus && m_logger != nullptr)
+            {
                 m_logger->sysLog("NETWORK", "AP Started: T_SOLAR_LED_AP, IP: " + WiFi.softAPIP().toString());
-            } else if (m_logger != nullptr) {
+            }
+            else if (m_logger != nullptr)
+            {
                 m_logger->sysLog("NETWORK", "ERROR: Failed to start AP Mode!");
             }
             _apModeStarted = true;
@@ -63,7 +77,7 @@ void NetworkManager::handle()
     }
     else if (currentStatus == WL_CONNECTED && _apModeStarted)
     {
-        WiFi.softAPdisconnect(true); 
+        WiFi.softAPdisconnect(true);
         delay(100);
         WiFi.mode(WIFI_STA);
         _apModeStarted = false;

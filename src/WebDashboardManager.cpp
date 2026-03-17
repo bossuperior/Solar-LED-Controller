@@ -21,12 +21,23 @@ void WebDashboardManager::begin(LogManager *sysLogger, LightManager *light, Powe
     m_temp = temp;
     m_fan = fan;
     m_mutex = mutex;
-    if (!SPIFFS.begin(true)) {
-        if (m_logger) m_logger->sysLog("WEB", "SPIFFS Mount Failed");
+    if (!SPIFFS.begin(true))
+    {
+        if (m_logger)
+            m_logger->sysLog("WEB", "SPIFFS Mount Failed");
         return;
     }
 
-    server.serveStatic("/", SPIFFS, "/");
+    server.on("/", HTTP_GET, [this]() {
+        File file = SPIFFS.open("/index.html", "r");
+        if (file) {
+            server.streamFile(file, "text/html");
+            file.close();
+        } else {
+            server.send(404, "text/plain", "index.html not found");
+        }
+    });
+    server.serveStatic("/assets", SPIFFS, "/assets");
     // Create Routing
     server.on("/autosetting", std::bind(&WebDashboardManager::handleautoSetting, this));
     server.on("/lighton", std::bind(&WebDashboardManager::handleManOn, this));
@@ -92,18 +103,18 @@ void WebDashboardManager::handleStatus()
     {
         v = m_power->getVoltage();
         t_buck = m_temp->getBuckTemp();
-        t_led = m_temp->getLedTemp(); 
-        fan = m_fan->isFanRunning();    
-        m_light->getBrightness(pct); 
-        xSemaphoreGive(*m_mutex); 
+        t_led = m_temp->getLedTemp();
+        fan = m_fan->isFanRunning();
+        m_light->getBrightness(pct);
+        xSemaphoreGive(*m_mutex);
 
         DynamicJsonDocument doc(256);
         doc["volt"] = v;
-        doc["temp_buck"] = t_buck;      
-        doc["temp_led"] = t_led; 
-        doc["fan_on"] = fan;            
+        doc["temp_buck"] = t_buck;
+        doc["temp_led"] = t_led;
+        doc["fan_on"] = fan;
         doc["light"] = pct;
-        
+
         String jsonResponse;
         serializeJson(doc, jsonResponse);
         server.send(200, "application/json", jsonResponse);
@@ -115,22 +126,29 @@ void WebDashboardManager::handleStatus()
 }
 void WebDashboardManager::handleUpdateSchedule()
 {
-    if (server.hasArg("p") && server.hasArg("v")) {
+    if (server.hasArg("p") && server.hasArg("v"))
+    {
         int period = server.arg("p").toInt();
         int percent = server.arg("v").toInt();
-        if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-            
-            m_light->setPeriodBrightness(period, percent); 
-            
-            if (m_logger != nullptr) {
+        if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+        {
+
+            m_light->setPeriodBrightness(period, percent);
+
+            if (m_logger != nullptr)
+            {
                 m_logger->sysLog("WEB", "Update Slot " + String(period) + " to " + String(percent) + "%");
             }
             xSemaphoreGive(*m_mutex);
-            server.send(200, "text/plain", "OK"); 
-        } else {
+            server.send(200, "text/plain", "OK");
+        }
+        else
+        {
             server.send(503, "text/plain", "System Busy");
         }
-    } else {
+    }
+    else
+    {
         server.send(400, "text/plain", "Bad Request");
     }
 }
