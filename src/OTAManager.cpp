@@ -23,11 +23,12 @@ void OTAManager::begin()
         m_logger->sysLog("SYSTEM", "New firmware detected. Safety timer started (5 mins).");
     }
 }
-void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, PowerManager *pm, bool force)
+void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, PowerManager *pm, TelegramManager *tg, bool force)
 {
     isUpdating = true;
     m_logger = sysLogger;
     m_power = pm;
+    m_telegram = tg;
     float voltage = pm->getVoltage();
     int rssi = WiFi.RSSI();
     if (force == false)
@@ -37,6 +38,9 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
             if (m_logger)
                 m_logger->sysLog("OTA", "Abort: Power sensor unreliable or 0.00V detected!");
             isUpdating = false;
+            if (tg != nullptr) {
+                tg->sendAlert("OTA Update", "❌ การอัปเดตล้มเหลว: *แรงดันไม่พอ* (ตรวจพบ 0.00V) กรุณาเช็คแบตเตอรี่หรือสาย VBUS");
+            }
             return;
         }
     }
