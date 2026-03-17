@@ -15,7 +15,7 @@ extern Preferences preferences;
 
 void OTAManager::begin()
 {
-    preferences.begin("ota_safety", true);
+    preferences.begin("ota_safety", false);
     _isWaitingValidation = preferences.getBool("pending_validate", false);
     preferences.end();
     if (_isWaitingValidation && m_logger)

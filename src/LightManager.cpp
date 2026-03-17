@@ -20,7 +20,7 @@ void LightManager::begin(LogManager *sysLoggerPtr)
     ledcSetup(pwmChannel, pwmFreq, pwmResolution);
     ledcAttachPin(ledPin, pwmChannel);
     targetBrightness(0);
-    preferences.begin("light_cfg", true);
+    preferences.begin("light_cfg", false);
     brightP1 = preferences.getInt("p1", 70);
     brightP2 = preferences.getInt("p2", 80);
     brightP3 = preferences.getInt("p3", 50);

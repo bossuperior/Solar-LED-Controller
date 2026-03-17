@@ -19,7 +19,7 @@ class LightManager;
 class TelegramManager
 {
 private:
-    WiFiClientSecure client;
+    WiFiClientSecure m_client;
     UniversalTelegramBot *bot;
     String m_token;
     String m_chatId;

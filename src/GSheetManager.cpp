@@ -3,6 +3,7 @@ void GsheetManager::begin(LogManager* sysLogger, TimeManager* timeManager)
 {
     m_sysLogger = sysLogger;
     m_timeManager = timeManager;
+    m_client.setInsecure();
     if (m_sysLogger != nullptr)
     {
         m_sysLogger->sysLog("GSHEET", "Google Sheets manager initialized");
@@ -10,15 +11,15 @@ void GsheetManager::begin(LogManager* sysLogger, TimeManager* timeManager)
 }
 void GsheetManager::sendData(float voltage, float tempLed, float tempBuck, int fanSpeed, int lightPct)
 {
-    String postData = "Time=" + m_timeManager->getCurrentTime() + "&" +
-                      "voltage=" + String(voltage, 2) + "&" +
-                      "tempLed=" + String(tempLed, 1) + "&" +
-                      "tempBuck=" + String(tempBuck, 1) + "&" +
-                      "fanSpeed=" + String(fanSpeed) + "&" +
-                      "lightPct=" + String(lightPct);
+    String jsonPayload = "{";
+    jsonPayload += "\"time\":\"" + m_timeManager->getCurrentTime() + "\",";
+    jsonPayload += "\"voltage\":" + String(voltage, 2) + ",";
+    jsonPayload += "\"tempLed\":" + String(tempLed, 1) + ",";
+    jsonPayload += "\"tempBuck\":" + String(tempBuck, 1) + ",";
+    jsonPayload += "\"fanSpeed\":" + String(fanSpeed) + ",";
+    jsonPayload += "\"lightPct\":" + String(lightPct);
+    jsonPayload += "}";
 
-    WiFiClientSecure client;
-    client.setInsecure();
     HTTPClient http;
     String url = SECRET_GOOGLE_SHEET_URL;
 
@@ -28,11 +29,11 @@ void GsheetManager::sendData(float voltage, float tempLed, float tempBuck, int f
         return;
     }
 
-    http.begin(client, url);
+    http.begin(m_client, url);
     http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS); 
-    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    http.addHeader("Content-Type", "application/json");
     esp_task_wdt_reset();
-    int httpResponseCode = http.POST(postData);
+    int httpResponseCode = http.POST(jsonPayload);
     if (httpResponseCode > 0)
     {
         if (m_sysLogger != nullptr)

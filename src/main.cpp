@@ -133,7 +133,8 @@ void CommLoop(void *pvParameters)
         h = timer.getHour();
         m = timer.getMinute();
 
-        if (!ota.isUpdating) {
+        if (!ota.isUpdating)
+        {
           canUpdateTelegram = true;
           send_v = power.getVoltage();
           send_led_t = temp.getLedTemp();
@@ -141,34 +142,49 @@ void CommLoop(void *pvParameters)
           send_fan = fan.getFanSpeed();
           send_light = sharedLightPct;
         }
-        if ((!initialOtaChecked || (h == UPDATE_HOUR && m == UPDATE_MINUTE && !hasCheckedToday)) && !ota.isUpdating) {
+        if ((!initialOtaChecked || (h == UPDATE_HOUR && m == UPDATE_MINUTE && !hasCheckedToday)) && !ota.isUpdating)
+        {
           doOTA = true;
           initialOtaChecked = true;
           hasCheckedToday = (h == UPDATE_HOUR);
         }
-        if (h != UPDATE_HOUR) {
+        if (h != UPDATE_HOUR)
+        {
           hasCheckedToday = false;
         }
-        if (!ota.isUpdating && (millis() - lastLogSent >= LOG_INTERVAL)) {
+        if (!ota.isUpdating && (millis() - lastLogSent >= LOG_INTERVAL))
+        {
           doLog = true;
           lastLogSent = millis();
         }
         xSemaphoreGive(mutexKey);
       }
-      if (canUpdateTelegram) {
+      if (canUpdateTelegram)
+      {
         telegram.checkMessages(&power, &temp, &fan, &light, &ota);
+        esp_task_wdt_reset();
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+      }
+      if (ota.pendingForceUpdate)
+      {
+        ota.pendingForceUpdate = false;
+        sysLogger.sysLog("OTA", "Force Update triggered from Telegram!");
+        ota.checkUpdate(firmwareVersion, &sysLogger, &power, true);
         esp_task_wdt_reset();
       }
       if (doOTA)
       {
         sysLogger.sysLog("OTA", "Scheduled update check...");
         ota.checkUpdate(firmwareVersion, &sysLogger, &power);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
       }
       if (doLog)
       {
         power.printPowerInfo();
         sysLogger.sysLog("TEMP", "LED: " + String(send_led_t, 1) + "C | Buck: " + String(send_buck_t, 1) + "C");
         gsheet.sendData(send_v, send_led_t, send_buck_t, send_fan, send_light);
+        esp_task_wdt_reset();
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
       }
     }
     ota.handleSafetyTimer();
@@ -206,7 +222,11 @@ void setup()
 
   // Load Metadata
   preferences.begin("app_info", false);
-  firmwareVersion = preferences.getString("fw_ver", "v0.0.0-dev");
+  if (!preferences.isKey("fw_ver")) {
+      preferences.putString("fw_ver", "v0.1.5");
+      sysLogger.sysLog("SYSTEM", "New NVS Key created");
+  }
+  firmwareVersion = preferences.getString("fw_ver", "v0.1.5");
   preferences.end();
   sysLogger.sysLog("SYSTEM", "Firmware Version: " + firmwareVersion);
 

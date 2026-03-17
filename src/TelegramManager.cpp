@@ -16,8 +16,10 @@ extern Preferences preferences;
 void TelegramManager::begin(LogManager *sysLogger)
 {
     m_sysLogger = sysLogger;
-    client.setInsecure();
-    bot = new UniversalTelegramBot(SECRET_TELEGRAM_BOT_TOKEN, client);
+    m_client.setInsecure();
+    if (bot == nullptr) {
+        bot = new UniversalTelegramBot(SECRET_TELEGRAM_BOT_TOKEN, m_client);
+    }
     if (m_sysLogger != nullptr)
     {
         m_sysLogger->sysLog("TELEGRAM", "Telegram Bot initialized");
@@ -35,8 +37,9 @@ void TelegramManager::sendAlert(String module, String message)
 
 void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManager *fm, LightManager *lm, OTAManager *ota)
 {
+    if (bot == nullptr) return;
     esp_task_wdt_reset();
-    preferences.begin("app_info", true);
+    preferences.begin("app_info", false);
     String firmwareVersion = preferences.getString("fw_ver", "v0.0.0-dev");
     preferences.end();
     int numNewMessages = bot->getUpdates(bot->last_message_received + 1);
@@ -115,7 +118,7 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 else if (data == "FORCE_UPDATE")
                 {
                     bot->sendMessage(chat_id, "⏳ กำลังเริ่มกระบวนการ OTA... ระบบจะรีบูตอัตโนมัติหากพบเวอร์ชันใหม่", "Markdown");
-                    m_ota->checkUpdate(firmwareVersion, m_sysLogger, pm, true);
+                    m_ota->pendingForceUpdate = true;
                 }
             }
             else if (text == "/status" || text == "📊 สถานะระบบ")
@@ -178,11 +181,9 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 esp_task_wdt_reset();
 
                 //Fetch latest release tag from GitHub API
-                WiFiClientSecure client;
-                client.setInsecure();
-                client.setTimeout(10000);
+                m_client.setTimeout(10000);
                 HTTPClient http;
-                http.begin(client, SECRET_OTA_UPDATE_API);
+                http.begin(m_client, SECRET_OTA_UPDATE_API);
                 http.addHeader("User-Agent", "ESP32-Telegram");
 
                 int httpCode = http.GET();

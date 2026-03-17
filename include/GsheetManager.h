@@ -9,10 +9,10 @@
 class GsheetManager
 {
 private:
-    WiFiClientSecure client;
     LogManager* m_sysLogger;
     TimeManager* m_timeManager;
     String scriptUrl;
+    WiFiClientSecure m_client;
 public:
     void begin(LogManager* sysLogger, TimeManager* timeManager);
     void sendData(float voltage, float tempLed, float tempBuck, int fanSpeed, int lightPct);

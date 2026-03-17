@@ -25,4 +25,5 @@ public:
   void triggerRollback();
   void validateUpdate();
   void handleSafetyTimer();
+  bool pendingForceUpdate = false;
 };
