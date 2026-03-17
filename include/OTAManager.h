@@ -9,7 +9,8 @@
 #include "LogManager.h"
 #include "secret.h"
 #include "PowerManager.h"
-#include "TelegramManager.h"
+
+class TelegramManager;
 
 class OTAManager
 {

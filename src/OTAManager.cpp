@@ -10,6 +10,7 @@
  */
 
 #include "OTAManager.h"
+#include "TelegramManager.h"
 
 extern Preferences preferences;
 
