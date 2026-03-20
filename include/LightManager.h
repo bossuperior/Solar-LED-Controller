@@ -3,7 +3,6 @@
 #include "LogManager.h"
 #include "PowerManager.h"
 #include "TempManager.h"
-#include "TelegramManager.h"
 #include <Preferences.h>
 
 class LightManager {

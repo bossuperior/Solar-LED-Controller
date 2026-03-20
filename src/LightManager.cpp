@@ -56,7 +56,7 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
         {
             newBrightness = brightP1;
         }
-        else if (currentTotalMinutes >= (20 * 60) && currentTotalMinutes <= (24 * 60))
+        else if (currentTotalMinutes >= (20 * 60) && currentTotalMinutes < (24 * 60))
         {
             newBrightness = brightP2;
         }
@@ -76,15 +76,16 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
 
     static bool isTempThrottled = false;
     static bool isBatLow = false;
+    bool isSensorError = false;
 
     if (tm != nullptr)
     {
         float temp = tm->getLedTemp();
-        if (temp > 65.0 && temp != 85.0 && temp != -127.0)
+        if (temp == -127.0 || temp == 85.0 || temp > 65.0) 
         {
             isTempThrottled = true;
         }
-        else if (temp < 60.0)
+        else if (temp < 60.0 && temp >20)
         {
             isTempThrottled = false;
         }
@@ -97,18 +98,26 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
     if (pm != nullptr)
     {
         float v = pm->getVoltage();
-        if (v <= 3.15)
+        if (v < 2.5)
+        {
+            isSensorError = true;
+        }
+        else if (v <= 3.15) 
         {
             isBatLow = true;
         }
-        else if (v >= 3.22)
+        else if (v >= 3.22) 
         {
             isBatLow = false;
         }
     }
-    if (isBatLow && newBrightness > 0)
+    if (isSensorError) 
     {
-        newBrightness = 10;
+        newBrightness = 0; 
+    }
+    else if (isBatLow && newBrightness > 0)
+    {
+        newBrightness = 10; 
     }
 
     static int currentBrightnessState = -1;
@@ -132,33 +141,26 @@ void LightManager::getBrightness(int &intensityPercent)
 
 void LightManager::setPeriodBrightness(int period, int percent)
 {
+    percent = constrain(percent, 0, 100); 
     preferences.begin("light_cfg", false);
-    if (period == 1)
-    {
-        brightP1 = percent;
-        preferences.putInt("p1", percent);
+    int oldVal = 0;
+    String keyName = "p" + String(period);
+    
+    if (period >= 1 && period <= 4) {
+        oldVal = preferences.getInt(keyName.c_str(), -1);
+        if (oldVal != percent) { 
+            if (period == 1) brightP1 = percent;
+            else if (period == 2) brightP2 = percent;
+            else if (period == 3) brightP3 = percent;
+            else if (period == 4) brightP4 = percent;
+            preferences.putInt(keyName.c_str(), percent);
+            if (m_logger != nullptr) {
+                m_logger->sysLog("LIGHT", "Saved Period " + String(period) + " brightness to " + String(percent) + "%");
+            }
+        }
     }
-    else if (period == 2)
-    {
-        brightP2 = percent;
-        preferences.putInt("p2", percent);
-    }
-    else if (period == 3)
-    {
-        brightP3 = percent;
-        preferences.putInt("p3", percent);
-    }
-    else if (period == 4)
-    {
-        brightP4 = percent;
-        preferences.putInt("p4", percent);
-    }
+    
     preferences.end();
-
-    if (m_logger != nullptr)
-    {
-        m_logger->sysLog("LIGHT", "Saved Period " + String(period) + " brightness to " + String(percent) + "%");
-    }
 }
 void LightManager::setManualMode(bool active, int percent)
 {
