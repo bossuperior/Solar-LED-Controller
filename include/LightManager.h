@@ -8,7 +8,7 @@
 
 class LightManager {
 private:
-    const int ledPin = 2;
+    const int ledPin = 18;
     const int pwmChannel = 0;
     const int pwmFreq = 5000;
     const int pwmResolution = 8; // 0-255
