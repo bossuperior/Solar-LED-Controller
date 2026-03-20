@@ -119,7 +119,6 @@ void CommLoop(void *pvParameters)
 
     if (network.isInternetAvailable())
     {
-      ota.validateUpdate();
       int h = 0, m = 0;
       float send_v = 0, send_led_t = 0, send_buck_t = 0;
       int send_fan = 0, send_light = 0;
@@ -187,7 +186,6 @@ void CommLoop(void *pvParameters)
         vTaskDelay(1000 / portTICK_PERIOD_MS);
       }
     }
-    ota.handleSafetyTimer();
     esp_task_wdt_reset();
     vTaskDelay(100 / portTICK_PERIOD_MS);
   }
@@ -218,7 +216,6 @@ void setup()
   gsheet.begin(&sysLogger, &timer);
   monitor.begin(&sysLogger);
   dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey);
-  ota.begin();
 
   // Load Metadata
   preferences.begin("app_info", false);

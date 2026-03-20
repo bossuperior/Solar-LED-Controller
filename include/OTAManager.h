@@ -23,10 +23,7 @@ private:
 
 public:
   bool isUpdating = false;
-  void begin();
   void checkUpdate(String currentVersion,LogManager* sysLogger ,PowerManager* pm, TelegramManager* tg, bool force = false);
   void triggerRollback();
-  void validateUpdate();
-  void handleSafetyTimer();
   bool pendingForceUpdate = false;
 };

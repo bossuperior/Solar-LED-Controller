@@ -39,7 +39,7 @@ void PowerManager::printPowerInfo()
         return;
     }
     float voltage = getVoltage();
-    String powerInfo = "V: " + String(voltage, 2);
+    String powerInfo = "Voltage: " + String(voltage, 2)+ " V";
 
     if (m_logger != nullptr)
         m_logger->sysLog("POWER", powerInfo);

@@ -14,16 +14,6 @@
 
 extern Preferences preferences;
 
-void OTAManager::begin()
-{
-    preferences.begin("ota_safety", false);
-    _isWaitingValidation = preferences.getBool("pending_validate", false);
-    preferences.end();
-    if (_isWaitingValidation && m_logger)
-    {
-        m_logger->sysLog("SYSTEM", "New firmware detected. Safety timer started (5 mins).");
-    }
-}
 void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, PowerManager *pm, TelegramManager *tg, bool force)
 {
     isUpdating = true;
@@ -45,7 +35,7 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
             return;
         }
     }
-    if (voltage > 0.1 && voltage < 3.5)
+    if (voltage > 0.1 && voltage < 3.25)
     {
         if (m_logger)
             m_logger->sysLog("OTA", "Abort: Battery too low (" + String(voltage) + "V)");
@@ -171,9 +161,6 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
         }
         break;
     case HTTP_UPDATE_OK:
-        preferences.begin("ota_safety", false);
-        preferences.putBool("pending_validate", true);
-        preferences.end();
         preferences.begin("app_info", false);
         preferences.putString("fw_ver", latestTag);
         preferences.end();
@@ -205,28 +192,5 @@ void OTAManager::triggerRollback()
     else
     {
         m_logger->sysLog("ERROR", "No previous version available to rollback.");
-    }
-}
-void OTAManager::handleSafetyTimer()
-{
-    if (_isWaitingValidation)
-    {
-        if (millis() > 300000)
-        {
-            triggerRollback();
-        }
-    }
-}
-
-void OTAManager::validateUpdate()
-{
-    if (_isWaitingValidation)
-    {
-        preferences.begin("ota_safety", false);
-        preferences.putBool("pending_validate", false);
-        preferences.end();
-        _isWaitingValidation = false;
-        if (m_logger)
-            m_logger->sysLog("SYSTEM", "New firmware validated successfully!");
     }
 }

@@ -9,7 +9,7 @@ class LightManager {
 private:
     const int ledPin = 18;
     const int pwmChannel = 0;
-    const int pwmFreq = 5000;
+    const int pwmFreq = 1000;
     const int pwmResolution = 8; // 0-255
     LogManager* m_logger = nullptr;
     int brightP1 = 70; // 18.00-20.00

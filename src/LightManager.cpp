@@ -90,7 +90,7 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
             isTempThrottled = false;
         }
     }
-    if (isTempThrottled)
+    if (isTempThrottled == true)
     {
         newBrightness = newBrightness / 2;
     }

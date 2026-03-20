@@ -130,8 +130,24 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 int lightPct = 0;
                 lm->getBrightness(lightPct);
 
+                int batPct = 0;
+                if (v >= 3.40) {
+                    batPct = 100;
+                } else if (v >= 3.30) {
+                    batPct = 90 + ((v - 3.30) / 0.10) * 10; // 3.30V - 3.40V (90% - 100%)
+                } else if (v >= 3.20) {
+                    batPct = 30 + ((v - 3.20) / 0.10) * 60; // 3.20V - 3.30V (30% - 90%)
+                } else if (v >= 3.10) {
+                    batPct = 5 + ((v - 3.10) / 0.10) * 25;  // 3.10V - 3.20V (5% - 30%)
+                } else if (v >= 3.00) {
+                    batPct = ((v - 3.00) / 0.10) * 5;       // 3.00V - 3.10V (0% - 5%)
+                } else {
+                    batPct = 0;
+                }
+                batPct = constrain(batPct, 0, 100); 
+
                 String msg = "📊 *รายงานสถานะระบบ*\n\n";
-                msg += "⚡ *พลังงาน:* " + String(v, 2) + "V\n";
+                msg += "⚡ *พลังงาน:* " + String(v, 2) + "V (" + String(batPct) + "%)\n";
                 msg += "💡 *แสง:* " + String(lightPct) + "%\n";
                 msg += "🌡️ *อุณหภูมิ:* LED " + String(tLed, 1) + "°C | Buck " + String(tBuck, 1) + "°C\n";
                 msg += "🌀 *พัดลม:* " + String(fanSpeed > 0 ? "เปิด" : "ปิด") + " | ความเร็ว: " + String(fanSpeed) + "%\n";

@@ -21,7 +21,7 @@ void FanManager::handle(TempManager* tm) {
     int targetSpeed = currentSpeed;
 
     if (maxTemp > 45.0) {
-        targetSpeed = 210; //210/255*100 = 82% 
+        targetSpeed = 230; //230/255*100 = 90% 
     } 
     else if (maxTemp < 40.0) {
         targetSpeed = 0;
