@@ -5,7 +5,7 @@
 ![PlatformIO](https://img.shields.io/badge/PlatformIO-F58220?style=for-the-badge&logo=PlatformIO&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E)
 
-<img width="4944" height="2697" alt="Solar_LED_Circuit_Smart" src="https://github.com/user-attachments/assets/e328cd19-2e8a-4bdb-95d4-b7937f000d6c" />
+<img width="4944" height="2697" alt="Solar_LED_Circuit_Sketch_Full" src="https://github.com/user-attachments/assets/063676b9-9df7-4632-ae60-be8f3cc62b91" />
 
 An industrial-grade, dual-core ESP32 controller designed for solar-powered LED lighting systems. This project utilizes FreeRTOS to strictly separate hardware control from network communications, ensuring real-time stability, safety, and uninterrupted lighting control.
 
