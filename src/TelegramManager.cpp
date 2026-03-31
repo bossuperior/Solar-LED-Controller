@@ -11,13 +11,14 @@
 
 #include "TelegramManager.h"
 
-extern Preferences preferences;
+extern Preferences prefs;
 
 void TelegramManager::begin(LogManager *sysLogger)
 {
     m_sysLogger = sysLogger;
     m_client.setInsecure();
-    if (bot == nullptr) {
+    if (bot == nullptr)
+    {
         bot = new UniversalTelegramBot(SECRET_TELEGRAM_BOT_TOKEN, m_client);
     }
     if (m_sysLogger != nullptr)
@@ -37,11 +38,12 @@ void TelegramManager::sendAlert(String module, String message)
 
 void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManager *fm, LightManager *lm, OTAManager *ota)
 {
-    if (bot == nullptr) return;
+    if (bot == nullptr)
+        return;
     esp_task_wdt_reset();
-    preferences.begin("app_info", false);
-    String firmwareVersion = preferences.getString("fw_ver", "v0.0.0-dev");
-    preferences.end();
+    prefs.begin("app_info", false);
+    String firmwareVersion = prefs.getString("fw_ver", "v0.0.0-dev");
+    prefs.end();
     int numNewMessages = bot->getUpdates(bot->last_message_received + 1);
     m_ota = ota;
     m_light = lm;
@@ -58,62 +60,35 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
             {
                 String data = text;
 
-                if (data.startsWith("TL_"))
+                if (data.startsWith("TL_") && data != "TL_OFF")
                 {
-                    int underscore1 = data.indexOf('_');
-                    int underscore2 = data.indexOf('_', underscore1 + 1);
+                    int sH, sM, eH, eM;
 
-                    if (underscore1 != -1 && underscore2 != -1)
+                    // sscanf extracts the 4 integers from the string format "TL_18_30_06_20"
+                    if (sscanf(data.c_str(), "TL_%d_%d_%d_%d", &sH, &sM, &eH, &eM) == 4)
                     {
-                        int period = data.substring(underscore1 + 1, underscore2).toInt();
-                        int percent = data.substring(underscore2 + 1).toInt();
+                        // Pass the extracted times to your LightManager and enable it
+                        lm->setCustomSchedule(sH, sM, eH, eM, true);
 
-                        lm->setPeriodBrightness(period, percent);
+                        // Format times nicely with leading zeros (e.g., "06" instead of "6")
+                        String startStr = String(sH) + ":" + (sM < 10 ? "0" : "") + String(sM);
+                        String endStr = String(eH) + ":" + (eM < 10 ? "0" : "") + String(eM);
 
-                        if (period == 1)
-                        {
-                            String keyboardJson = "[[{\"text\":\"40%\",\"callback_data\":\"TL_2_40\"},{\"text\":\"50%\",\"callback_data\":\"TL_2_50\"},{\"text\":\"70%\",\"callback_data\":\"TL_2_70\"}],[{\"text\":\"80%\",\"callback_data\":\"TL_2_80\"},{\"text\":\"100%\",\"callback_data\":\"TL_2_100\"}]]";
-                            bot->sendMessageWithInlineKeyboard(chat_id, "✅ บันทึกช่วง 18:00-20:00 เป็น *" + String(percent) + "%* แล้ว\n\n⚙️ *(ขั้นตอน 2/4)*\n🕒 *ช่วงที่ 2: 20:00 - 00:00 น.*\nเลือกระดับความสว่าง:", "Markdown", keyboardJson);
-                        }
-                        else if (period == 2)
-                        {
-                            String keyboardJson = "[[{\"text\":\"40%\",\"callback_data\":\"TL_3_40\"},{\"text\":\"50%\",\"callback_data\":\"TL_3_50\"},{\"text\":\"60%\",\"callback_data\":\"TL_3_60\"}],[{\"text\":\"70%\",\"callback_data\":\"TL_3_70\"},{\"text\":\"80%\",\"callback_data\":\"TL_3_80\"}]]";
-                            bot->sendMessageWithInlineKeyboard(chat_id, "✅ บันทึกช่วง 20:00-00:00 เป็น *" + String(percent) + "%* แล้ว\n\n⚙️ *(ขั้นตอน 3/4)*\n🕒 *ช่วงที่ 3: 00:00 - 04:00 น.*\nเลือกระดับความสว่าง:", "Markdown", keyboardJson);
-                        }
-                        else if (period == 3)
-                        {
-                            String keyboardJson = "[[{\"text\":\"40%\",\"callback_data\":\"TL_4_40\"},{\"text\":\"50%\",\"callback_data\":\"TL_4_50\"},{\"text\":\"60%\",\"callback_data\":\"TL_4_60\"}],[{\"text\":\"70%\",\"callback_data\":\"TL_4_70\"},{\"text\":\"80%\",\"callback_data\":\"TL_4_80\"}]]";
-                            bot->sendMessageWithInlineKeyboard(chat_id, "✅ บันทึกช่วง 00:00-04:00 เป็น *" + String(percent) + "%* แล้ว\n\n⚙️ *(ขั้นตอน 4/4)*\n🕒 *ช่วงที่ 4: 04:00 - 06:00 น.*\nเลือกระดับความสว่าง:", "Markdown", keyboardJson);
-                        }
-                        else if (period == 4)
-                        {
-                            bot->sendMessage(chat_id, "✅ บันทึกช่วง 04:00-06:00 เป็น *" + String(percent) + "%* แล้ว\n\n🎉 *ตั้งค่าแสงอัตโนมัติครบทั้ง 4 ช่วงเวลาเรียบร้อยครับ!*", "Markdown");
-                        }
+                        bot->sendMessage(chat_id, "✅ *บันทึกเวลาสำเร็จ*\nไฟจะเปิดเวลา " + startStr + " น. และปิดเวลา " + endStr + " น.", "Markdown");
                     }
                 }
-                else if (data.startsWith("MAN_"))
+                else if (data == "TL_OFF")
                 {
-                    String valStr = data.substring(4);
-
-                    if (valStr == "AUTO")
-                    {
-                        lm->setManualMode(false);
-                        bot->sendMessage(chat_id, "✅ *โหมดของระบบ: ออโต้*\nระบบกลับไปควบคุมแสงตามเวลาปกติแล้ว", "Markdown");
-                    }
-                    else
-                    {
-                        int percent = valStr.toInt();
-                        lm->setManualMode(true, percent); // เปิดโหมดแมนนวลที่ X%
-
-                        if (percent == 0)
-                        {
-                            bot->sendMessage(chat_id, "🌑 *โหมดเปิดปิดไฟเอง: ปิด*\nสั่งปิดไฟแมนนวลเรียบร้อยแล้ว", "Markdown");
-                        }
-                        else
-                        {
-                            bot->sendMessage(chat_id, "💡 *โหมดเปิดปิดไฟเอง: เปิด*\nปรับความสว่างเป็น *" + String(percent) + "%* เรียบร้อยแล้ว", "Markdown");
-                        }
-                    }
+                    // --- LOAD PREFERENCES ON BOOT ---
+                    prefs.begin("light_config", true);
+                    sH = prefs.getInt("sHour", 18);
+                    sM = prefs.getInt("sMin", 30);
+                    eH = prefs.getInt("eHour", 6);
+                    eM = prefs.getInt("eMin", 20);
+                    isCustomScheduleActive = prefs.getBool("schActive", false);
+                    prefs.end();
+                    lm->setCustomSchedule(sH, sM, eH, eM, false);
+                    bot->sendMessage(chat_id, "❌ *ปิดระบบตั้งเวลาแล้ว*\nไฟจะไม่เปิดอัตโนมัติตามเวลา", "Markdown");
                 }
                 else if (data == "FORCE_UPDATE")
                 {
@@ -127,60 +102,79 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 float tLed = tm->getLedTemp();
                 float tBuck = tm->getBuckTemp();
                 int fanSpeed = fm->getFanSpeed();
-                int lightPct = 0;
-                lm->getBrightness(lightPct);
 
                 int batPct = 0;
-                if (v >= 3.40) {
+                if (v >= 3.40)
+                {
                     batPct = 100;
-                } else if (v >= 3.30) {
+                }
+                else if (v >= 3.30)
+                {
                     batPct = 90 + ((v - 3.30) / 0.10) * 10; // 3.30V - 3.40V (90% - 100%)
-                } else if (v >= 3.20) {
+                }
+                else if (v >= 3.20)
+                {
                     batPct = 30 + ((v - 3.20) / 0.10) * 60; // 3.20V - 3.30V (30% - 90%)
-                } else if (v >= 3.10) {
-                    batPct = 5 + ((v - 3.10) / 0.10) * 25;  // 3.10V - 3.20V (5% - 30%)
-                } else if (v >= 3.00) {
-                    batPct = ((v - 3.00) / 0.10) * 5;       // 3.00V - 3.10V (0% - 5%)
-                } else {
+                }
+                else if (v >= 3.10)
+                {
+                    batPct = 5 + ((v - 3.10) / 0.10) * 25; // 3.10V - 3.20V (5% - 30%)
+                }
+                else if (v >= 3.00)
+                {
+                    batPct = ((v - 3.00) / 0.10) * 5; // 3.00V - 3.10V (0% - 5%)
+                }
+                else
+                {
                     batPct = 0;
                 }
-                batPct = constrain(batPct, 0, 100); 
+                batPct = constrain(batPct, 0, 100);
+                String wifiSSID = WiFi.SSID();
+                long rssi = WiFi.RSSI();
+                String wifiStatus = (rssi > -65) ? "🟢 ดีมาก" : ((rssi > -80) ? "🟡 ปานกลาง" : "🔴 อ่อน");
+
+                uint64_t uptimeMicros = esp_timer_get_time();
+                uint64_t uptimeSecs = uptimeMicros / 1000000;
+                int days = uptimeSecs / 86400;
+                int hours = (uptimeSecs % 86400) / 3600;
+                int mins = (uptimeSecs % 3600) / 60;
+                String uptimeStr = String(days) + "d " + String(hours) + "h " + String(mins) + "m";
 
                 String msg = "📊 *รายงานสถานะระบบ*\n\n";
                 msg += "⚡ *พลังงาน:* " + String(v, 2) + "V (" + String(batPct) + "%)\n";
-                msg += "💡 *แสง:* " + String(lightPct) + "%\n";
+                msg += "💡 *ไฟ:* " + lm->isLightMode() + "\n";
                 msg += "🌡️ *อุณหภูมิ:* LED " + String(tLed, 1) + "°C | Buck " + String(tBuck, 1) + "°C\n";
                 msg += "🌀 *พัดลม:* " + String(fanSpeed > 0 ? "เปิด" : "ปิด") + " | ความเร็ว: " + String(fanSpeed) + "%\n";
+                msg += "📶 *WiFi:* " + wifiSSID + " ความแรง: " + wifiStatus + "\n";
+                msg += "⏱️ *ระยะเวลาการทำงาน:* " + uptimeStr + "\n";
                 msg += "🔄 *เวอร์ชันเฟิร์มแวร์:* " + firmwareVersion + "\n";
 
                 bot->sendMessage(chat_id, msg, "Markdown");
             }
             else if (text == "/timelight" || text == "⏱️ ตั้งเวลาแสง")
             {
-                // ส่งเฉพาะคำถามของช่วงที่ 1 (18:00 - 20:00)
                 String keyboardJson = "[";
-                keyboardJson += "[{\"text\":\"40%\",\"callback_data\":\"TL_1_40\"},{\"text\":\"50%\",\"callback_data\":\"TL_1_50\"},{\"text\":\"70%\",\"callback_data\":\"TL_1_70\"}],";
-                keyboardJson += "[{\"text\":\"80%\",\"callback_data\":\"TL_1_80\"},{\"text\":\"100%\",\"callback_data\":\"TL_1_100\"}]";
+                // Option 1: 18:00 to 06:00
+                keyboardJson += "[{\"text\":\"18:00 - 06:00 น.\",\"callback_data\":\"TL_18_00_06_00\"}],";
+                // Option 2: 18:30 to 06:20 (Your default)
+                keyboardJson += "[{\"text\":\"18:30 - 06:20 น.\",\"callback_data\":\"TL_18_30_06_20\"}],";
+                // Option 3: 18:30 to 06:00
+                keyboardJson += "[{\"text\":\"18:30 - 06:00 น.\",\"callback_data\":\"TL_18_30_06_00\"}],";
+                // Option 4: Turn Schedule OFF
+                keyboardJson += "[{\"text\":\"❌ ปิดระบบออโต้\",\"callback_data\":\"TL_OFF\"}]";
                 keyboardJson += "]";
 
-                bot->sendMessageWithInlineKeyboard(chat_id, "⚙️ *ตั้งค่าแสง (ขั้นตอน 1/4)*\n\n🕒 *ช่วงที่ 1: 18:00 - 20:00 น.*\nเลือกระดับความสว่างที่ต้องการ:", "Markdown", keyboardJson);
+                bot->sendMessageWithInlineKeyboard(chat_id, "⚙️ *ตั้งเวลาเปิด-ปิดไฟอัตโนมัติ*\nเลือกช่วงเวลาที่คุณต้องการ:", "Markdown", keyboardJson);
             }
-            else if (text == "/lighton" || text == "💡 เปิดไฟ (แมนนวล)")
+            else if (text == "/lighton" || text == "💡 เปิดไฟ")
             {
-                lm->setManualMode(true, 100);
-                String keyboardJson = "[";
-                // แถว 1: 20, 40, 60
-                keyboardJson += "[{\"text\":\"20%\",\"callback_data\":\"MAN_20\"},{\"text\":\"40%\",\"callback_data\":\"MAN_40\"},{\"text\":\"60%\",\"callback_data\":\"MAN_60\"}],";
-                // แถว 2: 80, 100
-                keyboardJson += "[{\"text\":\"80%\",\"callback_data\":\"MAN_80\"},{\"text\":\"100%\",\"callback_data\":\"MAN_100\"}]";
-                keyboardJson += "]";
-
-                bot->sendMessageWithInlineKeyboard(chat_id, "💡 *เปิดไฟ 100% แล้ว*\nสามารถปรับลดระดับความสว่างได้:", "Markdown", keyboardJson);
+                lm->setManualMode(true, true); // Force manual mode ON, turn light ON
+                bot->sendMessage(chat_id, "💡 *เปิดไฟและระงับโหมดออโต้ชั่วคราวแล้ว)*", "Markdown");
             }
-            else if (text == "/lightoff" || text == "🌑 ปิดไฟ (กลับโหมด AUTO)")
+            else if (text == "/lightoff" || text == "🌑 ปิดไฟ (กลับโหมดออโต้)")
             {
-                lm->setManualMode(false, 0);
-                bot->sendMessage(chat_id, "💡 ปิดไฟแล้วและกลับสู่โหมดอัตโนมัติ", "Markdown");
+                lm->setManualMode(false, false); // Turn off manual mode, return to Schedule
+                bot->sendMessage(chat_id, "🌑 *ปิดไฟและกลับสู่โหมดออโต้แล้ว*", "Markdown");
             }
             else if (text == "/dashboard" || text == "🌐 หน้าเว็บควบคุม")
             {
@@ -196,7 +190,7 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 bot->sendMessage(chat_id, "⏳ กำลังเชื่อมต่อกับเซิร์ฟเวอร์เพื่อตรวจสอบเวอร์ชันล่าสุด...", "Markdown");
                 esp_task_wdt_reset();
 
-                //Fetch latest release tag from GitHub API
+                // Fetch latest release tag from GitHub API
                 m_client.setTimeout(10000);
                 HTTPClient http;
                 http.begin(m_client, SECRET_OTA_UPDATE_API);
@@ -244,7 +238,7 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
             else
             {
                 String keyboardJson = "[";
-                keyboardJson += "[\"💡 เปิดไฟ (แมนนวล)\", \"🌑 ปิดไฟ (กลับโหมด AUTO)\"],";
+                keyboardJson += "[\"💡 เปิดไฟ\", \"🌑 ปิดไฟ (กลับโหมดออโต้)\"],";
                 keyboardJson += "[\"⏱️ ตั้งเวลาแสง\", \"📊 สถานะระบบ\"],";
                 keyboardJson += "[\"🔄 ตรวจสอบอัปเดต\",\"↩️ ย้อนเวอร์ชันอัปเดต\"],";
                 keyboardJson += "[\"🌐 หน้าเว็บควบคุม\"]";

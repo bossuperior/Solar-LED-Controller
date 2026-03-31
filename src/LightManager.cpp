@@ -11,15 +11,29 @@
 
 #include "LightManager.h"
 
+extern Preferences prefs;
+
+LightManager::LightManager(uint16_t pin) : irsend(pin)
+{
+}
+
 void LightManager::begin(LogManager *sysLoggerPtr)
 {
     irsend.begin();
-    m_logger = sysLoggerPtr;
 
-    String LightInitMsg = "Light Manager initialized on pin " + String(ledPin) + " with PWM channel " + String(pwmChannel);
+    // --- LOAD PREFERENCES ON BOOT ---
+    prefs.begin("light_config", true);
+    startHour = prefs.getInt("sHour", 18);
+    startMinute = prefs.getInt("sMin", 30);
+    endHour = prefs.getInt("eHour", 6);
+    endMinute = prefs.getInt("eMin", 20);
+    isCustomScheduleActive = prefs.getBool("schActive", false); 
+    prefs.end();
+
+    m_logger = sysLoggerPtr;
     if (m_logger != nullptr)
     {
-        m_logger->sysLog("LIGHT", LightInitMsg);
+        m_logger->sysLog("LIGHT", "Light Manager initialized");
     }
 }
 
@@ -32,36 +46,40 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
 
     if (isCustomScheduleActive)
     {
-        if (startTotalMinutes >= endTotalMinutes) //Handle overnight schedule
+        if (startTotalMinutes >= endTotalMinutes) // Handle overnight schedule
         {
             if (currentTotalMinutes >= startTotalMinutes || currentTotalMinutes < endTotalMinutes)
             {
                 shouldBeOn = true;
             }
-        }else{ //Inday schedule
-            if (currentTotalMinutes >= startTotalMinutes && currentTotalMinutes < endTotalMinutes) {
+        }
+        else
+        { // Inday schedule
+            if (currentTotalMinutes >= startTotalMinutes && currentTotalMinutes < endTotalMinutes)
+            {
                 shouldBeOn = true;
             }
         }
         isManualMode = false;
     }
-    else{
+    else
+    {
         isManualMode = true;
+        shouldBeOn = manualLightState;
     }
 
     static bool isTempThrottled = false;
     static bool isBatLow = false;
-    static bool isSensorError = false;
     bool forceOff = false;
 
     if (tm != nullptr)
     {
         float temp = tm->getLedTemp();
-        if (temp == -127.0 || temp == 85.0 || temp > 65.0)
+        if (temp > 55.0)
         {
             isTempThrottled = true;
         }
-        else if (temp < 60.0 && temp > 20)
+        else if (temp < 50.0 && temp > 20)
         {
             isTempThrottled = false;
         }
@@ -70,24 +88,26 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
     if (pm != nullptr)
     {
         float v = pm->getVoltage();
-        if (v <= 3.00) { 
-            forceOff = true; 
-        } 
-        else if (v <= 3.15) { 
-            isBatLow = true; 
+        if (v <= 3.00)
+        {
+            forceOff = true;
         }
-        else{
-            isBatLow = false; 
+        else if (v <= 3.15)
+        {
+            isBatLow = true;
+        }
+        else
+        {
+            isBatLow = false;
         }
     }
-    if (forceOff) {
+    if (forceOff)
+    {
         shouldBeOn = false;
-
     }
-    static bool lastOnState = false;
     static bool lastThrottleState = false;
     static bool wasForcedOff = false;
-    bool needSemiLight = (isTempThrottled || isBatLow || isSensorError);
+    bool needSemiLight = (isTempThrottled || isBatLow);
     if (shouldBeOn != lastOnState || (forceOff && !wasForcedOff))
     {
         if (shouldBeOn && !forceOff)
@@ -97,22 +117,28 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
             if (needSemiLight)
             {
                 irsend.sendNEC(IR_CODE_SEMI, 32);
+                lightMode = "เปิด (ลดความสว่าง)";
                 if (m_logger)
                     m_logger->sysLog("LIGHT", "Temperature Throttle: Switched to Semi Brightness");
             }
             else
             {
                 irsend.sendNEC(IR_CODE_FULL, 32);
+                lightMode = "เปิด (สว่างสุด)";
                 if (m_logger)
                     m_logger->sysLog("LIGHT", "Turning ON the Light (Full Brightness)");
             }
         }
-        else if (!shouldBeOn) 
+        else if (!shouldBeOn)
         {
             irsend.sendNEC(IR_CODE_OFF, 32);
-            if (m_logger) {
-                if (forceOff) m_logger->sysLog("LIGHT", "CRITICAL: Battery Low. Forced OFF");
-                else m_logger->sysLog("LIGHT", "Turning OFF the Light (Schedule)");
+            lightMode = "ปิดไฟ";
+            if (m_logger)
+            {
+                if (forceOff)
+                    m_logger->sysLog("LIGHT", "CRITICAL: Battery Low. Forced OFF");
+                else
+                    m_logger->sysLog("LIGHT", "Turning OFF the Light (Schedule)");
             }
         }
         lastOnState = shouldBeOn;
@@ -121,12 +147,19 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
     }
     else if (shouldBeOn && (needSemiLight != lastThrottleState))
     {
-        if (needSemiLight) {
+        if (needSemiLight)
+        {
             irsend.sendNEC(IR_CODE_SEMI, 32);
-            if (m_logger) m_logger->sysLog("LIGHT", "Safety Triggered: Switched to SEMI Brightness");
-        } else {
-            irsend.sendNEC(IR_CODE_FULL, 32); 
-            if (m_logger) m_logger->sysLog("LIGHT", "Safety Cleared: Switched back to FULL Brightness");
+            lightMode = "เปิด (ลดความสว่าง)";
+            if (m_logger)
+                m_logger->sysLog("LIGHT", "Safety Triggered: Switched to SEMI Brightness");
+        }
+        else
+        {
+            irsend.sendNEC(IR_CODE_FULL, 32);
+            lightMode = "เปิด (สว่างสุด)";
+            if (m_logger)
+                m_logger->sysLog("LIGHT", "Safety Cleared: Switched back to FULL Brightness");
         }
         lastThrottleState = needSemiLight;
     }
@@ -138,10 +171,24 @@ void LightManager::setCustomSchedule(int sHour, int sMin, int eHour, int eMin, b
     endHour = eHour;
     endMinute = eMin;
     isCustomScheduleActive = enable;
+    
+    // --- SAVE PREFERENCES WHEN UPDATED ---
+    prefs.begin("light_config", false); // 'false' means read/write mode
+    prefs.putInt("sHour", startHour);
+    prefs.putInt("sMin", startMinute);
+    prefs.putInt("eHour", endHour);
+    prefs.putInt("eMin", endMinute);
+    prefs.putBool("schActive", isCustomScheduleActive);
+    prefs.end();
 
     if (m_logger != nullptr)
     {
         String msg = enable ? "Custom Schedule ON: " + String(sHour) + ":" + String(sMin) + " to " + String(eHour) + ":" + String(eMin) : "Custom Schedule OFF";
         m_logger->sysLog("LIGHT", msg);
     }
+}
+void LightManager::setManualMode(bool activateManual, bool turnOnLight)
+{
+    isManualMode = activateManual;
+    manualLightState = turnOnLight;
 }

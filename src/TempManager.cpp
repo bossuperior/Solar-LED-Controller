@@ -9,7 +9,6 @@ void TempManager::begin(LogManager *sysLogger)
     sensors.begin();
     sensors.setWaitForConversion(false); // Non-blocking mode
 
-    // สมมติฐาน: Index 0 คือ LED, Index 1 คือ แบตเตอรี่ (ต้องสลับตามหน้างานจริง)
     sensors.getAddress(ledAddress, 0);
     sensors.getAddress(buckAddress, 1);
 

@@ -30,7 +30,14 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
     {
         if (!errTemp)
         {
-            String sensor = !tm->isLedSensorOk() ? "ใต้แผงไฟ" : "เครื่องลดแรงดัน";
+            String sensor = "";
+            if (!tm->isLedSensorOk() && !tm->isBuckSensorOk()) {
+                sensor = "ใต้แผงไฟและเครื่องลดแรงดัน"; // Both broken
+            } else if (!tm->isLedSensorOk()) {
+                sensor = "ใต้แผงไฟ";
+            } else {
+                sensor = "เครื่องลดแรงดัน";
+            }
             String msg = "🚨 อันตราย: ตัววัดอุณหภูมิ " + sensor + " ไม่ทำงาน (ตรวจสอบ DS18B20)";
             m_logger->sysLog("ALARM", msg);
             tg->sendAlert("TEMP", msg);
@@ -90,10 +97,6 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
         }
     }
     else if (bTemp < 65.0)
-    {
-        errBuckHighTemp = false;
-    }
-    else
     {
         errBuckHighTemp = false;
     }

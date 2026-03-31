@@ -12,7 +12,7 @@
 #include "OTAManager.h"
 #include "TelegramManager.h"
 
-extern Preferences preferences;
+extern Preferences prefs;
 
 void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, PowerManager *pm, TelegramManager *tg, bool force)
 {
@@ -161,9 +161,9 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
         }
         break;
     case HTTP_UPDATE_OK:
-        preferences.begin("app_info", false);
-        preferences.putString("fw_ver", latestTag);
-        preferences.end();
+        prefs.begin("app_info", false);
+        prefs.putString("fw_ver", latestTag);
+        prefs.end();
         if (m_logger != nullptr)
         {
             m_logger->sysLog("OTA", "Update successful! Rebooting...");
