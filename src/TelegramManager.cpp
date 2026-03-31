@@ -67,6 +67,14 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                     // sscanf extracts the 4 integers from the string format "TL_18_30_06_20"
                     if (sscanf(data.c_str(), "TL_%d_%d_%d_%d", &sH, &sM, &eH, &eM) == 4)
                     {
+                        // Save to NVS so Web Dashboard and Reboots stay perfectly synced
+                        prefs.begin("light_config", false);
+                        prefs.putInt("sHour", sH);
+                        prefs.putInt("sMin", sM);
+                        prefs.putInt("eHour", eH);
+                        prefs.putInt("eMin", eM);
+                        prefs.putBool("schActive", true);
+                        prefs.end();
                         // Pass the extracted times to your LightManager and enable it
                         lm->setCustomSchedule(sH, sM, eH, eM, true);
 
@@ -80,12 +88,12 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 else if (data == "TL_OFF")
                 {
                     // --- LOAD PREFERENCES ON BOOT ---
-                    prefs.begin("light_config", true);
+                    prefs.begin("light_config", false);
                     sH = prefs.getInt("sHour", 18);
                     sM = prefs.getInt("sMin", 30);
                     eH = prefs.getInt("eHour", 6);
                     eM = prefs.getInt("eMin", 20);
-                    isCustomScheduleActive = prefs.getBool("schActive", false);
+                    prefs.putBool("schActive", false);
                     prefs.end();
                     lm->setCustomSchedule(sH, sM, eH, eM, false);
                     bot->sendMessage(chat_id, "❌ *ปิดระบบตั้งเวลาแล้ว*\nไฟจะไม่เปิดอัตโนมัติตามเวลา", "Markdown");
@@ -178,7 +186,7 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
             else if (text == "/lighton" || text == "💡 เปิดไฟ")
             {
                 lm->setManualMode(true, true); // Force manual mode ON, turn light ON
-                bot->sendMessage(chat_id, "💡 *เปิดไฟและระงับโหมดออโต้ชั่วคราวแล้ว)*", "Markdown");
+                bot->sendMessage(chat_id, "💡 *เปิดไฟและระงับโหมดออโต้ชั่วคราวแล้ว*", "Markdown");
             }
             else if (text == "/lightoff" || text == "🌑 ปิดไฟ (กลับโหมดออโต้)")
             {

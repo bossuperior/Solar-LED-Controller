@@ -5,6 +5,7 @@
 #include "freertos/semphr.h"
 #include <ArduinoJson.h>
 #include <SPIFFS.h>
+#include <Preferences.h>
 #include "LogManager.h"
 #include "LightManager.h"
 #include "PowerManager.h"
@@ -23,7 +24,6 @@ private:
     LogManager* m_logger;
     FanManager* m_fan;
 
-    void handleautoSetting();
     void handleManOn();
     void handleManOff();
     void handleStatus();

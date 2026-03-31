@@ -11,6 +11,8 @@
 
 #include "WebDashboardManager.h"
 
+extern Preferences prefs;
+
 WebDashboardManager::WebDashboardManager() : server(80) {}
 
 void WebDashboardManager::begin(LogManager *sysLogger, LightManager *light, PowerManager *power, TempManager *temp, FanManager *fan, SemaphoreHandle_t *mutex)
@@ -39,7 +41,6 @@ void WebDashboardManager::begin(LogManager *sysLogger, LightManager *light, Powe
     });
     server.serveStatic("/assets", SPIFFS, "/assets");
     // Create Routing
-    server.on("/autosetting", std::bind(&WebDashboardManager::handleautoSetting, this));
     server.on("/lighton", std::bind(&WebDashboardManager::handleManOn, this));
     server.on("/lightoff", std::bind(&WebDashboardManager::handleManOff, this));
     server.on("/status", std::bind(&WebDashboardManager::handleStatus, this));
@@ -57,25 +58,13 @@ void WebDashboardManager::handle()
     server.handleClient();
 }
 
-void WebDashboardManager::handleautoSetting()
-{
-    if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
-    {
-        m_light->setManualMode(false, 0);
-        if (m_logger != nullptr)
-            m_logger->sysLog("WEB", "Mode Changed: AUTO");
-        xSemaphoreGive(*m_mutex);
-    }
-    server.sendHeader("Location", "/");
-    server.send(303);
-}
 void WebDashboardManager::handleManOn()
 {
     if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
     {
-        m_light->setManualMode(true, 100);
+        m_light->setManualMode(true, true);
         if (m_logger != nullptr)
-            m_logger->sysLog("WEB", "Mode Changed: MANUAL 100%");
+            m_logger->sysLog("WEB", "Mode Changed: ON (Manual)");
         xSemaphoreGive(*m_mutex);
     }
     server.sendHeader("Location", "/");
@@ -85,7 +74,7 @@ void WebDashboardManager::handleManOff()
 {
     if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
     {
-        m_light->setManualMode(false, 0);
+        m_light->setManualMode(false, false);
         if (m_logger != nullptr)
             m_logger->sysLog("WEB", "Mode Changed: OFF (Return to AUTO)");
         xSemaphoreGive(*m_mutex);
@@ -97,7 +86,6 @@ void WebDashboardManager::handleStatus()
 {
     float v = 0.0, t_buck = 0.0, t_led = 0.0;
     bool fan = false;
-    int pct = 0;
 
     if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
     {
@@ -105,7 +93,7 @@ void WebDashboardManager::handleStatus()
         t_buck = m_temp->getBuckTemp();
         t_led = m_temp->getLedTemp();
         fan = m_fan->isFanRunning();
-        m_light->getBrightness(pct);
+        String lightStatus = m_light->isLightMode();
         xSemaphoreGive(*m_mutex);
 
         DynamicJsonDocument doc(256);
@@ -113,7 +101,7 @@ void WebDashboardManager::handleStatus()
         doc["temp_buck"] = t_buck;
         doc["temp_led"] = t_led;
         doc["fan_on"] = fan;
-        doc["light"] = pct;
+        doc["light"] = lightStatus;
 
         String jsonResponse;
         serializeJson(doc, jsonResponse);
@@ -126,29 +114,44 @@ void WebDashboardManager::handleStatus()
 }
 void WebDashboardManager::handleUpdateSchedule()
 {
-    if (server.hasArg("p") && server.hasArg("v"))
+    if (server.hasArg("sh") && server.hasArg("sm") && server.hasArg("eh") && server.hasArg("em") && server.hasArg("active"))
     {
-        int period = server.arg("p").toInt();
-        int percent = server.arg("v").toInt();
+        int sHour = server.arg("sh").toInt();
+        int sMin = server.arg("sm").toInt();
+        int eHour = server.arg("eh").toInt();
+        int eMin = server.arg("em").toInt();
+        bool isActive = (server.arg("active") == "1" || server.arg("active") == "true");
+
         if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
         {
+            // 1. Save to NVS so the schedule survives a reboot
+            prefs.begin("light_config", false);
+            prefs.putInt("sHour", sHour);
+            prefs.putInt("sMin", sMin);
+            prefs.putInt("eHour", eHour);
+            prefs.putInt("eMin", eMin);
+            prefs.putBool("schActive", isActive);
+            prefs.end();
 
-            m_light->setPeriodBrightness(period, percent);
+            // 2. Apply to LightManager
+            m_light->setCustomSchedule(sHour, sMin, eHour, eMin, isActive);
 
             if (m_logger != nullptr)
             {
-                m_logger->sysLog("WEB", "Update Slot " + String(period) + " to " + String(percent) + "%");
+                String logMsg = "Web Schedule Updated: " + String(sHour) + ":" + String(sMin) + " to " + String(eHour) + ":" + String(eMin) + " | Active: " + String(isActive);
+                m_logger->sysLog("WEB", logMsg);
             }
+            
             xSemaphoreGive(*m_mutex);
-            server.send(200, "text/plain", "OK");
+            server.send(200, "text/plain", "Schedule Saved Successfully");
         }
         else
         {
-            server.send(503, "text/plain", "System Busy");
+            server.send(503, "text/plain", "System Busy - Try Again");
         }
     }
     else
     {
-        server.send(400, "text/plain", "Bad Request");
+        server.send(400, "text/plain", "Bad Request: Missing Time Parameters");
     }
 }
