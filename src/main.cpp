@@ -62,7 +62,7 @@ const int LOG_INTERVAL = 60000; // Log every 60 seconds
 bool initialOtaChecked = false;
 
 // Shared Data (Accessed via Mutex)
-int sharedLightPct = 0;
+String sharedLightMode = "ปิดไฟ";
 unsigned long lastLogSent = 0;
 
 void HardwareLoop(void *pvParameters)
@@ -70,7 +70,7 @@ void HardwareLoop(void *pvParameters)
   esp_task_wdt_add(NULL);
   for (;;)
   {
-    if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(50)) == pdTRUE)
+    if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(100)) == pdTRUE)
     {
       timer.handle();
       int h = timer.getHour();
@@ -82,7 +82,7 @@ void HardwareLoop(void *pvParameters)
       {
         if (!powerErrorLogged)
         {
-          light.setManualMode(true, 0);
+          light.setManualMode(true, false);
           sysLogger.sysLog("POWER", "Power is unsafe! Lighting turned off.");
           powerErrorLogged = true;
         }
@@ -91,7 +91,7 @@ void HardwareLoop(void *pvParameters)
       {
         if (powerErrorLogged)
         {
-          light.setManualMode(false, 0);
+          light.setManualMode(false, false);
           sysLogger.sysLog("POWER", "Power restored! Returning to AUTO mode.");
           powerErrorLogged = false;
         }
@@ -102,12 +102,12 @@ void HardwareLoop(void *pvParameters)
         light.handle(h, m, &temp, &power);
         fan.handle(&temp);
         monitor.monitor(&power, &temp, &fan, &timer, &telegram, &light);
-        light.getBrightness(sharedLightPct);
+        sharedLightMode = light.isLightMode();
       }
       xSemaphoreGive(mutexKey);
     }
     esp_task_wdt_reset();
-    vTaskDelay(20 / portTICK_PERIOD_MS); // Delay to prevent watchdog reset
+    vTaskDelay(50 / portTICK_PERIOD_MS); // Delay to prevent watchdog reset
   }
 }
 void CommLoop(void *pvParameters)
@@ -122,33 +122,32 @@ void CommLoop(void *pvParameters)
     {
       int h = 0, m = 0;
       float send_v = 0, send_led_t = 0, send_buck_t = 0;
-      int send_fan = 0, send_light = 0;
+      int send_fan = 0;
+      String send_light = "ปิดไฟ";
       bool doOTA = false;
       bool doLog = false;
-      bool canUpdateTelegram = false;
 
       // Mutex to safely read shared data and check conditions without blocking for too long
-      if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(100)) == pdTRUE)
+      if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(150)) == pdTRUE)
       {
         h = timer.getHour();
         m = timer.getMinute();
 
         if (!ota.isUpdating)
         {
-          canUpdateTelegram = true;
           send_v = power.getVoltage();
           send_led_t = temp.getLedTemp();
           send_buck_t = temp.getBuckTemp();
           send_fan = fan.getFanSpeed();
-          send_light = sharedLightPct;
+          send_light = sharedLightMode;
         }
         if ((!initialOtaChecked || (h == UPDATE_HOUR && m == UPDATE_MINUTE && !hasCheckedToday)) && !ota.isUpdating)
         {
           doOTA = true;
           initialOtaChecked = true;
-          hasCheckedToday = (h == UPDATE_HOUR);
+          hasCheckedToday = true;
         }
-        if (h != UPDATE_HOUR)
+        else if (h != UPDATE_HOUR)
         {
           hasCheckedToday = false;
         }
@@ -159,11 +158,10 @@ void CommLoop(void *pvParameters)
         }
         xSemaphoreGive(mutexKey);
       }
-      if (canUpdateTelegram)
+      if (!ota.isUpdating)
       {
         telegram.checkMessages(&power, &temp, &fan, &light, &ota);
         esp_task_wdt_reset();
-        vTaskDelay(500 / portTICK_PERIOD_MS);
       }
       if (ota.pendingForceUpdate)
       {
@@ -172,11 +170,10 @@ void CommLoop(void *pvParameters)
         ota.checkUpdate(firmwareVersion, &sysLogger, &power, &telegram, true);
         esp_task_wdt_reset();
       }
-      if (doOTA)
+      else if (doOTA)
       {
         sysLogger.sysLog("OTA", "Scheduled update check...");
         ota.checkUpdate(firmwareVersion, &sysLogger, &power, &telegram);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
       }
       if (doLog)
       {
@@ -184,7 +181,6 @@ void CommLoop(void *pvParameters)
         sysLogger.sysLog("TEMP", "LED: " + String(send_led_t, 1) + "C | Buck: " + String(send_buck_t, 1) + "C");
         gsheet.sendData(send_v, send_led_t, send_buck_t, send_fan, send_light);
         esp_task_wdt_reset();
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
       }
     }
     esp_task_wdt_reset();
