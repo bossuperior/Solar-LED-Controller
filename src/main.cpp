@@ -62,7 +62,6 @@ const int LOG_INTERVAL = 60000; // Log every 60 seconds
 bool initialOtaChecked = false;
 
 // Shared Data (Accessed via Mutex)
-String sharedLightMode = "ปิดไฟ";
 unsigned long lastLogSent = 0;
 
 void HardwareLoop(void *pvParameters)
@@ -102,7 +101,6 @@ void HardwareLoop(void *pvParameters)
         light.handle(h, m, &temp, &power);
         fan.handle(&temp);
         monitor.monitor(&power, &temp, &fan, &timer, &telegram, &light);
-        sharedLightMode = light.isLightMode();
       }
       xSemaphoreGive(mutexKey);
     }
@@ -139,7 +137,6 @@ void CommLoop(void *pvParameters)
           send_led_t = temp.getLedTemp();
           send_buck_t = temp.getBuckTemp();
           send_fan = fan.getFanSpeed();
-          send_light = sharedLightMode;
         }
         if ((!initialOtaChecked || (h == UPDATE_HOUR && m == UPDATE_MINUTE && !hasCheckedToday)) && !ota.isUpdating)
         {
@@ -155,6 +152,7 @@ void CommLoop(void *pvParameters)
         {
           doLog = true;
           lastLogSent = millis();
+          send_light = light.isLightMode();
         }
         xSemaphoreGive(mutexKey);
       }

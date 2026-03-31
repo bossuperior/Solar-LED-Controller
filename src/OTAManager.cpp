@@ -35,10 +35,13 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
             return;
         }
     }
-    if (voltage > 0.1 && voltage < 3.25)
+    if (voltage > 0.1 && voltage < 3.15)
     {
         if (m_logger)
             m_logger->sysLog("OTA", "Abort: Battery too low (" + String(voltage) + "V)");
+        if (tg != nullptr && force) {
+            tg->sendAlert("OTA Update", "❌ ยกเลิกการอัปเดต: *แบตเตอรี่ต่ำเกินไป* (" + String(voltage) + "V) กรุณาชาร์จแบตเตอรี่ก่อนอัปเดต");
+        }
         isUpdating = false;
         return;
     }
@@ -46,6 +49,9 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
     {
         if (m_logger)
             m_logger->sysLog("OTA", "Abort: WiFi signal too weak (" + String(rssi) + "dBm)");
+        if (tg != nullptr && force) {
+            tg->sendAlert("OTA Update", "❌ ยกเลิกการอัปเดต: *สัญญาณ WiFi อ่อนเกินไป* (" + String(rssi) + "dBm)");
+        }
         isUpdating = false;
         return;
     }
@@ -115,6 +121,7 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
             {
                 m_logger->sysLog("OTA", "Invalid JSON payload from GitHub API.");
             }
+            if (tg != nullptr && force) tg->sendAlert("OTA Update", "❌ ข้อผิดพลาด: รูปแบบข้อมูลจาก GitHub API ไม่ถูกต้อง");
             http.end();
             isUpdating = false;
             return;
@@ -126,6 +133,7 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
         {
             m_logger->sysLog("OTA", "Failed to fetch API. Error: " + String(httpCode));
         }
+        if (tg != nullptr && force) tg->sendAlert("OTA Update", "❌ ข้อผิดพลาด: เชื่อมต่อ GitHub API ล้มเหลว (Code: " + String(httpCode) + ")");
         http.end();
         isUpdating = false;
         return;
@@ -153,6 +161,7 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
         {
             m_logger->sysLog("OTA", "Update failed. Error (" + String(httpUpdate.getLastError()) + "): " + httpUpdate.getLastErrorString());
         }
+        if (tg != nullptr && force) tg->sendAlert("OTA Error", "❌ การติดตั้งเฟิร์มแวร์ล้มเหลว: " + httpUpdate.getLastErrorString());
         break;
     case HTTP_UPDATE_NO_UPDATES:
         if (m_logger != nullptr)
@@ -168,7 +177,10 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
         {
             m_logger->sysLog("OTA", "Update successful! Rebooting...");
         }
-        delay(1000);
+        if (tg != nullptr) {
+            tg->sendAlert("OTA Success", "✅ อัปเดตเสร็จสมบูรณ์! ระบบกำลังรีสตาร์ทเป็นเวอร์ชัน " + latestTag);
+            delay(1500); 
+        }
         ESP.restart();
         break;
     }
@@ -181,16 +193,22 @@ void OTAManager::triggerRollback()
         if (Update.rollBack())
         {
             m_logger->sysLog("SYSTEM", "Rollback successful! Rebooting...");
+            if (m_telegram != nullptr) {
+                m_telegram->sendAlert("OTA Rollback", "✅ ย้อนกลับเวอร์ชันสำเร็จ! ระบบกำลังรีสตาร์ท...");
+                delay(1500);
+            }
             delay(2000);
             ESP.restart();
         }
         else
         {
             m_logger->sysLog("ERROR", "Rollback failed!");
+            if (m_telegram != nullptr) m_telegram->sendAlert("OTA Rollback", "❌ การย้อนกลับเวอร์ชันล้มเหลว!");
         }
     }
     else
     {
         m_logger->sysLog("ERROR", "No previous version available to rollback.");
+        if (m_telegram != nullptr) m_telegram->sendAlert("OTA Rollback", "❌ ไม่มีเฟิร์มแวร์เวอร์ชันก่อนหน้าให้ย้อนกลับ!");
     }
 }

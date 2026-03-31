@@ -104,31 +104,40 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 int fanSpeed = fm->getFanSpeed();
 
                 int batPct = 0;
-                if (v >= 3.40)
+
+                // LiFePO4 1S (3.2V Nominal) Discharge Curve Approximation
+                if (v >= 3.45)
                 {
-                    batPct = 100;
+                    batPct = 100; // Fully charged or actively receiving strong solar charge
                 }
-                else if (v >= 3.30)
+                else if (v >= 3.35)
                 {
-                    batPct = 90 + ((v - 3.30) / 0.10) * 10; // 3.30V - 3.40V (90% - 100%)
+                    batPct = 90 + ((v - 3.35) / 0.10) * 10; // 3.35V - 3.45V (90% - 100%)
+                }
+                else if (v >= 3.25)
+                {
+                    batPct = 70 + ((v - 3.25) / 0.10) * 20; // 3.25V - 3.35V (70% - 90%)
                 }
                 else if (v >= 3.20)
                 {
-                    batPct = 30 + ((v - 3.20) / 0.10) * 60; // 3.20V - 3.30V (30% - 90%)
+                    // The "Flat Zone" - LiFePO4 spends most of its life right here
+                    batPct = 30 + ((v - 3.20) / 0.05) * 40; // 3.20V - 3.25V (30% - 70%) 
                 }
                 else if (v >= 3.10)
                 {
-                    batPct = 5 + ((v - 3.10) / 0.10) * 25; // 3.10V - 3.20V (5% - 30%)
+                    batPct = 10 + ((v - 3.10) / 0.10) * 20; // 3.10V - 3.20V (10% - 30%)
                 }
-                else if (v >= 3.00)
+                else if (v >= 2.80)
                 {
-                    batPct = ((v - 3.00) / 0.10) * 5; // 3.00V - 3.10V (0% - 5%)
+                    // Sharp drop-off zone. 2.8V is a safe practical cut-off for longevity.
+                    batPct = ((v - 2.80) / 0.30) * 10;      // 2.80V - 3.10V (0% - 10%)
                 }
                 else
                 {
                     batPct = 0;
                 }
                 batPct = constrain(batPct, 0, 100);
+   
                 String wifiSSID = WiFi.SSID();
                 long rssi = WiFi.RSSI();
                 String wifiStatus = (rssi > -65) ? "🟢 ดีมาก" : ((rssi > -80) ? "🟡 ปานกลาง" : "🔴 อ่อน");
