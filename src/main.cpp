@@ -31,6 +31,7 @@
 
 #ifndef PIO_UNIT_TESTING
 #define WDT_TIMEOUT 45
+const uint16_t IR_TX_PIN = 18;
 
 // --- Task & Sync Handles ---
 TaskHandle_t TaskHardware;
@@ -41,9 +42,9 @@ SemaphoreHandle_t mutexKey;
 NetworkManager network;
 TimeManager timer;
 OTAManager ota;
-LightManager light;
+LightManager light(IR_TX_PIN);
 SystemMonitor monitor;
-Preferences preferences;
+Preferences prefs;
 TempManager temp;
 LogManager sysLogger;
 PowerManager power;
@@ -218,13 +219,13 @@ void setup()
   dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey);
 
   // Load Metadata
-  preferences.begin("app_info", false);
-  if (!preferences.isKey("fw_ver")) {
-      preferences.putString("fw_ver", "v0.1.5");
+  prefs.begin("app_info", false);
+  if (!prefs.isKey("fw_ver")) {
+      prefs.putString("fw_ver", "v0.1.5");
       sysLogger.sysLog("SYSTEM", "New NVS Key created");
   }
-  firmwareVersion = preferences.getString("fw_ver", "v0.1.5");
-  preferences.end();
+  firmwareVersion = prefs.getString("fw_ver", "v0.1.5");
+  prefs.end();
   sysLogger.sysLog("SYSTEM", "Firmware Version: " + firmwareVersion);
 
   // Create Mutex & Tasks
