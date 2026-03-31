@@ -1,29 +1,34 @@
 #pragma once
 #include <Arduino.h>
+#include <IRremoteESP8266.h>
+#include <IRsend.h>
 #include "LogManager.h"
 #include "PowerManager.h"
 #include "TempManager.h"
-#include <Preferences.h>
+
+#define IR_CODE_ON         0xFF02FD
+#define IR_CODE_OFF        0xFF9867
+#define IR_CODE_FULL       0xFF906F
+#define IR_CODE_SEMI       0xFFA857
+#define IR_CODE_3H        0xFF08F7
+#define IR_CODE_5H        0xFF6897
+#define IR_CODE_8H        0xFFB04F
 
 class LightManager {
 private:
-    const int ledPin = 18;
-    const int pwmChannel = 0;
-    const int pwmFreq = 1000;
-    const int pwmResolution = 8; // 0-255
     LogManager* m_logger = nullptr;
-    int brightP1 = 70; // 18.00-20.00
-    int brightP2 = 80; // 20.00-00.00
-    int brightP3 = 50; // 00.00-04.00
-    int brightP4 = 70; // 04.00-06.00
+    IRsend irsend;
+    bool isCustomScheduleActive = false;
+    int startHour = 18;
+    int startMinute = 30;
+    int endHour = 6;
+    int endMinute = 20;
     bool isManualMode = false;
-    int manualBrightness = 0;
+    bool semiLightMode = false;
+    bool fullLightMode = false;
 
 public:
     void begin(LogManager* sysLogger);
-    void targetBrightness(int percent);
     void handle(int currentHour , int currentMinute, TempManager* tm, PowerManager* pm);
-    void getBrightness(int &currentPercent);
-    void setPeriodBrightness(int period, int percent);
-    void setManualMode(bool active, int percent = 0);
+    void setCustomSchedule(int sHour, int sMin, int eHour, int eMin, bool enable);
 };

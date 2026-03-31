@@ -11,4 +11,7 @@ web/dist/
 .vscode/launch.json
 .vscode/ipch
 *.swp
+
+#Project specific
 secret.h
+AGENTS.md
