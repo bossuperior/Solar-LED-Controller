@@ -9,7 +9,7 @@ void GsheetManager::begin(LogManager* sysLogger, TimeManager* timeManager)
         m_sysLogger->sysLog("GSHEET", "Google Sheets manager initialized");
     }
 }
-void GsheetManager::sendData(float voltage, float tempLed, float tempBuck, int fanSpeed, int lightPct)
+void GsheetManager::sendData(float voltage, float tempLed, float tempBuck, int fanSpeed, String lightPct)
 {
     String jsonPayload = "{";
     jsonPayload += "\"time\":\"" + m_timeManager->getCurrentTime() + "\",";
@@ -17,7 +17,7 @@ void GsheetManager::sendData(float voltage, float tempLed, float tempBuck, int f
     jsonPayload += "\"tempLed\":" + String(tempLed, 1) + ",";
     jsonPayload += "\"tempBuck\":" + String(tempBuck, 1) + ",";
     jsonPayload += "\"fanSpeed\":" + String(fanSpeed) + ",";
-    jsonPayload += "\"lightPct\":" + String(lightPct);
+    jsonPayload += "\"lightPct\":" + lightPct;
     jsonPayload += "}";
 
     HTTPClient http;
