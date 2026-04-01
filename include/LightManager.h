@@ -25,10 +25,7 @@ private:
     bool manualLightState = false;
     bool lastOnState = false;
     String lightMode = "ปิดไฟ";
-    int startHour;
-    int startMinute;
-    int endHour;
-    int endMinute;
+    int startHour, startMinute, endHour, endMinute;
 
 public:
     LightManager(uint16_t pin);

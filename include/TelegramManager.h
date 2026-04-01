@@ -26,6 +26,7 @@ private:
     LogManager *m_sysLogger;
     OTAManager *m_ota;
     LightManager *m_light;
+    int sH, sM, eH, eM;
 
 public:
     void begin(LogManager *sysLogger);
