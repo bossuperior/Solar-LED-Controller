@@ -75,6 +75,9 @@ void HardwareLoop(void *pvParameters)
       int h = timer.getHour();
       int m = timer.getMinute();
 
+      temp.update();
+      fan.handle(&temp);
+
       // Power Safety Logic
       static bool powerErrorLogged = false;
       if (!power.isPowerSafe())
@@ -97,9 +100,8 @@ void HardwareLoop(void *pvParameters)
       }
       if (!ota.isUpdating)
       {
-        temp.update();
+        
         light.handle(h, m, &temp, &power);
-        fan.handle(&temp);
         monitor.monitor(&power, &temp, &fan, &timer, &telegram, &light);
       }
       xSemaphoreGive(mutexKey);
@@ -190,6 +192,11 @@ void setup()
 {
   Serial.begin(115200);
   delay(1000);
+  mutexKey = xSemaphoreCreateMutex();
+  if (mutexKey == NULL) {
+      Serial.println("System HALT: Failed to create mutex!");
+      while(1); // Halt system if RTOS fails
+  }
   esp_err_t err = nvs_flash_init();
   if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND)
   {
@@ -199,7 +206,7 @@ void setup()
   sysLogger.begin();
   if (err == ESP_OK)
   {
-    sysLogger.sysLog("SYSTEM", "NVS Initialized successfully.");
+    Serial.println("[SYSTEM] NVS Initialized successfully.");
   }
   network.begin(&sysLogger);
   timer.begin(&sysLogger);
@@ -215,21 +222,17 @@ void setup()
   // Load Metadata
   prefs.begin("app_info", false);
   if (!prefs.isKey("fw_ver")) {
-      prefs.putString("fw_ver", "v0.1.5");
+      prefs.putString("fw_ver", "v0.2.1");
       sysLogger.sysLog("SYSTEM", "New NVS Key created");
   }
-  firmwareVersion = prefs.getString("fw_ver", "v0.1.5");
+  firmwareVersion = prefs.getString("fw_ver", "v0.2.1");
   prefs.end();
   sysLogger.sysLog("SYSTEM", "Firmware Version: " + firmwareVersion);
 
-  // Create Mutex & Tasks
-  mutexKey = xSemaphoreCreateMutex();
-  if (mutexKey != NULL)
-  {
+  // Create Tasks
     esp_task_wdt_init(WDT_TIMEOUT, true);
     xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 8192, NULL, 3, &TaskHardware, 1);
     xTaskCreatePinnedToCore(CommLoop, "TaskComm", 10240, NULL, 1, &TaskComm, 0);
-  }
 }
 
 void loop()

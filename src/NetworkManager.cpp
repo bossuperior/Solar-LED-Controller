@@ -14,6 +14,8 @@
 void NetworkManager::begin(LogManager *sysLogger)
 {
     m_logger = sysLogger;
+    WiFi.disconnect(true, true);
+    delay(100);
     WiFi.mode(WIFI_STA);
     delay(100);
     wifiMulti.addAP(SECRET_SSID_HOME, SECRET_PASS_HOME);

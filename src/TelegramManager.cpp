@@ -42,7 +42,7 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
         return;
     esp_task_wdt_reset();
     prefs.begin("app_info", false);
-    String firmwareVersion = prefs.getString("fw_ver", "v0.0.0-dev");
+    String firmwareVersion = prefs.getString("fw_ver", "v0.2.1");
     prefs.end();
     int numNewMessages = bot->getUpdates(bot->last_message_received + 1);
     m_ota = ota;
@@ -55,15 +55,42 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
             String chat_id = bot->messages[i].chat_id;
             String text = bot->messages[i].text;
             String type = bot->messages[i].type;
+            String query_id = bot->messages[i].query_id;
 
             if (type == "callback_query")
             {
                 String data = text;
-
-                if (data.startsWith("TL_") && data != "TL_OFF")
+                if (chat_id == "")
+                    chat_id = SECRET_TELEGRAM_CHAT_ID;
+                bot->answerCallbackQuery(query_id);
+                esp_task_wdt_reset();
+                int sH = 0, sM = 0, eH = 0, eM = 0;
+                if (data == "RB_CONFIRM")
                 {
-                    int sH, sM, eH, eM;
-
+                    bot->sendMessage(chat_id, "⚙️ *System:* กำลังเริ่มกระบวนการ Rollback กรุณารอสักครู่...", "Markdown");
+                    m_ota->triggerRollback();
+                }
+                else if (data == "TL_OFF_REQ")
+                {
+                    String confirmKb = "[[{\"text\":\"✅ ใช่, ยืนยันปิดออโต้\",\"callback_data\":\"TL_OFF_CONFIRM\"}]]";
+                    bot->sendMessageWithInlineKeyboard(chat_id, "⚠️ *ยืนยันการปิดระบบ*\nคุณแน่ใจว่าต้องการปิดระบบตั้งเวลาแสงอัตโนมัติ?", "Markdown",confirmKb);
+                }
+                else if (data == "TL_OFF_CONFIRM") 
+                {
+                    prefs.begin("light_config", false);
+                    prefs.putBool("schActive", false);
+                    prefs.end();
+                    
+                    lm->setCustomSchedule(18, 30, 6, 20, false); 
+                    bot->sendMessage(chat_id, "❌ *ปิดระบบตั้งเวลาเรียบร้อยแล้ว*\nไฟจะไม่เปิดอัตโนมัติตามเวลา", "Markdown");
+                }
+                else if (data == "FORCE_UPDATE")
+                {
+                    bot->sendMessage(chat_id, "⏳ *กำลังเริ่มกระบวนการ OTA...* ระบบจะรีบูตอัตโนมัติ", "Markdown");
+                    m_ota->pendingForceUpdate = true;
+                }
+                else if (data.startsWith("TL_") && data != "TL_OFF")
+                {
                     // sscanf extracts the 4 integers from the string format "TL_18_30_06_20"
                     if (sscanf(data.c_str(), "TL_%d_%d_%d_%d", &sH, &sM, &eH, &eM) == 4)
                     {
@@ -84,24 +111,6 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
 
                         bot->sendMessage(chat_id, "✅ *บันทึกเวลาสำเร็จ*\nไฟจะเปิดเวลา " + startStr + " น. และปิดเวลา " + endStr + " น.", "Markdown");
                     }
-                }
-                else if (data == "TL_OFF")
-                {
-                    // --- LOAD PREFERENCES ON BOOT ---
-                    prefs.begin("light_config", false);
-                    sH = prefs.getInt("sHour", 18);
-                    sM = prefs.getInt("sMin", 30);
-                    eH = prefs.getInt("eHour", 6);
-                    eM = prefs.getInt("eMin", 20);
-                    prefs.putBool("schActive", false);
-                    prefs.end();
-                    lm->setCustomSchedule(sH, sM, eH, eM, false);
-                    bot->sendMessage(chat_id, "❌ *ปิดระบบตั้งเวลาแล้ว*\nไฟจะไม่เปิดอัตโนมัติตามเวลา", "Markdown");
-                }
-                else if (data == "FORCE_UPDATE")
-                {
-                    bot->sendMessage(chat_id, "⏳ กำลังเริ่มกระบวนการ OTA... ระบบจะรีบูตอัตโนมัติหากพบเวอร์ชันใหม่", "Markdown");
-                    m_ota->pendingForceUpdate = true;
                 }
             }
             else if (text == "/status" || text == "📊 สถานะระบบ")
@@ -129,7 +138,7 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 else if (v >= 3.20)
                 {
                     // The "Flat Zone" - LiFePO4 spends most of its life right here
-                    batPct = 30 + ((v - 3.20) / 0.05) * 40; // 3.20V - 3.25V (30% - 70%) 
+                    batPct = 30 + ((v - 3.20) / 0.05) * 40; // 3.20V - 3.25V (30% - 70%)
                 }
                 else if (v >= 3.10)
                 {
@@ -138,14 +147,14 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 else if (v >= 2.80)
                 {
                     // Sharp drop-off zone. 2.8V is a safe practical cut-off for longevity.
-                    batPct = ((v - 2.80) / 0.30) * 10;      // 2.80V - 3.10V (0% - 10%)
+                    batPct = ((v - 2.80) / 0.30) * 10; // 2.80V - 3.10V (0% - 10%)
                 }
                 else
                 {
                     batPct = 0;
                 }
                 batPct = constrain(batPct, 0, 100);
-   
+
                 String wifiSSID = WiFi.SSID();
                 long rssi = WiFi.RSSI();
                 String wifiStatus = (rssi > -65) ? "🟢 ดีมาก" : ((rssi > -80) ? "🟡 ปานกลาง" : "🔴 อ่อน");
@@ -168,25 +177,77 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
 
                 bot->sendMessage(chat_id, msg, "Markdown");
             }
+            else if (text == "/log" || text == "📝 ดู Log ล่าสุด")
+            {
+                if (m_sysLogger != nullptr)
+                {
+                    bot->sendMessage(chat_id, "⏳ กำลังดึงข้อมูล Log...", "");
+                    esp_task_wdt_reset();
+
+                    String logData = m_sysLogger->getTailLogs(800);
+                    String msg = "<b>📜 System Logs (ล่าสุด):</b>\n<pre>" + logData + "</pre>";
+
+                    bot->sendMessage(chat_id, msg, "HTML");
+                }
+                else
+                {
+                    bot->sendMessage(chat_id, "❌ ระบบ Log Manager ไม่พร้อมทำงาน", "");
+                }
+            }
             else if (text == "/timelight" || text == "⏱️ ตั้งเวลาแสง")
             {
-                String keyboardJson = "[";
-                // Option 1: 18:00 to 06:00
-                keyboardJson += "[{\"text\":\"18:00 - 06:00 น.\",\"callback_data\":\"TL_18_00_06_00\"}],";
-                // Option 2: 18:30 to 06:20 (Your default)
-                keyboardJson += "[{\"text\":\"18:30 - 06:20 น.\",\"callback_data\":\"TL_18_30_06_20\"}],";
-                // Option 3: 18:30 to 06:00
-                keyboardJson += "[{\"text\":\"18:30 - 06:00 น.\",\"callback_data\":\"TL_18_30_06_00\"}],";
-                // Option 4: Turn Schedule OFF
-                keyboardJson += "[{\"text\":\"❌ ปิดระบบออโต้\",\"callback_data\":\"TL_OFF\"}]";
-                keyboardJson += "]";
+                prefs.begin("light_config", true); // true = Read Only
+                int cur_sH = prefs.getInt("sHour", 18);
+                int cur_sM = prefs.getInt("sMin", 30);
+                int cur_eH = prefs.getInt("eHour", 6);
+                int cur_eM = prefs.getInt("eMin", 20);
+                bool isActive = prefs.getBool("schActive", false);
+                prefs.end();
 
-                bot->sendMessageWithInlineKeyboard(chat_id, "⚙️ *ตั้งเวลาเปิด-ปิดไฟอัตโนมัติ*\nเลือกช่วงเวลาที่คุณต้องการ:", "Markdown", keyboardJson);
+                String sTime = String(cur_sH) + ":" + (cur_sM < 10 ? "0" : "") + String(cur_sM);
+                String eTime = String(cur_eH) + ":" + (cur_eM < 10 ? "0" : "") + String(cur_eM);
+                String statusTxt = isActive ? "🟢 *กำลังเปิดใช้งาน*" : "🔴 *ปิดใช้งาน (Manual)*";
+                
+                String msg = "⚙️ *แผงควบคุมเวลาแสง (Timer)*\n";
+                msg += "━━━━━━━━━━━━━━━━\n";
+                msg += "📌 *สถานะปัจจุบัน:* " + statusTxt + "\n";
+                if (isActive) {
+                    msg += "⏰ *เวลาที่ตั้งไว้:* `" + sTime + " น.` ถึง `" + eTime + " น.`\n";
+                }
+                msg += "━━━━━━━━━━━━━━━━\n";
+                msg += "👇 *เลือกปรับช่วงเวลาใหม่ที่ต้องการ:*";
+
+                String kb = "[";
+                kb += "[{\"text\":\"🌙 18:00 - 06:00\",\"callback_data\":\"TL_18_00_06_00\"},";
+                kb += " {\"text\":\"🌙 18:30 - 06:00\",\"callback_data\":\"TL_18_30_06_00\"}],";
+                kb += "[{\"text\":\"🌃 18:30 - 06:20\",\"callback_data\":\"TL_18_30_06_20\"},";
+                kb += " {\"text\":\"🌃 19:00 - 06:00\",\"callback_data\":\"TL_19_00_06_00\"}],";
+                kb += "[{\"text\":\"❌ ปิดระบบออโต้\",\"callback_data\":\"TL_OFF_REQ\"}]";
+                kb += "]";
+
+                bot->sendMessageWithInlineKeyboard(chat_id, msg, "Markdown", kb);
             }
             else if (text == "/lighton" || text == "💡 เปิดไฟ")
             {
-                lm->setManualMode(true, true); // Force manual mode ON, turn light ON
-                bot->sendMessage(chat_id, "💡 *เปิดไฟและระงับโหมดออโต้ชั่วคราวแล้ว*", "Markdown");
+                if (pm->isPowerSafe())
+                {
+                    lm->setManualMode(true, true); // Force manual mode ON, turn light ON
+                    bot->sendMessage(chat_id, "💡 *เปิดไฟและระงับโหมดออโต้ชั่วคราวแล้ว*", "Markdown");
+                }
+                else
+                {
+                    float v = pm->getVoltage();
+                    String alertMsg = "⚠️ *ไม่สามารถเปิดไฟได้*\n\n";
+                    alertMsg += "🚫 *สาเหตุ:* แรงดันแบตเตอรี่ต่ำกว่าเกณฑ์ปลอดภัย\n";
+                    alertMsg += "⚡ *แรงดันปัจจุบัน:* `" + String(v, 2) + "V`\n\n";
+                    alertMsg += "ระบบทำการบล็อคคำสั่งเพื่อป้องกันแบตเตอรี่เสียหาย";
+                    bot->sendMessage(chat_id, alertMsg, "Markdown");
+
+                    if (m_sysLogger != nullptr)
+                    {
+                        m_sysLogger->sysLog("TELEGRAM", "Manual light ON rejected: Low Battery (" + String(v, 2) + "V)");
+                    }
+                }
             }
             else if (text == "/lightoff" || text == "🌑 ปิดไฟ (กลับโหมดออโต้)")
             {
@@ -195,9 +256,7 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
             }
             else if (text == "/dashboard" || text == "🌐 หน้าเว็บควบคุม")
             {
-                String ipStr = WiFi.localIP().toString();
-
-                String msg = "🌐 *หน้าเว็บควบคุม (ใช้ตอนเชื่อมต่อเน็ตไม่ได้)*\n\n";
+                String msg = "🌐 *หน้าเว็บควบคุม*\n";
                 msg += "⚠️ คลิกลิงก์ด้านล่างเพื่อเข้าสู่หน้าเว็บควบคุม (คุณต้องเชื่อมต่อ WiFi  ชื่อ `T_SOLAR_LED_AP` ก่อนการใช้งาน):\n";
                 msg += "👉 http://192.168.4.1\n\n";
                 bot->sendMessage(chat_id, msg, "Markdown");
@@ -208,9 +267,11 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 esp_task_wdt_reset();
 
                 // Fetch latest release tag from GitHub API
-                m_client.setTimeout(10000);
+                WiFiClientSecure githubClient;
+                githubClient.setInsecure();
+                githubClient.setTimeout(10000);
                 HTTPClient http;
-                http.begin(m_client, SECRET_OTA_UPDATE_API);
+                http.begin(githubClient, SECRET_OTA_UPDATE_API);
                 http.addHeader("User-Agent", "ESP32-Telegram");
 
                 int httpCode = http.GET();
@@ -250,7 +311,11 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
             }
             else if (text == "/rollback" || text == "↩️ ย้อนเวอร์ชันอัปเดต")
             {
-                m_ota->triggerRollback();
+                String keyboardJson = "[";
+                keyboardJson += "[{\"text\":\"✅ ยืนยันการย้อนเวอร์ชัน\", \"callback_data\":\"RB_CONFIRM\"}]";
+                keyboardJson += "]";
+
+                bot->sendMessageWithInlineKeyboard(chat_id, "⚠️ *คำเตือน!*\nคุณกำลังจะย้อนเวอร์ชันเฟิร์มแวร์ ระบบจะทำการรีสตาร์ทและอาจหยุดทำงานชั่วคราว ยืนยันหรือไม่?", "Markdown", keyboardJson);
             }
             else
             {
@@ -258,7 +323,7 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 keyboardJson += "[\"💡 เปิดไฟ\", \"🌑 ปิดไฟ (กลับโหมดออโต้)\"],";
                 keyboardJson += "[\"⏱️ ตั้งเวลาแสง\", \"📊 สถานะระบบ\"],";
                 keyboardJson += "[\"🔄 ตรวจสอบอัปเดต\",\"↩️ ย้อนเวอร์ชันอัปเดต\"],";
-                keyboardJson += "[\"🌐 หน้าเว็บควบคุม\"]";
+                keyboardJson += "[\"🌐 หน้าเว็บควบคุม\",\"📝 ดู Log ล่าสุด\"]";
                 keyboardJson += "]";
                 bot->sendMessageWithReplyKeyboard(chat_id, "👇 เลือกคำสั่งจากปุ่มด้านล่างได้เลย", "", keyboardJson, true);
             }

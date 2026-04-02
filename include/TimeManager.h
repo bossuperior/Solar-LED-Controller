@@ -3,6 +3,7 @@
 #include <time.h>
 #include <Wire.h>
 #include <RTClib.h>
+#include <esp_sntp.h>
 
 class LogManager;
 class TimeManager

@@ -28,7 +28,7 @@ void TimeManager::begin(LogManager *sysLogger)
         _rtcAvailable = true;
         if (m_logger != nullptr)
         {
-            m_logger->sysLog("TIME", "DS3231 RTC initialized successfully.");
+            Serial.println("[TIME] DS3231 RTC initialized successfully.");
         }
         if (rtc.lostPower())
         {
@@ -49,11 +49,11 @@ void TimeManager::begin(LogManager *sysLogger)
             tm_rtc.tm_sec = now.second();
 
             time_t t = mktime(&tm_rtc);
-            struct timeval tv = {.tv_sec = t, .tv_usec = 0};
+            struct timeval tv = {.tv_sec = (t - gmtOffset_sec), .tv_usec = 0};
             settimeofday(&tv, NULL);
 
             if (m_logger != nullptr)
-                m_logger->sysLog("TIME", "System time loaded securely from DS3231.");
+                Serial.println("[TIME] System time loaded securely from DS3231.");
         }
     }
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer, "time.nist.gov");
@@ -65,18 +65,16 @@ void TimeManager::begin(LogManager *sysLogger)
 
 void TimeManager::handle()
 {
-    struct tm timeinfo;
-    if (getLocalTime(&timeinfo, 0))
+    if (sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED)
     {
-        _lastSyncTime = time(nullptr);
-        _lastSyncMillis = millis();
-        if (!_isTimeSynced)
+        struct tm timeinfo;
+        if (getLocalTime(&timeinfo))
         {
-            if (m_logger != nullptr)
+            _lastSyncTime = time(nullptr);
+            _lastSyncMillis = millis();
+
+            if (_rtcAvailable)
             {
-                m_logger->sysLog("TIME", "Success! System clock is now synchronized.");
-            }
-            if (_rtcAvailable){
                 rtc.adjust(DateTime(timeinfo.tm_year + 1900, timeinfo.tm_mon + 1,
                                     timeinfo.tm_mday, timeinfo.tm_hour,
                                     timeinfo.tm_min, timeinfo.tm_sec));
@@ -84,8 +82,10 @@ void TimeManager::handle()
                 if (m_logger != nullptr)
                     m_logger->sysLog("TIME", "DS3231 RTC automatically calibrated with NTP time.");
             }
-            printTime();
+            
             _isTimeSynced = true;
+            printTime();
+            sntp_set_sync_status(SNTP_SYNC_STATUS_RESET);
         }
     }
 }
@@ -96,11 +96,6 @@ void TimeManager::getCurrentTime(struct tm &timeinfo)
     {
         time_t zero = 0;
         timeinfo = *localtime(&zero);
-        _isTimeSynced = false;
-    }
-    else
-    {
-        _isTimeSynced = true;
     }
 }
 String TimeManager::getCurrentTime()

@@ -11,13 +11,25 @@ void GsheetManager::begin(LogManager* sysLogger, TimeManager* timeManager)
 }
 void GsheetManager::sendData(float voltage, float tempLed, float tempBuck, int fanSpeed, String lightPct)
 {
+    String currentTime = m_timeManager->getCurrentTime();
+
+    if (currentTime.startsWith("1970")) 
+    {
+        if (m_sysLogger != nullptr) m_sysLogger->sysLog("GSHEET", "Skip: Time not synced yet.");
+        return;
+    }
+    if (voltage < 0.1 || tempLed <= -100.0 || tempBuck <= -100.0) 
+    {
+        if (m_sysLogger != nullptr) m_sysLogger->sysLog("GSHEET", "Skip: Incomplete sensor data.");
+        return;
+    }
     String jsonPayload = "{";
-    jsonPayload += "\"time\":\"" + m_timeManager->getCurrentTime() + "\",";
+    jsonPayload += "\"time\":\"" + currentTime + "\",";
     jsonPayload += "\"voltage\":" + String(voltage, 2) + ",";
     jsonPayload += "\"tempLed\":" + String(tempLed, 1) + ",";
     jsonPayload += "\"tempBuck\":" + String(tempBuck, 1) + ",";
     jsonPayload += "\"fanSpeed\":" + String(fanSpeed) + ",";
-    jsonPayload += "\"lightPct\":" + lightPct;
+    jsonPayload += "\"lightPct\":\"" + lightPct + "\"";
     jsonPayload += "}";
 
     HTTPClient http;

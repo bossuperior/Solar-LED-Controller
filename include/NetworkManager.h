@@ -16,7 +16,7 @@ private:
   bool _firstCheck = true;
   LogManager* m_logger = nullptr;
   unsigned long _startAttemptTime = 0; 
-  const unsigned long maxAttemptTime = 10000; 
+  const unsigned long maxAttemptTime = 15000; 
   bool _apModeStarted = false;
 
 public:

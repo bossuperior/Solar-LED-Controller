@@ -17,7 +17,7 @@ An industrial-grade, dual-core ESP32 controller designed for solar-powered LED l
   * **Core 1 (Hardware):** Handles real-time IR control lighting, temperature monitoring, fan speed, and power safety.
   * **Core 0 (Network):** Handles Wi-Fi, Telegram Bot, Google Sheets logging, Local Web API, and OTA updates.
   * *Data is synchronized safely across cores using FreeRTOS Mutex.*
-* **🌐 Local Web Dashboard:** Sleek, responsive UI built with Vite, TypeScript, and Tailwind CSS. Hosted directly on the ESP32 via SPIFFS for real-time monitoring and schedule configuration without cloud dependency.
+* **🌐 Local Web Dashboard:** Sleek, responsive UI built with Vite, TypeScript, and Tailwind CSS. Hosted directly on the ESP32 via LittleFS for real-time monitoring and schedule configuration without cloud dependency.
   
   <img width="1890" height="934" alt="image" src="https://github.com/user-attachments/assets/b3ad4c06-3f78-4ab6-80b1-bc2488ff0b87" />
 
@@ -41,7 +41,7 @@ The system is highly modular, managed by individual C++ classes separated by the
 * `FanManager`: Active cooling control with hysteresis loop.
 
 **Network & Interface**
-* `WebDashboardManager`: Serves the SPIFFS frontend and handles asynchronous REST API requests.
+* `WebDashboardManager`: Serves the LittleFS frontend and handles asynchronous REST API requests.
 * `TelegramManager`: Telegram Bot API wrapper for alerts and remote control.
 * `GsheetManager`: Cloud telemetry data logging.
 * `OTAManager`: Firmware update handler with auto-rollback safety.

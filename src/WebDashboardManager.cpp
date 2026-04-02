@@ -23,15 +23,15 @@ void WebDashboardManager::begin(LogManager *sysLogger, LightManager *light, Powe
     m_temp = temp;
     m_fan = fan;
     m_mutex = mutex;
-    if (!SPIFFS.begin(true))
+    if (!LittleFS.begin(true))
     {
         if (m_logger)
-            m_logger->sysLog("WEB", "SPIFFS Mount Failed");
+            m_logger->sysLog("WEB", "LittleFS Mount Failed");
         return;
     }
 
     server.on("/", HTTP_GET, [this]() {
-        File file = SPIFFS.open("/index.html", "r");
+        File file = LittleFS.open("/index.html", "r");
         if (file) {
             server.streamFile(file, "text/html");
             file.close();
@@ -39,7 +39,7 @@ void WebDashboardManager::begin(LogManager *sysLogger, LightManager *light, Powe
             server.send(404, "text/plain", "index.html not found");
         }
     });
-    server.serveStatic("/assets", SPIFFS, "/assets");
+    server.serveStatic("/assets", LittleFS, "/assets");
     // Create Routing
     server.on("/lighton", std::bind(&WebDashboardManager::handleManOn, this));
     server.on("/lightoff", std::bind(&WebDashboardManager::handleManOff, this));
