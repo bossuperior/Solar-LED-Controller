@@ -20,13 +20,13 @@ void FanManager::handle(TempManager* tm) {
     float maxTemp = max(buckTemp, ledTemp);
     int targetSpeed = currentSpeed;
 
-    if (maxTemp > 45.0) {
-        targetSpeed = 230; //230/255*100 = 90% 
+    if (maxTemp > 39.0) {
+        targetSpeed = 255;
     } 
-    else if (maxTemp < 40.0) {
+    else if (maxTemp < 34.0) {
         targetSpeed = 0;
     }
-    // 40.1 - 44.9 default speed
+    // 34.1 - 38.9 default speed
     if (targetSpeed != currentSpeed) {
         setFanSpeed(targetSpeed);
         

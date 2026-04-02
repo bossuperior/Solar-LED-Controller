@@ -49,10 +49,12 @@ bool PowerManager::isPowerSafe()
 {
     if (!_inaAvailable)
         return false;
-    float v = getVoltage();
-    if (v < 2.50 || v > 3.70)
-    {
-        return false;
+    float currentVoltage = getVoltage();
+    if (currentVoltage < 2.90) {
+        _safeState = false; 
     }
-    return true;
+    else if (currentVoltage > 3.10) {
+        _safeState = true;
+    }
+    return _safeState;
 }
