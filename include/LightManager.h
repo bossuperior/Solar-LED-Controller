@@ -7,13 +7,13 @@
 #include "PowerManager.h"
 #include "TempManager.h"
 
-#define IR_CODE_ON 0xFF02FD
-#define IR_CODE_OFF 0xFF9867
-#define IR_CODE_FULL 0xFF906F
-#define IR_CODE_SEMI 0xFFA857
-#define IR_CODE_3H 0xFF08F7
-#define IR_CODE_5H 0xFF6897
-#define IR_CODE_8H 0xFFB04F
+#define IR_CODE_ON 0xFFC23D
+#define IR_CODE_OFF 0xFFB04F
+#define IR_CODE_FULL 0xFF10EF
+#define IR_CODE_SEMI 0xFF5AA5
+#define IR_CODE_3H 0xFF22DD
+#define IR_CODE_5H 0xFFA857
+#define IR_CODE_8H 0xFF6897
 
 class LightManager
 {

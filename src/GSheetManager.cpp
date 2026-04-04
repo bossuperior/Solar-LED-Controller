@@ -12,6 +12,7 @@ void GsheetManager::begin(LogManager* sysLogger, TimeManager* timeManager)
 void GsheetManager::sendData(float voltage, float tempLed, float tempBuck, int fanSpeed, String lightPct)
 {
     String currentTime = m_timeManager->getCurrentTime();
+    currentTime.trim();
 
     if (currentTime.startsWith("1970")) 
     {
@@ -42,22 +43,22 @@ void GsheetManager::sendData(float voltage, float tempLed, float tempBuck, int f
     }
 
     http.begin(m_client, url);
-    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS); 
+    http.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);
     http.addHeader("Content-Type", "application/json");
     esp_task_wdt_reset();
     int httpResponseCode = http.POST(jsonPayload);
-    if (httpResponseCode > 0)
+    if (httpResponseCode == 200 || httpResponseCode == 302) 
     {
         if (m_sysLogger != nullptr)
         {
-            m_sysLogger->sysLog("GSHEET", "Data sent to Google Sheets. Response code: " + String(httpResponseCode));
+            m_sysLogger->sysLog("GSHEET", "Success! Data saved. (Code: " + String(httpResponseCode) + ")");
         }
     }
     else
     {
         if (m_sysLogger != nullptr)
         {
-            m_sysLogger->sysLog("GSHEET", "Error sending data. HTTP error: " + http.errorToString(httpResponseCode));
+            m_sysLogger->sysLog("GSHEET", "Error sending data. Code: " + String(httpResponseCode));
         }
     }
     http.end();

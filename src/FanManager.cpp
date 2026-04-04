@@ -20,7 +20,13 @@ void FanManager::handle(TempManager* tm) {
     float maxTemp = max(buckTemp, ledTemp);
     int targetSpeed = currentSpeed;
 
-    if (maxTemp > 39.0) {
+    if (isnan(maxTemp) || maxTemp < 0.0) {
+        targetSpeed = 255;
+        if (m_logger != nullptr && currentSpeed != 255) {
+             m_logger->sysLog("FAN", "CRITICAL: Temp sensor error! Forcing Fan ON.");
+        }
+    }
+    else if (maxTemp > 39.0) {
         targetSpeed = 255;
     } 
     else if (maxTemp < 34.0) {
