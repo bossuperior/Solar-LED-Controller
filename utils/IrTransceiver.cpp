@@ -12,7 +12,7 @@
 #define IR_CODE_8H 0xFF6897
 
 const uint16_t kRecvPin = 15;
-const uint16_t kSendPin = 2;
+const uint16_t kSendPin = 17;
 
 IRrecv irrecv(kRecvPin);
 IRsend irsend(kSendPin);

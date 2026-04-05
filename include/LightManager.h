@@ -28,7 +28,7 @@ private:
     int startHour, startMinute, endHour, endMinute;
 
 public:
-    LightManager(uint16_t pin);
+    LightManager(const uint16_t pin = 17);
     void begin(LogManager *sysLogger);
     void handle(int currentHour, int currentMinute, TempManager *tm, PowerManager *pm);
     void setCustomSchedule(int sHour, int sMin, int eHour, int eMin, bool enable);
