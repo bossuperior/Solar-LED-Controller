@@ -7,28 +7,29 @@
 
 <img width="4944" height="2697" alt="Solar_LED_Circuit_Smart" src="https://github.com/user-attachments/assets/e328cd19-2e8a-4bdb-95d4-b7937f000d6c" />
 
-An industrial-grade, dual-core ESP32 controller designed for solar-powered LED lighting systems. This project utilizes FreeRTOS to strictly separate hardware control from network communications, ensuring real-time stability, safety, and uninterrupted lighting control.
+An industrial-grade, smart solar street light control system. Built with a Dual-Core FreeRTOS architecture. This project utilizes FreeRTOS to strictly separate hardware control from network communications, ensuring real-time stability, safety, and uninterrupted lighting control.
 
 ---
 
 ## ✨ Key Features
 
 * **🧠 Dual-Core Architecture (FreeRTOS):** 
-  * **Core 1 (Hardware):** Handles real-time IR control lighting, temperature monitoring, fan speed, and power safety.
-  * **Core 0 (Network):** Handles Wi-Fi, Telegram Bot, Google Sheets logging, Local Web API, and OTA updates.
+  * **Core 1 (Hardware):** Handles real-time IR lighting control, temperature monitoring, PWM fan speed, and power safety logic.
+  * **Core 0 (Network):** Handles Wi-Fi connectivity, Telegram Bot interactions, Google Sheets logging, Local Dashboard API, and OTA updates.
   * *Data is synchronized safely across cores using FreeRTOS Mutex.*
 * **🌐 Local Web Dashboard:** Sleek, responsive UI built with Vite, TypeScript, and Tailwind CSS. Hosted directly on the ESP32 via LittleFS for real-time monitoring and schedule configuration without cloud dependency.
   
   <img width="1890" height="934" alt="image" src="https://github.com/user-attachments/assets/b3ad4c06-3f78-4ab6-80b1-bc2488ff0b87" />
 
-* **📴 Offline AP Fallback:** Automatically switches to Access Point mode (`T_SOLAR_LED_AP`) if the primary Wi-Fi drops, ensuring the dashboard remains 100% accessible via `192.168.4.1` anywhere, anytime.
+* **📴 Offline AP Fallback:** Automatically activates a local Access Point (`T_SOLAR_LED_AP`) if primary Wi-Fi is lost, maintaining control via `192.168.4.1`
 * **🔋 Power & Safety Management:** Continuously monitors LiFePO4 battery/solar voltage. Automatically turning light off if the power is deemed unsafe and recovers automatically when stable.
-* **🌡️ Active Thermal Control:** Reads temperatures from both the LED module and Buck converter to dynamically adjust cooling fan speed via PWM based on the highest temperature (Max Temp).
+* **🌡️ Active Thermal Control:** Reads temperatures from Buck converter to dynamically adjust cooling fan speed via PWM based on the highest temperature.
 * **💡 Smart Lighting:** Operates in AUTO mode based on real-time clock (RTC/NTP) schedules, with support for MANUAL override.
-* **📱 Telegram Bot Integration:** Remote control and real-time system alerts (Overheat, Low Battery, System Status) directly to your smartphone. Includes quick links to the Local Dashboard.
+* **📱 Telegram Bot Integration:** Remote control and real-time system alerts (Overheat, Low Battery, System Status) directly to your smartphone. Includes schedule light time settings and quick links to the Local Dashboard.
 - **📊 Cloud Data Logging:** Automatically pushes telemetry data (Voltage, Temp, Fan Speed, Light Mode) to Google Sheets at scheduled intervals.
 - **☁️ OTA Updates:** Supports Over-The-Air firmware updates with a built-in safety timer and auto-rollback for seamless maintenance without physical access to the board.
 - **🛡️ Watchdog Timer (WDT):** Integrated hardware watchdog on both CPU cores to prevent system lockups.
+- **🕹️ IR Transceiver:** Separated IR Transceiver environment function for reading and testing IR remote codes to ensure precise lighting control.
 
 ## 🗂️ Software Architecture
 
@@ -41,6 +42,7 @@ The system is highly modular, managed by individual C++ classes separated by the
 * `FanManager`: Active cooling control with hysteresis loop.
 
 **Network & Interface**
+* `NetworkManager`: Network management logic for connect to the internet and recovery when internet not accessible.
 * `WebDashboardManager`: Serves the LittleFS frontend and handles asynchronous REST API requests.
 * `TelegramManager`: Telegram Bot API wrapper for alerts and remote control.
 * `GsheetManager`: Cloud telemetry data logging.
@@ -49,16 +51,17 @@ The system is highly modular, managed by individual C++ classes separated by the
 **System Core**
 * `SystemMonitor`: Watchdog cross-checking all managers for critical hardware errors.
 * `LogManager`: Centralized system event logger.
+* `TimeManager`: Time sync logic between ntp server with RTC time module (DS3231).
 
 ---
 
 ## 🛠️ Hardware Requirements
 
-* **Microcontroller:** ESP32 (e.g., ESP32 DOIT DevKit V1)
-* **Sensors:** INA226 Voltage/Current monitor, DS18B20 Temperature sensors (for LED & Buck)
-* **Actuators:** 940nm IR LED (for controlling), PWM Cooling Fan
-* **Power:** Solar Charge Controller, LiFePO4 Battery (e.g., 32140 1S4P 3.2V), Buck/Boost Converters
-* **RTC:** DS3231 (for accurate offline timekeeping)
+* **Microcontroller(MCU):** ESP32 (e.g., ESP32 DOIT DevKit V1)
+* **Sensors:** INA226 Voltage/Current monitor, DS18B20 Temperature sensors
+* **Actuators:** 940nm IR LED (Transmitter), PWM Cooling Fan via MOSFET control
+* **Power:** Solar Charge Controller (Buck Conveter) with one direction diode to prevent reserve current to buck, LiFePO4 Battery (e.g., 32140 1S4P 3.2V), Buck/Boost Converters (TPS63020)
+* **RTC:** DS3231 RTC for accurate timekeeping during offline periods.
 
 ---
 
@@ -71,6 +74,7 @@ The system is highly modular, managed by individual C++ classes separated by the
 3. Ensure your `platformio.ini` is configured with the correct partition scheme to accommodate OTA, Wi-Fi, and LittleFS features:
 ```ini
 board_build.partitions = min_spiffs.csv
+board_build.filesystem = littlefs
 ```
 
 ### 2. Build Web Dashboard (Frontend)
