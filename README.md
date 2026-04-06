@@ -5,7 +5,7 @@
 ![PlatformIO](https://img.shields.io/badge/PlatformIO-F58220?style=for-the-badge&logo=PlatformIO&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E)
 
-<img width="4944" height="2697" alt="Solar_LED_Circuit_Smart" src="https://github.com/user-attachments/assets/e328cd19-2e8a-4bdb-95d4-b7937f000d6c" />
+<img width="4944" height="2745" alt="Solar_LED_Circuit_Sketch_Full" src="https://github.com/user-attachments/assets/3605d4e0-3b79-410e-945a-fc59756e1330" />
 
 An industrial-grade, smart solar street light control system. Built with a Dual-Core FreeRTOS architecture. This project utilizes FreeRTOS to strictly separate hardware control from network communications, ensuring real-time stability, safety, and uninterrupted lighting control.
 
@@ -19,7 +19,7 @@ An industrial-grade, smart solar street light control system. Built with a Dual-
   * *Data is synchronized safely across cores using FreeRTOS Mutex.*
 * **🌐 Local Web Dashboard:** Sleek, responsive UI built with Vite, TypeScript, and Tailwind CSS. Hosted directly on the ESP32 via LittleFS for real-time monitoring and schedule configuration without cloud dependency.
   
-  <img width="1890" height="934" alt="image" src="https://github.com/user-attachments/assets/b3ad4c06-3f78-4ab6-80b1-bc2488ff0b87" />
+  <img width="1920" height="941" alt="image" src="https://github.com/user-attachments/assets/ea4d95a4-a680-447b-828b-d0cc582572c3" />
 
 * **📴 Offline AP Fallback:** Automatically activates a local Access Point (`T_SOLAR_LED_AP`) if primary Wi-Fi is lost, maintaining control via `192.168.4.1`
 * **🔋 Power & Safety Management:** Continuously monitors LiFePO4 battery/solar voltage. Automatically turning light off if the power is deemed unsafe and recovers automatically when stable.
