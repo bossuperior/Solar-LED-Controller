@@ -16,20 +16,18 @@ void FanManager::handle(TempManager* tm) {
     if (tm == nullptr) return;
 
     float buckTemp = tm->getBuckTemp();
-    float ledTemp = tm->getLedTemp();
-    float maxTemp = max(buckTemp, ledTemp);
     int targetSpeed = currentSpeed;
 
-    if (isnan(maxTemp) || maxTemp < 0.0) {
+    if (isnan(buckTemp) || buckTemp < 0.0) {
         targetSpeed = 255;
         if (m_logger != nullptr && currentSpeed != 255) {
              m_logger->sysLog("FAN", "CRITICAL: Temp sensor error! Forcing Fan ON.");
         }
     }
-    else if (maxTemp > 39.0) {
+    else if (buckTemp > 39.0) {
         targetSpeed = 255;
     } 
-    else if (maxTemp < 34.0) {
+    else if (buckTemp < 34.0) {
         targetSpeed = 0;
     }
     // 34.1 - 38.9 default speed
@@ -38,7 +36,7 @@ void FanManager::handle(TempManager* tm) {
         
         if (m_logger != nullptr) {
             String status = (targetSpeed > 0) ? "ON (" + String(targetSpeed) + ")" : "OFF";
-            m_logger->sysLog("FAN", "Max Temp: " + String(maxTemp, 1) + "C, Fan " + status);
+            m_logger->sysLog("FAN", "Max Temp: " + String(buckTemp, 1) + "C, Fan " + status);
         }
     }
 }

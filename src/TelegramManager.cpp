@@ -116,7 +116,6 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
             else if (text == "/status" || text == "📊 สถานะระบบ")
             {
                 float v = pm->getVoltage();
-                float tLed = tm->getLedTemp();
                 float tBuck = tm->getBuckTemp();
                 int fanSpeed = fm->getFanSpeed();
 
@@ -164,12 +163,12 @@ void TelegramManager::checkMessages(PowerManager *pm, TempManager *tm, FanManage
                 int days = uptimeSecs / 86400;
                 int hours = (uptimeSecs % 86400) / 3600;
                 int mins = (uptimeSecs % 3600) / 60;
-                String uptimeStr = String(days) + "d " + String(hours) + "h " + String(mins) + "m";
+                String uptimeStr = String(days) + "วัน " + String(hours) + "ชม " + String(mins) + "นาที";
 
                 String msg = "📊 *รายงานสถานะระบบ*\n\n";
                 msg += "⚡ *พลังงาน:* " + String(v, 2) + "V (" + String(batPct) + "%)\n";
                 msg += "💡 *ไฟ:* " + lm->isLightMode() + "\n";
-                msg += "🌡️ *อุณหภูมิ:* LED " + String(tLed, 1) + "°C | Buck " + String(tBuck, 1) + "°C\n";
+                msg += "🌡️ *อุณหภูมิ:* วงจรลดแรงดัน " + String(tBuck, 1) + "°C\n";
                 msg += "🌀 *พัดลม:* " + String(fanSpeed > 0 ? "เปิด" : "ปิด") + " | ความเร็ว: " + String(fanSpeed) + "%\n";
                 msg += "📶 *WiFi:* " + wifiSSID + " ความแรง: " + wifiStatus + "\n";
                 msg += "⏱️ *ระยะเวลาการทำงาน:* " + uptimeStr + "\n";

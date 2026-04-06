@@ -43,8 +43,12 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
     int startTotalMinutes = (startHour * 60) + startMinute;
     int endTotalMinutes = (endHour * 60) + endMinute;
     bool shouldBeOn = false;
+    if (isManualMode) 
+    {
+        shouldBeOn = manualLightState;
+    }
 
-    if (isCustomScheduleActive)
+    else if (isCustomScheduleActive)
     {
         if (startTotalMinutes >= endTotalMinutes) // Handle overnight schedule
         {
@@ -60,26 +64,22 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
                 shouldBeOn = true;
             }
         }
-        isManualMode = false;
     }
     else
     {
         isManualMode = true;
         shouldBeOn = manualLightState;
     }
-
-    static bool isTempThrottled = false;
-    static bool isBatLow = false;
     bool forceOff = false;
 
     if (tm != nullptr)
     {
-        float temp = tm->getLedTemp();
-        if (temp > 55.0)
+        float temp = tm->getBuckTemp();
+        if (temp > 45.0)
         {
             isTempThrottled = true;
         }
-        else if (temp < 50.0 && temp > 20)
+        else if (temp < 40.0 && temp > 20)
         {
             isTempThrottled = false;
         }
@@ -105,8 +105,6 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
     {
         shouldBeOn = false;
     }
-    static bool lastThrottleState = false;
-    static bool wasForcedOff = false;
     bool needSemiLight = (isTempThrottled || isBatLow);
     if (shouldBeOn != lastOnState || (forceOff && !wasForcedOff))
     {
@@ -117,14 +115,14 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
             if (needSemiLight)
             {
                 irsend.sendNEC(IR_CODE_SEMI, 32);
-                lightMode = "เปิด (ลดความสว่าง)";
+                lightMode = "เปิด(ลดความสว่าง)";
                 if (m_logger)
                     m_logger->sysLog("LIGHT", "Temperature Throttle: Switched to Semi Brightness");
             }
             else
             {
                 irsend.sendNEC(IR_CODE_FULL, 32);
-                lightMode = "เปิด (สว่างสุด)";
+                lightMode = "เปิด(สว่างสุด)";
                 if (m_logger)
                     m_logger->sysLog("LIGHT", "Turning ON the Light (Full Brightness)");
             }
@@ -150,14 +148,14 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
         if (needSemiLight)
         {
             irsend.sendNEC(IR_CODE_SEMI, 32);
-            lightMode = "เปิด (ลดความสว่าง)";
+            lightMode = "เปิด(ลดความสว่าง)";
             if (m_logger)
                 m_logger->sysLog("LIGHT", "Safety Triggered: Switched to SEMI Brightness");
         }
         else
         {
             irsend.sendNEC(IR_CODE_FULL, 32);
-            lightMode = "เปิด (สว่างสุด)";
+            lightMode = "เปิด(สว่างสุด)";
             if (m_logger)
                 m_logger->sysLog("LIGHT", "Safety Cleared: Switched back to FULL Brightness");
         }

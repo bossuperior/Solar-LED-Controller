@@ -16,7 +16,6 @@ class WebDashboardManager
 {
 private:
     WebServer server;
-    LogManager* m_sysLogger;
     LightManager* m_light;
     PowerManager* m_power;
     TempManager* m_temp;
@@ -28,9 +27,12 @@ private:
     void handleManOff();
     void handleStatus();
     void handleUpdateSchedule();
+    String m_pendingAlert = "";
+    String m_fw = "v0.2.1";
 
 public:
     WebDashboardManager();
     void begin(LogManager* sysLogger, LightManager* light, PowerManager* power, TempManager* temp,FanManager* fan, SemaphoreHandle_t* mutex);
     void handle();
+    void triggerWebAlert(String module, String message);
 };

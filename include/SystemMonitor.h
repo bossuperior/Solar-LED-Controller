@@ -8,6 +8,7 @@
 #include "NetworkManager.h"
 #include "TelegramManager.h"
 #include "LightManager.h"
+#include "WebDashboardManager.h"
 
 class SystemMonitor {
 private:
@@ -28,5 +29,5 @@ private:
 
 public:
     void begin(LogManager* sysLogger);
-    void monitor(PowerManager* pm, TempManager* tm, FanManager* fm, TimeManager* tr, TelegramManager* tg,LightManager* lm);
+    void monitor(PowerManager* pm, TempManager* tm, FanManager* fm, TimeManager* tr, TelegramManager* tg,LightManager* lm, WebDashboardManager* wd);
 };

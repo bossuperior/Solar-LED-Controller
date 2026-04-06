@@ -1,95 +1,183 @@
-import './style.css'
-
-// 1. Updated to match the LiFePO4 1S (3.2V Nominal) curve
-const getBatteryPercent = (v: number): number => {
-    let batPct = 0;
-    if (v >= 3.45) batPct = 100;
-    else if (v >= 3.35) batPct = 90 + ((v - 3.35) / 0.10) * 10;
-    else if (v >= 3.25) batPct = 70 + ((v - 3.25) / 0.10) * 20;
-    else if (v >= 3.20) batPct = 30 + ((v - 3.20) / 0.05) * 40;
-    else if (v >= 3.10) batPct = 10 + ((v - 3.10) / 0.10) * 20;
-    else if (v >= 2.80) batPct = ((v - 2.80) / 0.30) * 10;
-    else batPct = 0;
-    
-    return Math.max(0, Math.min(100, Math.round(batPct)));
-};
-
-const showToast = (msg: string) => {
-    const toast = document.getElementById('toast')!;
-    toast.innerText = `✅ ${msg}`;
-    toast.style.bottom = '40px';
-    setTimeout(() => { toast.style.bottom = '-100px'; }, 2500);
+declare global {
+    interface Window {
+        sendCmd: (endpoint: string) => Promise<void>;
+        saveSchedule: (isActive: number | boolean) => Promise<void>;
+    }
 }
 
-// 2. Button commands for Light ON / Light OFF
-(window as any).sendCmd = async (path: string) => {
+interface SystemStatus {
+    volt: number;
+    temp_buck: number;
+    fan_on: boolean;
+    light: string;
+    firmware?: string;
+    uptime_sec?: number;
+    alert?: string;
+    s_h: number;
+    s_m: number;
+    e_h: number;
+    e_m: number;
+    sch_active: boolean;
+}
+
+let isFirstLoad = true;
+let toastTimeout: number | undefined;
+
+async function fetchStatus(): Promise<void> {
     try {
-        await fetch(path);
-        showToast("สั่งงานเรียบร้อย!");
-    } catch (e) { console.error(e); }
+        const response = await fetch('/status');
+        if (!response.ok) throw new Error("Network response error");
+        
+        const data: SystemStatus = await response.json();
+        if (isFirstLoad) {
+            const startInput = document.getElementById('startTime') as HTMLInputElement | null;
+            const endInput = document.getElementById('endTime') as HTMLInputElement | null;
+
+            if (startInput && endInput) {
+                const formatTime = (h: number, m: number) => 
+                    `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
+                startInput.value = formatTime(data.s_h, data.s_m);
+                endInput.value = formatTime(data.e_h, data.e_m);
+                
+                isFirstLoad = false;
+            }
+        }
+
+        const vEl = document.getElementById('v');
+        const batPctEl = document.getElementById('bat-pct');
+        if (vEl) vEl.innerText = data.volt.toFixed(2) + ' V';
+        
+        let pct = 0; 
+        const v = data.volt;
+        if (v >= 3.45) pct = 100;
+        else if (v >= 3.35) pct = 90 + ((v - 3.35) / 0.10) * 10;
+        else if (v >= 3.20) pct = 30 + ((v - 3.20) / 0.15) * 60;
+        else if (v >= 2.80) pct = ((v - 2.80) / 0.40) * 30;
+        pct = Math.min(Math.max(Math.round(pct), 0), 100); 
+        
+        if (batPctEl) batPctEl.innerText = `(${pct}%)`;
+        
+        const tBuckEl = document.getElementById('t-buck');
+        if (tBuckEl) tBuckEl.innerHTML = `${data.temp_buck.toFixed(1)} °C`;
+
+        const fanEl = document.getElementById('fan-status');
+        if (fanEl) {
+            if (data.fan_on) {
+                fanEl.innerText = "เปิด 🌀";
+                fanEl.className = "text-2xl md:text-3xl font-black text-emerald-400 mt-2";
+            } else {
+                fanEl.innerText = "ปิด 🛑";
+                fanEl.className = "text-2xl md:text-3xl font-black text-slate-500 mt-2";
+            }
+        }
+
+        const lightEl = document.getElementById('light-status');
+        if (lightEl) {
+            lightEl.innerText = data.light;
+            if (data.light === "เปิด(สว่างสุด)") {
+                lightEl.className = "text-2xl md:text-3xl font-black text-amber-400 mt-2 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]";
+            } else if (data.light === "เปิด(ลดความสว่าง)") {
+                lightEl.className = "text-2xl md:text-3xl font-black text-orange-500 mt-2";
+            } else if (data.light === "ปิดไฟ") {
+                lightEl.className = "text-2xl md:text-3xl font-black text-slate-500 mt-2";
+            } else {
+                lightEl.className = "text-2xl md:text-3xl font-black text-slate-300 mt-2";
+            }
+        }
+
+        const fwEl = document.getElementById('fw-ver');
+        if (fwEl && data.firmware) fwEl.innerText = `Firmware ${data.firmware}`;
+
+        const uptEl = document.getElementById('sys-upt');
+        if (uptEl && data.uptime_sec !== undefined) {
+            const u = data.uptime_sec;
+            const d = Math.floor(u / 86400);
+            const h = Math.floor((u % 86400) / 3600);
+            const m = Math.floor((u % 3600) / 60);
+            uptEl.innerText = `เวลาการทำงานระบบ: ${d} วัน ${h} ชม. ${m} นาที`;
+        }
+
+        if (data.alert && data.alert.trim() !== "") {
+            showToast(data.alert);
+        }
+
+    } catch (error) {
+        console.error('Error fetching status:', error);
+    }
 }
 
-// 3. New Schedule Save Function
-(window as any).saveSchedule = async (isActive: number) => {
-    const startTime = (document.getElementById('startTime') as HTMLInputElement).value;
-    const endTime = (document.getElementById('endTime') as HTMLInputElement).value;
-
-    // Only force the user to fill out the time if they are trying to ENABLE the schedule
-    if (isActive === 1 && (!startTime || !endTime)) {
-        alert("กรุณาระบุเวลาให้ครบถ้วน"); 
+window.sendCmd = async function(endpoint: string): Promise<void> {
+    if (endpoint === '/log') {
+        window.open('/log', '_blank');
         return;
     }
 
-    // Safe fallback for the split logic if they disable without entering a time
-    const [sh, sm] = startTime ? startTime.split(':') : ["0", "0"];
-    const [eh, em] = endTime ? endTime.split(':') : ["0", "0"];
+    try {
+        const response = await fetch(endpoint, { method: 'POST' });
+        if (response.ok) {
+            showToast("ส่งคำสั่งสำเร็จ! 🚀");
+            fetchStatus();
+        } else {
+            showToast("บอร์ดปฏิเสธคำสั่ง (แบตอาจจะต่ำ) ⚠️");
+        }
+    } catch (error) {
+        showToast("เชื่อมต่อผิดพลาด ❌");
+    }
+};
+
+window.saveSchedule = async function(isActive: number | boolean): Promise<void> {
+    const activeStr = isActive ? 'true' : 'false';
+    let url = `/set_sch?active=${activeStr}`;
+    
+    if (isActive) {
+        const startEl = document.getElementById('startTime') as HTMLInputElement | null;
+        const endEl = document.getElementById('endTime') as HTMLInputElement | null;
+        
+        const start = startEl?.value;
+        const end = endEl?.value;
+        
+        if (!start || !end) {
+            showToast("กรุณากรอกเวลาให้ครบ! ⚠️");
+            return;
+        }
+
+        const [sH, sM] = start.split(':');
+        const [eH, eM] = end.split(':');
+        url += `&sh=${sH}&sm=${sM}&eh=${eH}&em=${eM}`;
+    } else {
+        url += '&sh=0&sm=0&eh=0&em=0'; 
+    }
 
     try {
-        const res = await fetch(`/set_sch?sh=${sh}&sm=${sm}&eh=${eh}&em=${em}&active=${isActive}`);
-        if (res.ok) {
-            if (isActive === 1) {
-                showToast("เปิดระบบออโต้และบันทึกเวลาสำเร็จ!"); // Enabled msg
-            } else {
-                showToast("ปิดระบบออโต้เรียบร้อย!"); // Disabled msg
-            }
+        const response = await fetch(url, { method: 'POST' });
+        if (response.ok) {
+            showToast(isActive ? "บันทึกเวลาเปิด-ปิดอัตโนมัติแล้ว 💾" : "ปิดระบบอัตโนมัติแล้ว ❌");
+            isFirstLoad = true;
+            fetchStatus();
         } else {
-            alert("ระบบมีปัญหาในการสั่งงาน");
+            showToast("บันทึกไม่สำเร็จ ⚠️");
         }
-    } catch (e) { 
-        console.error(e); 
+    } catch (error) {
+        showToast("เชื่อมต่อผิดพลาด ❌");
+    }
+};
+
+function showToast(message: string): void {
+    const toast = document.getElementById('toast');
+    if (toast) {
+        toast.innerText = message;
+        toast.style.bottom = '20px'; 
+        
+        if (toastTimeout) {
+            clearTimeout(toastTimeout);
+        }
+
+        toastTimeout = window.setTimeout(() => {
+            toast.style.bottom = '-100px'; 
+        }, 5000); 
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Auto-refresh status every 3 seconds
-    setInterval(async () => {
-        try {
-            const res = await fetch('/status');
-            const data = await res.json();
-            
-            // 1. Battery Voltage & Percent
-            document.getElementById('v')!.innerText = `${data.volt.toFixed(1)} V`;
-            document.getElementById('bat-pct')!.innerText = `(${getBatteryPercent(data.volt)}%)`;
-            
-            // 2. Temperatures
-            document.getElementById('t-buck')!.innerText = `${data.temp_buck.toFixed(1)} °C (วงจรลดแรงดัน)`;
-            document.getElementById('t-led')!.innerText = `${data.temp_led.toFixed(1)} °C (ใต้แผงแอลอีดี)`;
-            
-            // 3. Fan Status
-            const fanEl = document.getElementById('fan-status')!;
-            if (data.fan_on) {
-                fanEl.innerText = "เปิด 🌀";
-                fanEl.className = "text-2xl font-black text-blue-400 mt-1";
-            } else {
-                fanEl.innerText = "ปิด 🛑";
-                fanEl.className = "text-2xl font-black text-slate-500 mt-1";
-            }
-
-            // 4. Light Status
-            document.getElementById('light-status')!.innerText = data.light;
-
-        } catch (e) { 
-            console.error("ออฟไลน์หรือเชื่อมต่อไม่ได้ (Offline or unreachable)"); 
-        }
-    }, 3000);
-});
+fetchStatus();
+setInterval(fetchStatus, 3000);

@@ -9,7 +9,7 @@ void GsheetManager::begin(LogManager* sysLogger, TimeManager* timeManager)
         m_sysLogger->sysLog("GSHEET", "Google Sheets manager initialized");
     }
 }
-void GsheetManager::sendData(float voltage, float tempLed, float tempBuck, int fanSpeed, String lightPct)
+void GsheetManager::sendData(float voltage, float tempBuck, int fanSpeed, String lightPct)
 {
     String currentTime = m_timeManager->getCurrentTime();
     currentTime.trim();
@@ -19,7 +19,7 @@ void GsheetManager::sendData(float voltage, float tempLed, float tempBuck, int f
         if (m_sysLogger != nullptr) m_sysLogger->sysLog("GSHEET", "Skip: Time not synced yet.");
         return;
     }
-    if (voltage < 0.1 || tempLed <= -100.0 || tempBuck <= -100.0) 
+    if (voltage < 0.1 || tempBuck <= -100.0) 
     {
         if (m_sysLogger != nullptr) m_sysLogger->sysLog("GSHEET", "Skip: Incomplete sensor data.");
         return;
@@ -27,7 +27,6 @@ void GsheetManager::sendData(float voltage, float tempLed, float tempBuck, int f
     String jsonPayload = "{";
     jsonPayload += "\"time\":\"" + currentTime + "\",";
     jsonPayload += "\"voltage\":" + String(voltage, 2) + ",";
-    jsonPayload += "\"tempLed\":" + String(tempLed, 1) + ",";
     jsonPayload += "\"tempBuck\":" + String(tempBuck, 1) + ",";
     jsonPayload += "\"fanSpeed\":" + String(fanSpeed) + ",";
     jsonPayload += "\"lightPct\":\"" + lightPct + "\"";

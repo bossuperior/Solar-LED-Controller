@@ -24,6 +24,10 @@ private:
     bool isManualMode = false;
     bool manualLightState = false;
     bool lastOnState = false;
+    bool isTempThrottled = false;
+    bool isBatLow = false;
+    bool lastThrottleState = false;
+    bool wasForcedOff = false;
     String lightMode = "ปิดไฟ";
     int startHour, startMinute, endHour, endMinute;
 

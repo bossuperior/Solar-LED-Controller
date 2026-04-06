@@ -102,7 +102,7 @@ void HardwareLoop(void *pvParameters)
       {
         
         light.handle(h, m, &temp, &power);
-        monitor.monitor(&power, &temp, &fan, &timer, &telegram, &light);
+        monitor.monitor(&power, &temp, &fan, &timer, &telegram, &light, &dashboard);
       }
       xSemaphoreGive(mutexKey);
     }
@@ -121,7 +121,7 @@ void CommLoop(void *pvParameters)
     if (network.isInternetAvailable())
     {
       int h = 0, m = 0;
-      float send_v = 0, send_led_t = 0, send_buck_t = 0;
+      float send_v = 0, send_buck_t = 0;
       int send_fan = 0;
       String send_light = "ปิดไฟ";
       bool doOTA = false;
@@ -136,7 +136,6 @@ void CommLoop(void *pvParameters)
         if (!ota.isUpdating)
         {
           send_v = power.getVoltage();
-          send_led_t = temp.getLedTemp();
           send_buck_t = temp.getBuckTemp();
           send_fan = fan.getFanSpeed();
         }
@@ -178,8 +177,8 @@ void CommLoop(void *pvParameters)
       if (doLog)
       {
         power.printPowerInfo();
-        sysLogger.sysLog("TEMP", "LED: " + String(send_led_t, 1) + "C | Buck: " + String(send_buck_t, 1) + "C");
-        gsheet.sendData(send_v, send_led_t, send_buck_t, send_fan, send_light);
+        sysLogger.sysLog("TEMP", "Buck: " + String(send_buck_t, 1) + "C");
+        gsheet.sendData(send_v,  send_buck_t, send_fan, send_light);
         esp_task_wdt_reset();
       }
     }
