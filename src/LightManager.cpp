@@ -79,22 +79,12 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
         }
     }
 
-    if (pm != nullptr)
-    {
-        float v = pm->getVoltage();
-        if (v < 3.15)
-        {
-            isBatLow = true;
-        }
-        else
-        {
-            isBatLow = false;
-        }
-    }
     
-    bool needSemiLight = (isTempThrottled || isBatLow);
+    bool needSemiLight = isTempThrottled;
+    bool stateChanged = (shouldBeOn != lastOnState);
+    bool throttleChanged = (shouldBeOn && (needSemiLight != lastThrottleState));
     
-    if (shouldBeOn != lastOnState || _forceUpdate)
+   if (stateChanged || throttleChanged || _forceUpdate)
     {
         _forceUpdate = false;
         if (shouldBeOn)
@@ -107,7 +97,7 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
                 irsend.sendNEC(IR_CODE_SEMI, 32); delay(150);
                 lightMode = "เปิด(ลดความสว่าง)";
                 if (m_logger)
-                    m_logger->sysLog("LIGHT", "Temperature or Battery Throttle: Switched to Semi Brightness");
+                    m_logger->sysLog("LIGHT", "Temperature Throttle: Switched to Semi Brightness");
             }
             else
             {
@@ -125,30 +115,10 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
             lightMode = "ปิดไฟ";
             if (m_logger)
             {
-                m_logger->sysLog("LIGHT", "Turning OFF the Light (Schedule)");
+                m_logger->sysLog("LIGHT", "Turning OFF the Light");
             }
         }
         lastOnState = shouldBeOn;
-        lastThrottleState = needSemiLight;
-    }
-    else if (shouldBeOn && (needSemiLight != lastThrottleState))
-    {
-        if (needSemiLight)
-        {
-            irsend.sendNEC(IR_CODE_SEMI, 32); delay(50);
-            irsend.sendNEC(IR_CODE_SEMI, 32); delay(150);
-            lightMode = "เปิด(ลดความสว่าง)";
-            if (m_logger)
-                m_logger->sysLog("LIGHT", "Safety Triggered: Switched to SEMI Brightness");
-        }
-        else
-        {
-            irsend.sendNEC(IR_CODE_FULL, 32); delay(50);
-            irsend.sendNEC(IR_CODE_FULL, 32); delay(150);
-            lightMode = "เปิด(สว่างสุด)";
-            if (m_logger)
-                m_logger->sysLog("LIGHT", "Safety Cleared: Switched back to FULL Brightness");
-        }
         lastThrottleState = needSemiLight;
     }
 }

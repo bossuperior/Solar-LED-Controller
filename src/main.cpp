@@ -18,16 +18,15 @@
 #include <nvs_flash.h>
 #include "NetworkManager.h"
 #include "TimeManager.h"
-#include "OTAManager.h"
 #include "LightManager.h"
 #include "TempManager.h"
 #include "LogManager.h"
 #include "PowerManager.h"
 #include "FanManager.h"
 #include "SystemMonitor.h"
-#include "TelegramManager.h"
 #include "GsheetManager.h"
 #include "WebDashboardManager.h"
+#include "BlynkManager.h"
 
 #ifndef PIO_UNIT_TESTING
 #define WDT_TIMEOUT 45
@@ -41,7 +40,6 @@ SemaphoreHandle_t mutexKey;
 // --- Managers ---
 NetworkManager network;
 TimeManager timer;
-OTAManager ota;
 LightManager light(IR_TX_PIN);
 SystemMonitor monitor;
 Preferences prefs;
@@ -49,17 +47,13 @@ TempManager temp;
 LogManager sysLogger;
 PowerManager power;
 FanManager fan;
-TelegramManager telegram;
 GsheetManager gsheet;
 WebDashboardManager dashboard;
+BlynkManager blynk;
 
 // --- Global Shared Variables ---
 String firmwareVersion;
-bool hasCheckedToday = false;
-const int UPDATE_HOUR = 17;
-const int UPDATE_MINUTE = 0;
 const int LOG_INTERVAL = 60000; // Log every 60 seconds
-bool initialOtaChecked = false;
 
 // Shared Data (Accessed via Mutex)
 unsigned long lastLogSent = 0;
@@ -74,36 +68,10 @@ void HardwareLoop(void *pvParameters)
       timer.handle();
       int h = timer.getHour();
       int m = timer.getMinute();
-
       temp.update();
       fan.handle(&temp);
-
-      // Power Safety Logic
-      static bool powerErrorLogged = false;
-      if (!power.isPowerSafe())
-      {
-        if (!powerErrorLogged)
-        {
-          light.setManualMode(true, false);
-          sysLogger.sysLog("POWER", "Power is unsafe! Lighting turned off.");
-          powerErrorLogged = true;
-        }
-      }
-      else
-      {
-        if (powerErrorLogged)
-        {
-          light.setManualMode(false, false);
-          sysLogger.sysLog("POWER", "Power restored! Returning to AUTO mode.");
-          powerErrorLogged = false;
-        }
-      }
-      if (!ota.isUpdating)
-      {
-        
-        light.handle(h, m, &temp, &power);
-        monitor.monitor(&power, &temp, &fan, &timer, &telegram, &light, &dashboard);
-      }
+      light.handle(h, m, &temp, &power);
+      monitor.monitor(&power, &temp, &fan, &timer, &light);
       xSemaphoreGive(mutexKey);
     }
     esp_task_wdt_reset();
@@ -113,8 +81,7 @@ void HardwareLoop(void *pvParameters)
 void CommLoop(void *pvParameters)
 {
   esp_task_wdt_add(NULL);
-  unsigned long lastTelegramCheck = 0;
-  const unsigned long TELEGRAM_INTERVAL = 2000;
+  unsigned long lastTelemetryUpdate = 0;
   for (;;)
   {
     network.handle();
@@ -122,36 +89,23 @@ void CommLoop(void *pvParameters)
 
     if (network.isInternetAvailable())
     {
-      int h = 0, m = 0;
+      blynk.handle();
       float send_v = 0, send_buck_t = 0;
       int send_fan = 0;
       String send_light = "ปิดไฟ";
-      bool doOTA = false;
       bool doLog = false;
 
       // Mutex to safely read shared data and check conditions without blocking for too long
       if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(150)) == pdTRUE)
       {
-        h = timer.getHour();
-        m = timer.getMinute();
-
-        if (!ota.isUpdating)
+        while (monitor.hasAlert())
         {
-          send_v = power.getVoltage();
-          send_buck_t = temp.getBuckTemp();
-          send_fan = fan.getFanSpeed();
+          blynk.sendLog(monitor.getAlert());
         }
-        if ((!initialOtaChecked || (h == UPDATE_HOUR && m == UPDATE_MINUTE && !hasCheckedToday)) && !ota.isUpdating)
-        {
-          doOTA = true;
-          initialOtaChecked = true;
-          hasCheckedToday = true;
-        }
-        else if (h != UPDATE_HOUR)
-        {
-          hasCheckedToday = false;
-        }
-        if (!ota.isUpdating && (millis() - lastLogSent >= LOG_INTERVAL))
+        send_v = power.getVoltage();
+        send_buck_t = temp.getBuckTemp();
+        send_fan = fan.getFanSpeed();
+        if (millis() - lastLogSent >= LOG_INTERVAL)
         {
           doLog = true;
           lastLogSent = millis();
@@ -159,32 +113,20 @@ void CommLoop(void *pvParameters)
         }
         xSemaphoreGive(mutexKey);
       }
-      if (!ota.isUpdating)
+      if (millis() - lastTelemetryUpdate >= 30000) 
       {
-        if (millis() - lastTelegramCheck >= TELEGRAM_INTERVAL) 
+        if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(150)) == pdTRUE)
         {
-          telegram.checkMessages(&power, &temp, &fan, &light, &ota);
-          lastTelegramCheck = millis(); 
+          blynk.sendTelemetry();
+          xSemaphoreGive(mutexKey); 
+          lastTelemetryUpdate = millis();
         }
-        esp_task_wdt_reset();
-      }
-      if (ota.pendingForceUpdate)
-      {
-        ota.pendingForceUpdate = false;
-        sysLogger.sysLog("OTA", "Force Update triggered from Telegram!");
-        ota.checkUpdate(firmwareVersion, &sysLogger, &power, &telegram, true);
-        esp_task_wdt_reset();
-      }
-      else if (doOTA)
-      {
-        sysLogger.sysLog("OTA", "Scheduled update check...");
-        ota.checkUpdate(firmwareVersion, &sysLogger, &power, &telegram);
       }
       if (doLog)
       {
         power.printPowerInfo();
         sysLogger.sysLog("TEMP", "Buck: " + String(send_buck_t, 1) + "C");
-        gsheet.sendData(send_v,  send_buck_t, send_fan, send_light);
+        gsheet.sendData(send_v, send_buck_t, send_fan, send_light);
         esp_task_wdt_reset();
       }
     }
@@ -198,9 +140,11 @@ void setup()
   Serial.begin(115200);
   delay(1000);
   mutexKey = xSemaphoreCreateMutex();
-  if (mutexKey == NULL) {
-      Serial.println("System HALT: Failed to create mutex!");
-      while(1); // Halt system if RTOS fails
+  if (mutexKey == NULL)
+  {
+    Serial.println("System HALT: Failed to create mutex!");
+    while (1)
+      ; // Halt system if RTOS fails
   }
   esp_err_t err = nvs_flash_init();
   if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND)
@@ -219,25 +163,26 @@ void setup()
   power.begin(&sysLogger);
   light.begin(&sysLogger);
   fan.begin(&sysLogger);
-  telegram.begin(&sysLogger);
-  gsheet.begin(&sysLogger, &timer);
   monitor.begin(&sysLogger);
+  gsheet.begin(&sysLogger, &timer);
   dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey);
 
   // Load Metadata
   prefs.begin("app_info", false);
-  if (!prefs.isKey("fw_ver")) {
-      prefs.putString("fw_ver", "v0.2.1");
-      sysLogger.sysLog("SYSTEM", "New NVS Key created");
+  if (!prefs.isKey("fw_ver"))
+  {
+    prefs.putString("fw_ver", "v0.2.3");
+    sysLogger.sysLog("SYSTEM", "New NVS Key created");
   }
-  firmwareVersion = prefs.getString("fw_ver", "v0.2.1");
+  firmwareVersion = prefs.getString("fw_ver", "v0.2.3");
   prefs.end();
   sysLogger.sysLog("SYSTEM", "Firmware Version: " + firmwareVersion);
+  blynk.begin(&sysLogger, &light, &power, &temp, &fan, &timer, firmwareVersion);
 
   // Create Tasks
-    esp_task_wdt_init(WDT_TIMEOUT, true);
-    xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 8192, NULL, 3, &TaskHardware, 1);
-    xTaskCreatePinnedToCore(CommLoop, "TaskComm", 10240, NULL, 1, &TaskComm, 0);
+  esp_task_wdt_init(WDT_TIMEOUT, true);
+  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 8192, NULL, 3, &TaskHardware, 1);
+  xTaskCreatePinnedToCore(CommLoop, "TaskComm", 20480, NULL, 1, &TaskComm, 0);
 }
 
 void loop()

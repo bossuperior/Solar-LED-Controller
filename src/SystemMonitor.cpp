@@ -5,8 +5,48 @@ void SystemMonitor::begin(LogManager *sysLogger)
     m_logger = sysLogger;
 }
 
-void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, TimeManager *tr, TelegramManager *tg, LightManager *lm, WebDashboardManager *wd)
+void SystemMonitor::addAlert(String module, String msg)
 {
+    _alertQueue.push(msg);
+    if (m_logger)
+        m_logger->sysLog(module, msg);
+}
+
+bool SystemMonitor::hasAlert()
+{
+    return !_alertQueue.empty();
+}
+
+String SystemMonitor::getAlert()
+{
+    if (_alertQueue.empty())
+        return "";
+    String msg = _alertQueue.front();
+    _alertQueue.pop();
+    return msg;
+}
+
+void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, TimeManager *tr, LightManager *lm)
+{
+    if (!pm->isPowerSafe())
+    {
+        if (!powerErrorLogged)
+        {
+            lm->setManualMode(true, false);
+            addAlert("POWER", "⚠️ อันตราย: แรงดันไฟไม่ปลอดภัย! ระบบปิดไฟเพื่อความปลอดภัย");
+            powerErrorLogged = true;
+
+        }
+    }
+    else
+    {
+        if (powerErrorLogged)
+        {
+            lm->setManualMode(false, false);
+            addAlert("POWER", "✅ แรงดันไฟปลอดภัยแล้ว! ระบบกลับสู่โหมดอัตโนมัติ");
+            powerErrorLogged = false;
+        }
+    }
     if (millis() - lastCheck < CHECK_INTERVAL)
         return;
     lastCheck = millis();
@@ -16,9 +56,7 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
         if (!errPower)
         {
             String msg = "🚨 อันตราย: ตัววัดแรงดันไม่ทำงาน (ตรวจสอบ INA226)";
-            m_logger->sysLog("POWER", msg);
-            tg->sendAlert("POWER", msg);
-            wd->triggerWebAlert("POWER", msg);
+            addAlert("POWER", msg);
             errPower = true;
         }
     }
@@ -33,9 +71,7 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
         {
             String sensor = "วงจรลดแรงดัน";
             String msg = "🚨 อันตราย: ตัววัดอุณหภูมิ " + sensor + " ไม่ทำงาน (ตรวจสอบ DS18B20)";
-            m_logger->sysLog("TEMP", msg);
-            tg->sendAlert("TEMP", msg);
-            wd->triggerWebAlert("TEMP", msg);
+            addAlert("TEMP", msg);
             errTemp = true;
         }
     }
@@ -53,9 +89,7 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
             if (!errFan)
             {
                 String msg = "🚨 อันตราย: วงจรลดแรงดันร้อนมากทั้งที่เปิดพัดลมแล้ว พัดลมอาจมีปัญหา";
-                m_logger->sysLog("FAN", msg);
-                tg->sendAlert("FAN", msg);
-                wd->triggerWebAlert("FAN", msg);
+                addAlert("FAN", msg);
                 errFan = true;
             }
         }
@@ -71,9 +105,7 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
         if (!errTime)
         {
             String msg = "⚠️ ระวัง: นาฬิกาในเครื่องถ่านหมดหรือพัง ทำให้ระบบตั้งเวลาเปิด/ปิดไฟไม่ทำงาน (ตรวจสอบ RTC DS3231)";
-            m_logger->sysLog("TIME", msg);
-            tg->sendAlert("TIME", msg);
-            wd->triggerWebAlert("TIME", msg);
+            addAlert("TIME", msg);
             errTime = true;
         }
     }
@@ -87,10 +119,8 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
     {
         if (!errBuckHighTemp)
         {
-            String msg = "⚠️ ระวัง: วงจรลดแรงดันร้อนจัดเกินไป (" + String(bTemp, 1) + "°C) ระบบกำลังลดไฟเพื่อป้องกันไฟไหม้";
-            m_logger->sysLog("TEMP", msg);
-            tg->sendAlert("TEMP", msg);
-            wd->triggerWebAlert("TEMP", msg);
+            String msg = "⚠️ ระวัง: วงจรลดแรงดันร้อนจัดเกินไป (" + String(bTemp, 1) + "°C)";
+            addAlert("TEMP", msg);
             errBuckHighTemp = true;
         }
     }
@@ -104,9 +134,7 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
         if (!errBuckVoltage)
         {
             String msg = "⚠️ ระวัง: วงจรลดแรงดันปล่อยแรงดันสูงเกินไป (" + String(vBus, 2) + "V) อาจทำให้แบตเตอรี่เสียหาย";
-            m_logger->sysLog("POWER", msg);
-            tg->sendAlert("POWER", msg);
-            wd->triggerWebAlert("POWER", msg);
+            addAlert("POWER", msg);
             errBuckVoltage = true;
         }
     }

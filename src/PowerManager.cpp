@@ -39,7 +39,7 @@ void PowerManager::printPowerInfo()
         return;
     }
     float voltage = getVoltage();
-    String powerInfo = "Voltage: " + String(voltage, 2)+ " V";
+    String powerInfo = "Voltage: " + String(voltage, 2) + " V";
 
     if (m_logger != nullptr)
         m_logger->sysLog("POWER", powerInfo);
@@ -51,7 +51,7 @@ bool PowerManager::isPowerSafe()
         return false;
     float currentVoltage = getVoltage();
     if (currentVoltage < 2.90) {
-        _safeState = false; 
+        _safeState = false;
     }
     else if (currentVoltage > 3.10) {
         _safeState = true;

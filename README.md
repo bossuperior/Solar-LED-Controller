@@ -15,7 +15,7 @@ An industrial-grade, smart solar street light control system. Built with a Dual-
 
 * **🧠 Dual-Core Architecture (FreeRTOS):** 
   * **Core 1 (Hardware):** Handles real-time IR lighting control, temperature monitoring, PWM fan speed, and power safety logic.
-  * **Core 0 (Network):** Handles Wi-Fi connectivity, Telegram Bot interactions, Google Sheets logging, Local Dashboard API, and OTA updates.
+  * **Core 0 (Network):** Handles Wi-Fi connectivity, Blynk IoT interactions, Google Sheets logging, Local Dashboard API, and OTA updates.
   * *Data is synchronized safely across cores using FreeRTOS Mutex.*
 * **🌐 Local Web Dashboard:** Sleek, responsive UI built with Vite, TypeScript, and Tailwind CSS. Hosted directly on the ESP32 via LittleFS for real-time monitoring and schedule configuration without cloud dependency.
   
@@ -25,7 +25,7 @@ An industrial-grade, smart solar street light control system. Built with a Dual-
 * **🔋 Power & Safety Management:** Continuously monitors LiFePO4 battery/solar voltage. Automatically turning light off if the power is deemed unsafe and recovers automatically when stable.
 * **🌡️ Active Thermal Control:** Reads temperatures from Buck converter to dynamically adjust cooling fan speed via PWM based on the highest temperature.
 * **💡 Smart Lighting:** Operates in AUTO mode based on real-time clock (RTC/NTP) schedules, with support for MANUAL override.
-* **📱 Telegram Bot Integration:** Remote control and real-time system alerts (Overheat, Low Battery, System Status) directly to your smartphone. Includes schedule light time settings and quick links to the Local Dashboard.
+* **📱 Blynk IoT Integration:** Full remote control and real-time monitoring via the Blynk app. Features include manual override, auto-schedule configuration, live telemetry (Voltage, Temp, Fan), and an integrated terminal for remote system logs.
 - **📊 Cloud Data Logging:** Automatically pushes telemetry data (Voltage, Temp, Fan Speed, Light Mode) to Google Sheets at scheduled intervals.
 - **☁️ OTA Updates:** Supports Over-The-Air firmware updates with a built-in safety timer and auto-rollback for seamless maintenance without physical access to the board.
 - **🛡️ Watchdog Timer (WDT):** Integrated hardware watchdog on both CPU cores to prevent system lockups.
@@ -43,8 +43,8 @@ The system is highly modular, managed by individual C++ classes separated by the
 
 **Network & Interface**
 * `NetworkManager`: Network management logic for connect to the internet and recovery when internet not accessible.
+* `BlynkManager`: Handles cloud dashboard sync, Delta-filtered telemetry, remote terminal logging, and Blynk.Air HTTPS OTA updates.
 * `WebDashboardManager`: Serves the LittleFS frontend and handles asynchronous REST API requests.
-* `TelegramManager`: Telegram Bot API wrapper for alerts and remote control.
 * `GsheetManager`: Cloud telemetry data logging.
 * `OTAManager`: Firmware update handler with auto-rollback safety.
 
