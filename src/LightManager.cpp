@@ -19,12 +19,12 @@ void LightManager::begin(LogManager *sysLoggerPtr)
     irsend.begin();
 
     // --- LOAD PREFERENCES ON BOOT ---
-    prefs.begin("light_config", true);
+    prefs.begin("light_config", false);
     startHour = prefs.getInt("sHour", 18);
     startMinute = prefs.getInt("sMin", 30);
     endHour = prefs.getInt("eHour", 6);
     endMinute = prefs.getInt("eMin", 20);
-    isCustomScheduleActive = prefs.getBool("schActive", false); 
+    isCustomScheduleActive = prefs.getBool("schActive", false);
     prefs.end();
 
     m_logger = sysLoggerPtr;
@@ -40,11 +40,11 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
     int startTotalMinutes = (startHour * 60) + startMinute;
     int endTotalMinutes = (endHour * 60) + endMinute;
     bool shouldBeOn = false;
-    if (isManualMode) 
+    
+    if (isManualMode)
     {
         shouldBeOn = manualLightState;
     }
-
     else if (isCustomScheduleActive)
     {
         if (startTotalMinutes >= endTotalMinutes) // Handle overnight schedule
@@ -64,10 +64,8 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
     }
     else
     {
-        isManualMode = true;
-        shouldBeOn = manualLightState;
+        shouldBeOn = false;
     }
-
     if (tm != nullptr)
     {
         float temp = tm->getBuckTemp();
@@ -84,15 +82,7 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
     if (pm != nullptr)
     {
         float v = pm->getVoltage();
-        if (v < 3.00)
-        {
-            isForceOff = true;
-        }
-        else if (v >= 3.20) 
-        {
-            isForceOff = false;
-        }
-        else if (v <= 3.15)
+        if (v < 3.15)
         {
             isBatLow = true;
         }
@@ -101,66 +91,60 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
             isBatLow = false;
         }
     }
-    if (isForceOff)
-    {
-        shouldBeOn = false;
-    }
+    
     bool needSemiLight = (isTempThrottled || isBatLow);
-    if (shouldBeOn != lastOnState || (isForceOff && !wasForcedOff))
+    
+    if (shouldBeOn != lastOnState || _forceUpdate)
     {
-        if (shouldBeOn && !isForceOff)
+        _forceUpdate = false;
+        if (shouldBeOn)
         {
-            irsend.sendNEC(IR_CODE_ON, 32);
-            delay(150); 
+            irsend.sendNEC(IR_CODE_ON, 32); delay(50);
+            irsend.sendNEC(IR_CODE_ON, 32); delay(150);
             if (needSemiLight)
             {
-                irsend.sendNEC(IR_CODE_SEMI, 32);
-                delay(150); 
+                irsend.sendNEC(IR_CODE_SEMI, 32); delay(50);
+                irsend.sendNEC(IR_CODE_SEMI, 32); delay(150);
                 lightMode = "เปิด(ลดความสว่าง)";
                 if (m_logger)
-                    m_logger->sysLog("LIGHT", "Temperature Throttle: Switched to Semi Brightness");
+                    m_logger->sysLog("LIGHT", "Temperature or Battery Throttle: Switched to Semi Brightness");
             }
             else
             {
-                irsend.sendNEC(IR_CODE_FULL, 32);
-                delay(150); 
+                irsend.sendNEC(IR_CODE_FULL, 32); delay(50);
+                irsend.sendNEC(IR_CODE_FULL, 32); delay(150);
                 lightMode = "เปิด(สว่างสุด)";
                 if (m_logger)
                     m_logger->sysLog("LIGHT", "Turning ON the Light (Full Brightness)");
             }
         }
-        else if (!shouldBeOn)
+        else if (!shouldBeOn) 
         {
-            irsend.sendNEC(IR_CODE_OFF, 32);
-            delay(150); 
-
+            irsend.sendNEC(IR_CODE_OFF, 32); delay(50);
+            irsend.sendNEC(IR_CODE_OFF, 32); delay(150);
             lightMode = "ปิดไฟ";
             if (m_logger)
             {
-                if (isForceOff)
-                    m_logger->sysLog("LIGHT", "CRITICAL: Battery Low. Forced OFF");
-                else
-                    m_logger->sysLog("LIGHT", "Turning OFF the Light (Schedule)");
+                m_logger->sysLog("LIGHT", "Turning OFF the Light (Schedule)");
             }
         }
         lastOnState = shouldBeOn;
         lastThrottleState = needSemiLight;
-        wasForcedOff = isForceOff;
     }
     else if (shouldBeOn && (needSemiLight != lastThrottleState))
     {
         if (needSemiLight)
         {
-            irsend.sendNEC(IR_CODE_SEMI, 32);
-            delay(150); 
+            irsend.sendNEC(IR_CODE_SEMI, 32); delay(50);
+            irsend.sendNEC(IR_CODE_SEMI, 32); delay(150);
             lightMode = "เปิด(ลดความสว่าง)";
             if (m_logger)
                 m_logger->sysLog("LIGHT", "Safety Triggered: Switched to SEMI Brightness");
         }
         else
         {
-            irsend.sendNEC(IR_CODE_FULL, 32);
-            delay(150); 
+            irsend.sendNEC(IR_CODE_FULL, 32); delay(50);
+            irsend.sendNEC(IR_CODE_FULL, 32); delay(150);
             lightMode = "เปิด(สว่างสุด)";
             if (m_logger)
                 m_logger->sysLog("LIGHT", "Safety Cleared: Switched back to FULL Brightness");
@@ -168,6 +152,7 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
         lastThrottleState = needSemiLight;
     }
 }
+
 void LightManager::setCustomSchedule(int sHour, int sMin, int eHour, int eMin, bool enable)
 {
     startHour = sHour;
@@ -175,7 +160,7 @@ void LightManager::setCustomSchedule(int sHour, int sMin, int eHour, int eMin, b
     endHour = eHour;
     endMinute = eMin;
     isCustomScheduleActive = enable;
-    
+
     // --- SAVE PREFERENCES WHEN UPDATED ---
     prefs.begin("light_config", false); // 'false' means read/write mode
     prefs.putInt("sHour", startHour);
@@ -191,8 +176,10 @@ void LightManager::setCustomSchedule(int sHour, int sMin, int eHour, int eMin, b
         m_logger->sysLog("LIGHT", msg);
     }
 }
+
 void LightManager::setManualMode(bool activateManual, bool turnOnLight)
 {
     isManualMode = activateManual;
     manualLightState = turnOnLight;
+    _forceUpdate = true;
 }

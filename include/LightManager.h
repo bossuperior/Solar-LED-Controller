@@ -11,9 +11,9 @@
 #define IR_CODE_OFF 0xFFB04F
 #define IR_CODE_FULL 0xFF10EF
 #define IR_CODE_SEMI 0xFF5AA5
-#define IR_CODE_3H 0xFF22DD
-#define IR_CODE_5H 0xFFA857
-#define IR_CODE_8H 0xFF6897
+// #define IR_CODE_3H 0xFF22DD
+// #define IR_CODE_5H 0xFFA857
+// #define IR_CODE_8H 0xFF6897
 
 class LightManager
 {
@@ -26,11 +26,10 @@ private:
     bool isTempThrottled = false;
     bool isBatLow = false;
     bool lastThrottleState = false;
-    bool wasForcedOff = false;
-    bool isForceOff = false;
     String lightMode = "ปิดไฟ";
     int startHour, startMinute, endHour, endMinute;
     IRsend irsend;
+    bool _forceUpdate = false;
 
 public:
     LightManager(uint16_t pin);

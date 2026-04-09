@@ -113,6 +113,8 @@ void HardwareLoop(void *pvParameters)
 void CommLoop(void *pvParameters)
 {
   esp_task_wdt_add(NULL);
+  unsigned long lastTelegramCheck = 0;
+  const unsigned long TELEGRAM_INTERVAL = 2000;
   for (;;)
   {
     network.handle();
@@ -159,7 +161,11 @@ void CommLoop(void *pvParameters)
       }
       if (!ota.isUpdating)
       {
-        telegram.checkMessages(&power, &temp, &fan, &light, &ota);
+        if (millis() - lastTelegramCheck >= TELEGRAM_INTERVAL) 
+        {
+          telegram.checkMessages(&power, &temp, &fan, &light, &ota);
+          lastTelegramCheck = millis(); 
+        }
         esp_task_wdt_reset();
       }
       if (ota.pendingForceUpdate)
