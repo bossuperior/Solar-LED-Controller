@@ -21,7 +21,7 @@ BLYNK_WRITE(InternalPinOTA) {
     Blynk.virtualWrite(V8, "🚀 กำลังดาวน์โหลด Firmware ใหม่ผ่าน OTA...\n");
     Blynk.virtualWrite(V8, "⚠️ กรุณาอย่าปิดไฟหรือรีเซ็ตบอร์ด!\n");
     
-    WiFiClient client;
+    WiFiClientSecure client;
     client.setInsecure();
     httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS); 
     t_httpUpdate_return ret = httpUpdate.update(client, otaUrl);
