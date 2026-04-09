@@ -12,10 +12,7 @@
 #include "LightManager.h"
 
 extern Preferences prefs;
-
-LightManager::LightManager(uint16_t pin) : irsend(pin)
-{
-}
+LightManager::LightManager(uint16_t pin) : irsend(pin) {}
 
 void LightManager::begin(LogManager *sysLoggerPtr)
 {
@@ -111,10 +108,11 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
         if (shouldBeOn && !forceOff)
         {
             irsend.sendNEC(IR_CODE_ON, 32);
-            delay(200);
+            delay(150); 
             if (needSemiLight)
             {
                 irsend.sendNEC(IR_CODE_SEMI, 32);
+                delay(150); 
                 lightMode = "เปิด(ลดความสว่าง)";
                 if (m_logger)
                     m_logger->sysLog("LIGHT", "Temperature Throttle: Switched to Semi Brightness");
@@ -122,6 +120,7 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
             else
             {
                 irsend.sendNEC(IR_CODE_FULL, 32);
+                delay(150); 
                 lightMode = "เปิด(สว่างสุด)";
                 if (m_logger)
                     m_logger->sysLog("LIGHT", "Turning ON the Light (Full Brightness)");
@@ -130,6 +129,8 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
         else if (!shouldBeOn)
         {
             irsend.sendNEC(IR_CODE_OFF, 32);
+            delay(150); 
+
             lightMode = "ปิดไฟ";
             if (m_logger)
             {
@@ -148,6 +149,7 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
         if (needSemiLight)
         {
             irsend.sendNEC(IR_CODE_SEMI, 32);
+            delay(150); 
             lightMode = "เปิด(ลดความสว่าง)";
             if (m_logger)
                 m_logger->sysLog("LIGHT", "Safety Triggered: Switched to SEMI Brightness");
@@ -155,6 +157,7 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
         else
         {
             irsend.sendNEC(IR_CODE_FULL, 32);
+            delay(150); 
             lightMode = "เปิด(สว่างสุด)";
             if (m_logger)
                 m_logger->sysLog("LIGHT", "Safety Cleared: Switched back to FULL Brightness");

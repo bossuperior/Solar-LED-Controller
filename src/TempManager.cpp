@@ -8,7 +8,7 @@ void TempManager::begin(LogManager *sysLogger)
     m_sysLogger = sysLogger;
     sensors.begin();
     sensors.setWaitForConversion(false); // Non-blocking mode
-    sensors.getAddress(buckAddress, 1);
+    sensors.getAddress(buckAddress, 0);// Assuming only one sensor is connected. If multiple, this needs to be adapted.
     sensors.setResolution(buckAddress, 10);
     sensors.requestTemperatures();
     if (m_sysLogger != nullptr)

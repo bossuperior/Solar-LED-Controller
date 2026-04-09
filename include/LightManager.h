@@ -19,7 +19,6 @@ class LightManager
 {
 private:
     LogManager *m_logger = nullptr;
-    IRsend irsend;
     bool isCustomScheduleActive = false;
     bool isManualMode = false;
     bool manualLightState = false;
@@ -30,9 +29,10 @@ private:
     bool wasForcedOff = false;
     String lightMode = "ปิดไฟ";
     int startHour, startMinute, endHour, endMinute;
+    IRsend irsend;
 
 public:
-    LightManager(const uint16_t pin = 17);
+    LightManager(uint16_t pin);
     void begin(LogManager *sysLogger);
     void handle(int currentHour, int currentMinute, TempManager *tm, PowerManager *pm);
     void setCustomSchedule(int sHour, int sMin, int eHour, int eMin, bool enable);

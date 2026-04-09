@@ -31,7 +31,7 @@
 
 #ifndef PIO_UNIT_TESTING
 #define WDT_TIMEOUT 45
-const uint16_t IR_TX_PIN = 18;
+const uint16_t IR_TX_PIN = 17;
 
 // --- Task & Sync Handles ---
 TaskHandle_t TaskHardware;
