@@ -27,6 +27,7 @@ private:
     bool isBatLow = false;
     bool lastThrottleState = false;
     bool wasForcedOff = false;
+    bool isForceOff = false;
     String lightMode = "ปิดไฟ";
     int startHour, startMinute, endHour, endMinute;
     IRsend irsend;

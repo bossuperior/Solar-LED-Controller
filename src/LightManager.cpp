@@ -67,7 +67,6 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
         isManualMode = true;
         shouldBeOn = manualLightState;
     }
-    bool forceOff = false;
 
     if (tm != nullptr)
     {
@@ -85,9 +84,13 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
     if (pm != nullptr)
     {
         float v = pm->getVoltage();
-        if (v <= 3.00)
+        if (v < 3.00)
         {
-            forceOff = true;
+            isForceOff = true;
+        }
+        else if (v >= 3.20) 
+        {
+            isForceOff = false;
         }
         else if (v <= 3.15)
         {
@@ -98,14 +101,14 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
             isBatLow = false;
         }
     }
-    if (forceOff)
+    if (isForceOff)
     {
         shouldBeOn = false;
     }
     bool needSemiLight = (isTempThrottled || isBatLow);
-    if (shouldBeOn != lastOnState || (forceOff && !wasForcedOff))
+    if (shouldBeOn != lastOnState || (isForceOff && !wasForcedOff))
     {
-        if (shouldBeOn && !forceOff)
+        if (shouldBeOn && !isForceOff)
         {
             irsend.sendNEC(IR_CODE_ON, 32);
             delay(150); 
@@ -134,7 +137,7 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
             lightMode = "ปิดไฟ";
             if (m_logger)
             {
-                if (forceOff)
+                if (isForceOff)
                     m_logger->sysLog("LIGHT", "CRITICAL: Battery Low. Forced OFF");
                 else
                     m_logger->sysLog("LIGHT", "Turning OFF the Light (Schedule)");
@@ -142,7 +145,7 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, P
         }
         lastOnState = shouldBeOn;
         lastThrottleState = needSemiLight;
-        wasForcedOff = forceOff;
+        wasForcedOff = isForceOff;
     }
     else if (shouldBeOn && (needSemiLight != lastThrottleState))
     {
