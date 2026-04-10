@@ -52,6 +52,9 @@ jobs:
           #define SECRET_TELEGRAM_BOT_TOKEN "${{ secrets.TELEGRAM_BOT_TOKEN }}"
           #define SECRET_TELEGRAM_CHAT_ID "${{ secrets.TELEGRAM_CHAT_ID }}"
           #define SECRET_GOOGLE_SHEET_URL "${{ secrets.GOOGLE_SHEET_URL }}"
+          #define SECRET_BLYNX_TEMPLATE_ID "${{ secrets.BLYNX_TEMPLATE_ID }}"
+          #define SECRET_BLYNK_TEMPLATE_NAME "${{ secrets.BLYNK_TEMPLATE_NAME }}"
+          #define SECRET_BLYNK_AUTH_TOKEN "${{ secrets.BLYNK_AUTH_TOKEN }}"
           EOF
 
       - name: Build Firmware
