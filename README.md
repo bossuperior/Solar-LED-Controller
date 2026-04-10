@@ -26,6 +26,10 @@ An industrial-grade, smart solar street light control system. Built with a Dual-
 * **🌡️ Active Thermal Control:** Reads temperatures from Buck converter to dynamically adjust cooling fan speed via PWM based on the highest temperature.
 * **💡 Smart Lighting:** Operates in AUTO mode based on real-time clock (RTC/NTP) schedules, with support for MANUAL override.
 * **📱 Blynk IoT Integration:** Full remote control and real-time monitoring via the Blynk app. Features include manual override, auto-schedule configuration, live telemetry (Voltage, Temp, Fan), and an integrated terminal for remote system logs.
+<div align="center">
+  <img width="300" align = "center" alt="image" src="https://github.com/user-attachments/assets/c2311c19-2a44-4e09-ae1f-aab339a55ef0" />
+</div>
+
 - **📊 Cloud Data Logging:** Automatically pushes telemetry data (Voltage, Temp, Fan Speed, Light Mode) to Google Sheets at scheduled intervals.
 - **☁️ OTA Updates:** Supports Over-The-Air firmware updates with a built-in safety timer and auto-rollback for seamless maintenance without physical access to the board.
 - **🛡️ Watchdog Timer (WDT):** Integrated hardware watchdog on both CPU cores to prevent system lockups.
