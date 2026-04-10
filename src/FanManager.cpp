@@ -24,10 +24,10 @@ void FanManager::handle(TempManager* tm) {
              m_logger->sysLog("FAN", "CRITICAL: Temp sensor error! Forcing Fan ON.");
         }
     }
-    else if (buckTemp > 38.0) {
+    else if (buckTemp > 37.5) {
         targetSpeed = 255;
     } 
-    else if (buckTemp < 33.0) {
+    else if (buckTemp < 34.0) {
         targetSpeed = 0;
     }
     // 33.1 - 37.9 default speed

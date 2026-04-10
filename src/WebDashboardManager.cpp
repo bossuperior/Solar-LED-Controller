@@ -23,7 +23,7 @@ WebDashboardManager::WebDashboardManager() : server(80)
     m_mutex = nullptr;
 }
 
-void WebDashboardManager::begin(LogManager *sysLogger, LightManager *light, PowerManager *power, TempManager *temp, FanManager *fan, SemaphoreHandle_t *mutex)
+void WebDashboardManager::begin(LogManager *sysLogger, LightManager *light, PowerManager *power, TempManager *temp, FanManager *fan, SemaphoreHandle_t *mutex, String fwVer)
 {
     m_logger = sysLogger;
     m_light = light;
@@ -37,9 +37,7 @@ void WebDashboardManager::begin(LogManager *sysLogger, LightManager *light, Powe
             m_logger->sysLog("WEB", "LittleFS Mount Failed");
         return;
     }
-    prefs.begin("app_info", true);
-    m_fw = prefs.getString("fw_ver", "v0.2.1");
-    prefs.end();
+    m_fw = fwVer;
 
     server.on("/", HTTP_GET, [this]()
               {
@@ -171,14 +169,6 @@ void WebDashboardManager::handleUpdateSchedule()
 
         if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
         {
-            // 1. Save to NVS so the schedule survives a reboot
-            prefs.begin("light_config", false);
-            prefs.putInt("sHour", sHour);
-            prefs.putInt("sMin", sMin);
-            prefs.putInt("eHour", eHour);
-            prefs.putInt("eMin", eMin);
-            prefs.putBool("schActive", isActive);
-            prefs.end();
 
             // 2. Apply to LightManager
             m_light->setCustomSchedule(sHour, sMin, eHour, eMin, isActive);

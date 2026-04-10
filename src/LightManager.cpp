@@ -34,7 +34,7 @@ void LightManager::begin(LogManager *sysLoggerPtr)
     }
 }
 
-void LightManager::handle(int currentHour, int currentMinute, TempManager *tm, PowerManager *pm)
+void LightManager::handle(int currentHour, int currentMinute, TempManager *tm)
 {
     int currentTotalMinutes = currentHour * 60 + currentMinute;
     int startTotalMinutes = (startHour * 60) + startMinute;
@@ -153,3 +153,16 @@ void LightManager::setManualMode(bool activateManual, bool turnOnLight)
     manualLightState = turnOnLight;
     _forceUpdate = true;
 }
+
+void LightManager::setScheduleActive(bool enable) {
+    isCustomScheduleActive = enable;
+    prefs.begin("light_config", false);
+    prefs.putBool("schActive", isCustomScheduleActive);
+    prefs.end();
+
+    if (m_logger) {
+        m_logger->sysLog("LIGHT", enable ? "Auto Schedule: ENABLED" : "Auto Schedule: DISABLED");
+    }
+}
+
+bool LightManager::getCustomScheduleActive() {return isCustomScheduleActive;}

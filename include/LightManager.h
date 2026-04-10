@@ -4,7 +4,6 @@
 #include <IRsend.h>
 #include <Preferences.h>
 #include "LogManager.h"
-#include "PowerManager.h"
 #include "TempManager.h"
 
 #define IR_CODE_ON 0xFFC23D
@@ -33,8 +32,10 @@ private:
 public:
     LightManager(uint16_t pin);
     void begin(LogManager *sysLogger);
-    void handle(int currentHour, int currentMinute, TempManager *tm, PowerManager *pm);
+    void handle(int currentHour, int currentMinute, TempManager *tm);
     void setCustomSchedule(int sHour, int sMin, int eHour, int eMin, bool enable);
     void setManualMode(bool activateManual, bool turnOnLight);
     String isLightMode() { return lightMode; }
+    void setScheduleActive(bool enable);
+    bool getCustomScheduleActive();
 };

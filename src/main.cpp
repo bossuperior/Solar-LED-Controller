@@ -52,7 +52,6 @@ WebDashboardManager dashboard;
 BlynkManager blynk;
 
 // --- Global Shared Variables ---
-String firmwareVersion;
 const int LOG_INTERVAL = 60000; // Log every 60 seconds
 
 // Shared Data (Accessed via Mutex)
@@ -70,7 +69,7 @@ void HardwareLoop(void *pvParameters)
       int m = timer.getMinute();
       temp.update();
       fan.handle(&temp);
-      light.handle(h, m, &temp, &power);
+      light.handle(h, m, &temp);
       monitor.monitor(&power, &temp, &fan, &timer, &light);
       xSemaphoreGive(mutexKey);
     }
@@ -165,19 +164,10 @@ void setup()
   fan.begin(&sysLogger);
   monitor.begin(&sysLogger);
   gsheet.begin(&sysLogger, &timer);
-  dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey);
+  dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey, BLYNK_FIRMWARE_VERSION);
 
-  // Load Metadata
-  prefs.begin("app_info", false);
-  if (!prefs.isKey("fw_ver"))
-  {
-    prefs.putString("fw_ver", "v0.2.3");
-    sysLogger.sysLog("SYSTEM", "New NVS Key created");
-  }
-  firmwareVersion = prefs.getString("fw_ver", "v0.2.3");
-  prefs.end();
-  sysLogger.sysLog("SYSTEM", "Firmware Version: " + firmwareVersion);
-  blynk.begin(&sysLogger, &light, &power, &temp, &fan, &timer, firmwareVersion);
+  sysLogger.sysLog("SYSTEM", "Firmware Version: " + String(BLYNK_FIRMWARE_VERSION));
+  blynk.begin(&sysLogger, &light, &power, &temp, &fan, &timer, BLYNK_FIRMWARE_VERSION);
 
   // Create Tasks
   esp_task_wdt_init(WDT_TIMEOUT, true);
