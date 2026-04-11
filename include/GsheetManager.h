@@ -15,5 +15,5 @@ private:
     WiFiClientSecure m_client;
 public:
     void begin(LogManager* sysLogger, TimeManager* timeManager);
-    void sendData(float voltage, float tempBuck, int fanSpeed, String lightPct);
+    void sendData(float voltage, float tempBuck, int fanSpeed,const String& lightPct);
 };

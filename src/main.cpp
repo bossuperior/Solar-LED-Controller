@@ -16,6 +16,7 @@
 #include <freertos/task.h>
 #include <freertos/semphr.h>
 #include <nvs_flash.h>
+#include <rom/rtc.h>
 #include "NetworkManager.h"
 #include "TimeManager.h"
 #include "LightManager.h"
@@ -31,6 +32,7 @@
 #ifndef PIO_UNIT_TESTING
 #define WDT_TIMEOUT 45
 const uint16_t IR_TX_PIN = 17;
+RTC_NOINIT_ATTR int crashCounter;
 
 // --- Task & Sync Handles ---
 TaskHandle_t TaskHardware;
@@ -73,6 +75,14 @@ void HardwareLoop(void *pvParameters)
       monitor.monitor(&power, &temp, &fan, &timer, &light);
       xSemaphoreGive(mutexKey);
     }
+    // static unsigned long lastStackPrintHW = 0;
+    // if (millis() - lastStackPrintHW >= 10000)
+    // {
+    //     UBaseType_t stackLeft = uxTaskGetStackHighWaterMark(NULL);
+    //     Serial.print("HW Task Free Stack: ");
+    //     Serial.println(stackLeft);
+    //     lastStackPrintHW = millis();
+    // }
     esp_task_wdt_reset();
     vTaskDelay(50 / portTICK_PERIOD_MS); // Delay to prevent watchdog reset
   }
@@ -91,7 +101,7 @@ void CommLoop(void *pvParameters)
       blynk.handle();
       float send_v = 0, send_buck_t = 0;
       int send_fan = 0;
-      String send_light = "ปิดไฟ";
+      static String send_light = "ปิดไฟ";
       bool doLog = false;
 
       // Mutex to safely read shared data and check conditions without blocking for too long
@@ -112,23 +122,33 @@ void CommLoop(void *pvParameters)
         }
         xSemaphoreGive(mutexKey);
       }
-      if (millis() - lastTelemetryUpdate >= 30000) 
+      if (millis() - lastTelemetryUpdate >= 30000)
       {
         if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(150)) == pdTRUE)
         {
           blynk.sendTelemetry();
-          xSemaphoreGive(mutexKey); 
+          xSemaphoreGive(mutexKey);
           lastTelemetryUpdate = millis();
         }
       }
       if (doLog)
       {
         power.printPowerInfo();
-        sysLogger.sysLog("TEMP", "Buck: " + String(send_buck_t, 1) + "C");
+        char tempLogMsg[32];
+        snprintf(tempLogMsg, sizeof(tempLogMsg), "Buck: %.1fC", send_buck_t);
+        sysLogger.sysLog("TEMP", tempLogMsg);
         gsheet.sendData(send_v, send_buck_t, send_fan, send_light);
         esp_task_wdt_reset();
       }
     }
+    // static unsigned long lastStackPrintComm = 0;
+    // if (millis() - lastStackPrintComm >= 10000)
+    // {
+    //     UBaseType_t stackLeft = uxTaskGetStackHighWaterMark(NULL);
+    //     Serial.print("Comm Task Free Stack: ");
+    //     Serial.println(stackLeft);
+    //     lastStackPrintComm = millis();
+    // }
     esp_task_wdt_reset();
     vTaskDelay(100 / portTICK_PERIOD_MS);
   }
@@ -138,6 +158,24 @@ void setup()
 {
   Serial.begin(115200);
   delay(1000);
+  esp_reset_reason_t reason = esp_reset_reason();
+  if (reason == ESP_RST_POWERON || reason == ESP_RST_BROWNOUT)
+  {
+    crashCounter = 0;
+  }
+  else if (reason == ESP_RST_PANIC || reason == ESP_RST_INT_WDT || reason == ESP_RST_TASK_WDT)
+  {
+    crashCounter++;
+  }
+  if (crashCounter >= 3)
+  {
+    Serial.println("[CRITICAL] Bootloop Detected! Erasing NVS to safe state...");
+    nvs_flash_erase(); 
+    nvs_flash_init();
+    crashCounter = 0;
+    delay(1000);
+    ESP.restart();
+  }
   mutexKey = xSemaphoreCreateMutex();
   if (mutexKey == NULL)
   {
@@ -165,8 +203,8 @@ void setup()
   monitor.begin(&sysLogger);
   gsheet.begin(&sysLogger, &timer);
   dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey, BLYNK_FIRMWARE_VERSION);
-
-  sysLogger.sysLog("SYSTEM", "Firmware Version: " + String(BLYNK_FIRMWARE_VERSION));
+  char fwMsg[64];
+  snprintf(fwMsg, sizeof(fwMsg), "Firmware Version: %s", BLYNK_FIRMWARE_VERSION);
   blynk.begin(&sysLogger, &light, &power, &temp, &fan, &timer, BLYNK_FIRMWARE_VERSION);
 
   // Create Tasks

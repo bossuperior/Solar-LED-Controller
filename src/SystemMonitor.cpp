@@ -5,8 +5,11 @@ void SystemMonitor::begin(LogManager *sysLogger)
     m_logger = sysLogger;
 }
 
-void SystemMonitor::addAlert(String module, String msg)
+void SystemMonitor::addAlert(const String& module, const String& msg)
 {
+    if (_alertQueue.size() >= 10) {
+        _alertQueue.pop();
+    }
     _alertQueue.push(msg);
     if (m_logger)
         m_logger->sysLog(module, msg);
@@ -55,8 +58,7 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
     {
         if (!errPower)
         {
-            String msg = "🚨 อันตราย: ตัววัดแรงดันไม่ทำงาน (ตรวจสอบ INA226)";
-            addAlert("POWER", msg);
+            addAlert("POWER", "🚨 อันตราย: ตัววัดแรงดันไม่ทำงาน (ตรวจสอบ INA226)");
             errPower = true;
         }
     }
@@ -69,9 +71,7 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
     {
         if (!errTemp)
         {
-            String sensor = "วงจรลดแรงดัน";
-            String msg = "🚨 อันตราย: ตัววัดอุณหภูมิ " + sensor + " ไม่ทำงาน (ตรวจสอบ DS18B20)";
-            addAlert("TEMP", msg);
+            addAlert("TEMP", "🚨 อันตราย: ตัววัดอุณหภูมิวงจรลดแรงดันไม่ทำงาน (ตรวจสอบ DS18B20)");
             errTemp = true;
         }
     }
@@ -88,8 +88,7 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
         {
             if (!errFan)
             {
-                String msg = "🚨 อันตราย: วงจรลดแรงดันร้อนมากทั้งที่เปิดพัดลมแล้ว พัดลมอาจมีปัญหา";
-                addAlert("FAN", msg);
+                addAlert("FAN", "🚨 อันตราย: วงจรลดแรงดันร้อนมากทั้งที่เปิดพัดลมแล้ว พัดลมอาจมีปัญหา");
                 errFan = true;
             }
         }
@@ -104,8 +103,7 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
     { // if RTC lost power, it will reset to 1970 or similar.
         if (!errTime)
         {
-            String msg = "⚠️ ระวัง: นาฬิกาในเครื่องถ่านหมดหรือพัง ทำให้ระบบตั้งเวลาเปิด/ปิดไฟไม่ทำงาน (ตรวจสอบ RTC DS3231)";
-            addAlert("TIME", msg);
+            addAlert("TIME", "⚠️ ระวัง: นาฬิกาในเครื่องถ่านหมดหรือพัง ทำให้ระบบตั้งเวลาเปิด/ปิดไฟไม่ทำงาน (ตรวจสอบ RTC DS3231)");
             errTime = true;
         }
     }
@@ -119,7 +117,8 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
     {
         if (!errBuckHighTemp)
         {
-            String msg = "⚠️ ระวัง: วงจรลดแรงดันร้อนจัดเกินไป (" + String(bTemp, 1) + "°C)";
+            char msg[256];
+            snprintf(msg, sizeof(msg), "⚠️ ระวัง: วงจรลดแรงดันร้อนจัดเกินไป (%.1f°C)", bTemp);
             addAlert("TEMP", msg);
             errBuckHighTemp = true;
         }
@@ -133,7 +132,8 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
     {
         if (!errBuckVoltage)
         {
-            String msg = "⚠️ ระวัง: วงจรลดแรงดันปล่อยแรงดันสูงเกินไป (" + String(vBus, 2) + "V) อาจทำให้แบตเตอรี่เสียหาย";
+            char msg[256];
+            snprintf(msg, sizeof(msg), "⚠️ ระวัง: วงจรลดแรงดันปล่อยแรงดันสูงเกินไป (%.2fV) อาจทำให้แบตเตอรี่เสียหาย", vBus);
             addAlert("POWER", msg);
             errBuckVoltage = true;
         }

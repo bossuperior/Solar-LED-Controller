@@ -1,6 +1,5 @@
 #pragma once
 #include <Arduino.h>
-#include <Preferences.h>
 #include <HTTPUpdate.h>
 #include <WiFiClient.h>
 #include "LogManager.h"
@@ -12,8 +11,8 @@
 
 class BlynkManager {
 public:
-    void begin(LogManager* logger, LightManager* light, PowerManager* power, TempManager* temp, FanManager* fan, TimeManager* time, String fwVer);
+    void begin(LogManager* logger, LightManager* light, PowerManager* power, TempManager* temp, FanManager* fan, TimeManager* time,const String& fwVer);
     void handle();
     void sendTelemetry();
-    void sendLog(String msg);
+    void sendLog(const String& msg);
 };

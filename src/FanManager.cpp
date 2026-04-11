@@ -8,7 +8,9 @@ void FanManager::begin(LogManager* sysLogger) {
     setFanSpeed(0);
     
     if (m_logger != nullptr) {
-        m_logger->sysLog("FAN", "Fan Manager initialized on GPIO " + String(fanPin));
+        char initMsg[64];
+        snprintf(initMsg, sizeof(initMsg), "Fan Manager initialized on GPIO %d", fanPin);
+        m_logger->sysLog("FAN", initMsg);
     }
 }
 
@@ -17,12 +19,11 @@ void FanManager::handle(TempManager* tm) {
 
     float buckTemp = tm->getBuckTemp();
     int targetSpeed = currentSpeed;
+    bool isSensorError = false;
 
     if (isnan(buckTemp) || buckTemp < 0.0) {
         targetSpeed = 255;
-        if (m_logger != nullptr && currentSpeed != 255) {
-             m_logger->sysLog("FAN", "CRITICAL: Temp sensor error! Forcing Fan ON.");
-        }
+        isSensorError = true;
     }
     else if (buckTemp > 37.5) {
         targetSpeed = 255;
@@ -33,10 +34,18 @@ void FanManager::handle(TempManager* tm) {
     // 33.1 - 37.9 default speed
     if (targetSpeed != currentSpeed) {
         setFanSpeed(targetSpeed);
-        
         if (m_logger != nullptr) {
-            String status = (targetSpeed > 0) ? "ON (" + String(targetSpeed) + ")" : "OFF";
-            m_logger->sysLog("FAN", "Max Temp: " + String(buckTemp, 1) + "C, Fan " + status);
+            if (isSensorError) {
+                m_logger->sysLog("FAN", "CRITICAL: Temp sensor error! Forcing Fan ON.");
+            } else {
+                char logMsg[64];
+                if (targetSpeed > 0) {
+                    snprintf(logMsg, sizeof(logMsg), "Max Temp: %.1fC, Fan ON (%d)", buckTemp, targetSpeed);
+                } else {
+                    snprintf(logMsg, sizeof(logMsg), "Max Temp: %.1fC, Fan OFF", buckTemp);
+                }
+                m_logger->sysLog("FAN", logMsg);
+            }
         }
     }
 }

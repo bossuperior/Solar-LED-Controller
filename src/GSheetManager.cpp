@@ -1,5 +1,5 @@
 #include "GsheetManager.h"
-void GsheetManager::begin(LogManager* sysLogger, TimeManager* timeManager)
+void GsheetManager::begin(LogManager *sysLogger, TimeManager *timeManager)
 {
     m_sysLogger = sysLogger;
     m_timeManager = timeManager;
@@ -9,35 +9,35 @@ void GsheetManager::begin(LogManager* sysLogger, TimeManager* timeManager)
         m_sysLogger->sysLog("GSHEET", "Google Sheets manager initialized");
     }
 }
-void GsheetManager::sendData(float voltage, float tempBuck, int fanSpeed, String lightPct)
+void GsheetManager::sendData(float voltage, float tempBuck, int fanSpeed, const String &lightPct)
 {
     String currentTime = m_timeManager->getCurrentTime();
     currentTime.trim();
 
-    if (currentTime.startsWith("1970")) 
+    if (currentTime.startsWith("1970"))
     {
-        if (m_sysLogger != nullptr) m_sysLogger->sysLog("GSHEET", "Skip: Time not synced yet.");
+        if (m_sysLogger != nullptr)
+            m_sysLogger->sysLog("GSHEET", "Skip: Time not synced yet.");
         return;
     }
-    if (voltage < 0.1 || tempBuck <= -100.0) 
+    if (voltage < 0.1 || tempBuck <= -100.0)
     {
-        if (m_sysLogger != nullptr) m_sysLogger->sysLog("GSHEET", "Skip: Incomplete sensor data.");
+        if (m_sysLogger != nullptr)
+            m_sysLogger->sysLog("GSHEET", "Skip: Incomplete sensor data.");
         return;
     }
-    String jsonPayload = "{";
-    jsonPayload += "\"time\":\"" + currentTime + "\",";
-    jsonPayload += "\"voltage\":" + String(voltage, 2) + ",";
-    jsonPayload += "\"tempBuck\":" + String(tempBuck, 1) + ",";
-    jsonPayload += "\"fanSpeed\":" + String(fanSpeed) + ",";
-    jsonPayload += "\"lightPct\":\"" + lightPct + "\"";
-    jsonPayload += "}";
+    char jsonPayload[256];
+    snprintf(jsonPayload, sizeof(jsonPayload),
+             "{\"time\":\"%s\",\"voltage\":%.2f,\"tempBuck\":%.1f,\"fanSpeed\":%d,\"lightPct\":\"%s\"}",
+             currentTime.c_str(), voltage, tempBuck, fanSpeed, lightPct.c_str());
 
     HTTPClient http;
     String url = SECRET_GOOGLE_SHEET_URL;
 
     if (url.isEmpty())
     {
-        if (m_sysLogger != nullptr) m_sysLogger->sysLog("GSHEET", "Error: Script URL is empty.");
+        if (m_sysLogger != nullptr)
+            m_sysLogger->sysLog("GSHEET", "Error: Script URL is empty.");
         return;
     }
 
@@ -46,18 +46,22 @@ void GsheetManager::sendData(float voltage, float tempBuck, int fanSpeed, String
     http.addHeader("Content-Type", "application/json");
     esp_task_wdt_reset();
     int httpResponseCode = http.POST(jsonPayload);
-    if (httpResponseCode == 200 || httpResponseCode == 302) 
+    if (httpResponseCode == 200 || httpResponseCode == 302)
     {
         if (m_sysLogger != nullptr)
         {
-            m_sysLogger->sysLog("GSHEET", "Success! Data saved. (Code: " + String(httpResponseCode) + ")");
+            char logMsg[64];
+            snprintf(logMsg, sizeof(logMsg), "Success! Data saved. (Code: %d)", httpResponseCode);
+            m_sysLogger->sysLog("GSHEET", logMsg);
         }
     }
     else
     {
         if (m_sysLogger != nullptr)
         {
-            m_sysLogger->sysLog("GSHEET", "Error sending data. Code: " + String(httpResponseCode));
+            char errorMsg[64];
+            snprintf(errorMsg, sizeof(errorMsg), "Error sending data. Code: %d", httpResponseCode);
+            m_sysLogger->sysLog("GSHEET", errorMsg);
         }
     }
     http.end();

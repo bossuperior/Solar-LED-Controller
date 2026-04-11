@@ -40,7 +40,7 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm)
     int startTotalMinutes = (startHour * 60) + startMinute;
     int endTotalMinutes = (endHour * 60) + endMinute;
     bool shouldBeOn = false;
-    
+
     if (isManualMode)
     {
         shouldBeOn = manualLightState;
@@ -79,39 +79,46 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm)
         }
     }
 
-    
     bool needSemiLight = isTempThrottled;
     bool stateChanged = (shouldBeOn != lastOnState);
     bool throttleChanged = (shouldBeOn && (needSemiLight != lastThrottleState));
-    
-   if (stateChanged || throttleChanged || _forceUpdate)
+
+    if (stateChanged || throttleChanged || _forceUpdate)
     {
         _forceUpdate = false;
         if (shouldBeOn)
         {
-            irsend.sendNEC(IR_CODE_ON, 32); delay(50);
-            irsend.sendNEC(IR_CODE_ON, 32); delay(150);
+            irsend.sendNEC(IR_CODE_ON, 32);
+            vTaskDelay(pdMS_TO_TICKS(50));
+            irsend.sendNEC(IR_CODE_ON, 32);
+            vTaskDelay(pdMS_TO_TICKS(150));
             if (needSemiLight)
             {
-                irsend.sendNEC(IR_CODE_SEMI, 32); delay(50);
-                irsend.sendNEC(IR_CODE_SEMI, 32); delay(150);
+                irsend.sendNEC(IR_CODE_SEMI, 32);
+                vTaskDelay(pdMS_TO_TICKS(50));
+                irsend.sendNEC(IR_CODE_SEMI, 32);
+                vTaskDelay(pdMS_TO_TICKS(150));
                 lightMode = "เปิด(ลดความสว่าง)";
                 if (m_logger)
                     m_logger->sysLog("LIGHT", "Temperature Throttle: Switched to Semi Brightness");
             }
             else
             {
-                irsend.sendNEC(IR_CODE_FULL, 32); delay(50);
-                irsend.sendNEC(IR_CODE_FULL, 32); delay(150);
+                irsend.sendNEC(IR_CODE_FULL, 32);
+                vTaskDelay(pdMS_TO_TICKS(50));
+                irsend.sendNEC(IR_CODE_FULL, 32);
+                vTaskDelay(pdMS_TO_TICKS(150));
                 lightMode = "เปิด(สว่างสุด)";
                 if (m_logger)
                     m_logger->sysLog("LIGHT", "Turning ON the Light (Full Brightness)");
             }
         }
-        else if (!shouldBeOn) 
+        else if (!shouldBeOn)
         {
-            irsend.sendNEC(IR_CODE_OFF, 32); delay(50);
-            irsend.sendNEC(IR_CODE_OFF, 32); delay(150);
+            irsend.sendNEC(IR_CODE_OFF, 32);
+            vTaskDelay(pdMS_TO_TICKS(50));
+            irsend.sendNEC(IR_CODE_OFF, 32);
+            vTaskDelay(pdMS_TO_TICKS(150));
             lightMode = "ปิดไฟ";
             if (m_logger)
             {
@@ -142,8 +149,16 @@ void LightManager::setCustomSchedule(int sHour, int sMin, int eHour, int eMin, b
 
     if (m_logger != nullptr)
     {
-        String msg = enable ? "Custom Schedule ON: " + String(sHour) + ":" + String(sMin) + " to " + String(eHour) + ":" + String(eMin) : "Custom Schedule OFF";
-        m_logger->sysLog("LIGHT", msg);
+        char logMsg[64];
+        if (enable)
+        {
+            snprintf(logMsg, sizeof(logMsg), "Custom Schedule ON: %02d:%02d to %02d:%02d", sHour, sMin, eHour, eMin);
+        }
+        else
+        {
+            snprintf(logMsg, sizeof(logMsg), "Custom Schedule OFF");
+        }
+        m_logger->sysLog("LIGHT", logMsg);
     }
 }
 
@@ -154,15 +169,17 @@ void LightManager::setManualMode(bool activateManual, bool turnOnLight)
     _forceUpdate = true;
 }
 
-void LightManager::setScheduleActive(bool enable) {
+void LightManager::setScheduleActive(bool enable)
+{
     isCustomScheduleActive = enable;
     prefs.begin("light_config", false);
     prefs.putBool("schActive", isCustomScheduleActive);
     prefs.end();
 
-    if (m_logger) {
+    if (m_logger)
+    {
         m_logger->sysLog("LIGHT", enable ? "Auto Schedule: ENABLED" : "Auto Schedule: DISABLED");
     }
 }
 
-bool LightManager::getCustomScheduleActive() {return isCustomScheduleActive;}
+bool LightManager::getCustomScheduleActive() { return isCustomScheduleActive; }

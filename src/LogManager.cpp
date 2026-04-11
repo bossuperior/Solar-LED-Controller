@@ -31,9 +31,10 @@ void LogManager::rotateLog() {
     }
 }
 
-void LogManager::sysLog(String module, String message) {
+void LogManager::sysLog(const String& module,const String& message) {
     String timeNow = timer.getTimeString();
-    String logEntry = "[" + timeNow + "] [" + module + "] " + message + "\n";
+    char logEntry[256];
+    snprintf(logEntry, sizeof(logEntry), "[%s] [%s] %s\n", timeNow.c_str(), module.c_str(), message.c_str());
     Serial.print(logEntry);
     if (!LittleFS.exists(CURRENT_LOG)) {
         File tempFile = LittleFS.open(CURRENT_LOG, FILE_WRITE);
@@ -56,78 +57,58 @@ void LogManager::sysLog(String module, String message) {
 
 String LogManager::getTailLogs(int maxChars)
 {
-    String finalLogs = "";
-    size_t currentFileSize = 0;
-
-    // Read from CURRENT_LOG first
+    String finalLogs;
+    finalLogs.reserve(maxChars + 2); 
+    
+    // Check current log size first to determine how many chars we need from the old log
+    size_t curFileSize = 0;
     File curFile = LittleFS.open(CURRENT_LOG, "r");
-    if (curFile)
-    {
-        currentFileSize = curFile.size();
-        size_t seekPos = 0;
-        
-        if (currentFileSize > maxChars) {
-            seekPos = currentFileSize - maxChars;
-        }
-        
-        curFile.seek(seekPos);
-        if (seekPos > 0) {
-            curFile.readStringUntil('\n'); 
-        }
-        
-        // Buffered read for better performance on large logs
-        size_t toRead = curFile.available();
-        if(toRead > 0) {
-            char* buf = (char*)malloc(toRead + 1); //Reserve memory for log content + null terminator
-            if(buf) {
-                curFile.read((uint8_t*)buf, toRead); // Read log content into buffer
-                buf[toRead] = '\0'; // Null-terminate the string
-                finalLogs = String(buf);
-                free(buf);
-            }
-        }
-        curFile.close();
+    if (curFile) {
+        curFileSize = curFile.size();
     }
 
-    // Read from OLD_LOG if needed
-    int neededChars = maxChars - currentFileSize;
+    int neededChars = maxChars - curFileSize;
     
-    if (neededChars > 0 && LittleFS.exists(OLD_LOG))
-    {
+    // Read from OLD_LOG first if we need more chars than what CURRENT_LOG has
+    if (neededChars > 0 && LittleFS.exists(OLD_LOG)) {
         File oldFile = LittleFS.open(OLD_LOG, "r");
-        if (oldFile)
-        {
+        if (oldFile) {
             size_t oldFileSize = oldFile.size();
-            size_t seekPos = 0;
-            
-            if (oldFileSize > neededChars) {
-                seekPos = oldFileSize - neededChars;
-            }
+            size_t seekPos = (oldFileSize > neededChars) ? (oldFileSize - neededChars) : 0;
             
             oldFile.seek(seekPos);
-            if (seekPos > 0) {
-                oldFile.readStringUntil('\n');
-            }
-            size_t toRead = oldFile.available();
-            if(toRead > 0) {
-                char* buf = (char*)malloc(toRead + 1);
-                if(buf) {
-                    oldFile.read((uint8_t*)buf, toRead);
-                    buf[toRead] = '\0';
-                    String oldLogs = String(buf);
-                    free(buf);
-                    finalLogs = oldLogs + finalLogs; 
-                }
+            if (seekPos > 0) oldFile.readStringUntil('\n'); // Skip incomplete line if we seeked into the middle of a log entry
+            
+            char buf[128];
+            while (oldFile.available()) {
+                size_t bytesRead = oldFile.read((uint8_t*)buf, sizeof(buf) - 1);
+                buf[bytesRead] = '\0';
+                finalLogs += buf; 
             }
             oldFile.close();
         }
     }
 
-    // Evaluate if we got any logs, if not return a message indicating the log is empty
-    if (finalLogs.length() == 0)
-    {
+    // Read from CURRENT_LOG if we still have space for more chars
+    if (curFile) {
+        size_t seekPos = (curFileSize > maxChars) ? (curFileSize - maxChars) : 0;
+        
+        curFile.seek(seekPos);
+        if (seekPos > 0) curFile.readStringUntil('\n'); 
+
+        char buf[128];
+        while (curFile.available()) {
+            size_t bytesRead = curFile.read((uint8_t*)buf, sizeof(buf) - 1);
+            buf[bytesRead] = '\0';
+            finalLogs += buf; 
+        }
+        curFile.close();
+    }
+
+    if (finalLogs.length() == 0) {
         return "📭 ไฟล์ Log ว่างเปล่า";
     }
+    
     finalLogs.trim(); 
     return finalLogs;
 }

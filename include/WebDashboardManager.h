@@ -32,7 +32,7 @@ private:
 
 public:
     WebDashboardManager();
-    void begin(LogManager* sysLogger, LightManager* light, PowerManager* power, TempManager* temp,FanManager* fan, SemaphoreHandle_t* mutex, String fwVer);
+    void begin(LogManager* sysLogger, LightManager* light, PowerManager* power, TempManager* temp,FanManager* fan, SemaphoreHandle_t* mutex,const String& fwVer);
     void handle();
-    void triggerWebAlert(String module, String message);
+    void triggerWebAlert(const String& module, const String& message);
 };

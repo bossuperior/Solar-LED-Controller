@@ -31,7 +31,7 @@ private:
 public:
     void begin(LogManager* sysLogger);
     void monitor(PowerManager* pm, TempManager* tm, FanManager* fm, TimeManager* tr,LightManager* lm);
-    void addAlert(String module,String msg);
+    void addAlert(const String& module,const String& msg);
     bool hasAlert();
     String getAlert();
 };

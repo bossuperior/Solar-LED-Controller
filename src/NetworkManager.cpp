@@ -67,7 +67,9 @@ void NetworkManager::handle()
             bool apStatus = WiFi.softAP("T_SOLAR_LED_AP", SECRET_AP_PASS);
             if (apStatus && m_logger != nullptr)
             {
-                m_logger->sysLog("NETWORK", "AP Started: T_SOLAR_LED_AP, IP: " + WiFi.softAPIP().toString());
+                char apMsg[64];
+                snprintf(apMsg, sizeof(apMsg), "AP Started: T_SOLAR_LED_AP, IP: %s", WiFi.softAPIP().toString().c_str());
+                m_logger->sysLog("NETWORK", apMsg);
             }
             else if (m_logger != nullptr)
             {
@@ -95,7 +97,10 @@ void NetworkManager::handle()
         {
             if (m_logger != nullptr)
             {
-                m_logger->sysLog("NETWORK", "WiFi Connected to SSID: " + WiFi.SSID() + ", IP: " + WiFi.localIP().toString());
+                char connMsg[128];
+                snprintf(connMsg, sizeof(connMsg), "WiFi Connected to SSID: %s, IP: %s",
+                         WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
+                m_logger->sysLog("NETWORK", connMsg);
             }
         }
         else
@@ -149,7 +154,9 @@ bool NetworkManager::isInternetAvailable()
             currentInternetStatus = false;
             if (currentInternetStatus != _hasInternet && m_logger != nullptr)
             {
-                m_logger->sysLog("NETWORK", "GET request failed, error: " + http.errorToString(httpCode));
+                char errMsg[64];
+                snprintf(errMsg, sizeof(errMsg), "GET request failed, error: %s", http.errorToString(httpCode).c_str());
+                m_logger->sysLog("NETWORK", errMsg);
             }
         }
         _hasInternet = currentInternetStatus;

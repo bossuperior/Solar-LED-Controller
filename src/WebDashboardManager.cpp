@@ -23,7 +23,7 @@ WebDashboardManager::WebDashboardManager() : server(80)
     m_mutex = nullptr;
 }
 
-void WebDashboardManager::begin(LogManager *sysLogger, LightManager *light, PowerManager *power, TempManager *temp, FanManager *fan, SemaphoreHandle_t *mutex, String fwVer)
+void WebDashboardManager::begin(LogManager *sysLogger, LightManager *light, PowerManager *power, TempManager *temp, FanManager *fan, SemaphoreHandle_t *mutex, const String &fwVer)
 {
     m_logger = sysLogger;
     m_light = light;
@@ -54,17 +54,20 @@ void WebDashboardManager::begin(LogManager *sysLogger, LightManager *light, Powe
     server.on("/lightoff", std::bind(&WebDashboardManager::handleManOff, this));
     server.on("/status", std::bind(&WebDashboardManager::handleStatus, this));
     server.on("/set_sch", std::bind(&WebDashboardManager::handleUpdateSchedule, this));
-    server.on("/log", HTTP_GET, [this]()
-              {
-    if (m_logger != nullptr) {
-        String logData = m_logger->getTailLogs(1000);
-        String html = "<html><body style='background:#0f172a;color:#10b981;font-family:monospace;padding:20px;white-space:pre-wrap;'>";
-        html += logData;
-        html += "</body></html>";
-        server.send(200, "text/html", html);
-    } else {
-        server.send(500, "text/plain", "Logger not initialized");
-    } });
+    server.on("/log", HTTP_GET, [this]() {
+        if (m_logger != nullptr) {
+            String logData = m_logger->getTailLogs(1000);
+            
+            server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+            server.send(200, "text/html", ""); 
+            server.sendContent("<html><body style='background:#0f172a;color:#10b981;font-family:monospace;padding:20px;white-space:pre-wrap;'>");
+            server.sendContent(logData);
+            server.sendContent("</body></html>");
+            server.sendContent("");
+        } else {
+            server.send(500, "text/plain", "Logger not initialized");
+        } 
+    });
 
     server.begin();
     if (m_logger != nullptr)
@@ -170,12 +173,13 @@ void WebDashboardManager::handleUpdateSchedule()
         if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
         {
 
-            // 2. Apply to LightManager
+            // Apply to LightManager
             m_light->setCustomSchedule(sHour, sMin, eHour, eMin, isActive);
 
             if (m_logger != nullptr)
             {
-                String logMsg = "Web Schedule Updated: " + String(sHour) + ":" + String(sMin) + " to " + String(eHour) + ":" + String(eMin) + " | Active: " + String(isActive);
+                char logMsg[128];
+                snprintf(logMsg, sizeof(logMsg), "Web Schedule Updated: %02d:%02d to %02d:%02d | Active: %d", sHour, sMin, eHour, eMin, isActive);
                 m_logger->sysLog("WEB", logMsg);
             }
 
@@ -192,12 +196,13 @@ void WebDashboardManager::handleUpdateSchedule()
         server.send(400, "text/plain", "Bad Request: Missing Time Parameters");
     }
 }
-void WebDashboardManager::triggerWebAlert(String module, String message)
+void WebDashboardManager::triggerWebAlert(const String &module, const String &message)
 {
     if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
     {
-        String text = "🚨 อันตราย โมดูล: " + module + " | สถานะ: " + message;
-        m_pendingAlert = text;
+        char alertBuf[256];
+        snprintf(alertBuf, sizeof(alertBuf), "🚨 อันตราย โมดูล: %s | สถานะ: %s", module.c_str(), message.c_str());
+        m_pendingAlert = alertBuf;
         xSemaphoreGive(*m_mutex);
     }
 }

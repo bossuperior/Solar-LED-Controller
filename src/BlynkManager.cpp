@@ -1,3 +1,14 @@
+/*
+ * Copyright 2026 Komkrit Tungtatiyapat
+ *
+ * Personal and Educational Use Only.
+ * This software is provided for educational and non-commercial purposes.
+ * Any commercial use, modification for commercial purposes, manufacturing,
+ * or distribution for profit is strictly prohibited without prior written
+ * permission from the author.
+ * * To request a commercial license, please contact: komkrit.tungtatiyapat@gmail.com
+ */
+
 #include "secret.h"
 #define BLYNK_TEMPLATE_ID SECRET_BLYNK_TEMPLATE_ID
 #define BLYNK_TEMPLATE_NAME SECRET_BLYNK_TEMPLATE_NAME
@@ -17,26 +28,29 @@ String b_fwVer = "";
 BLYNK_WRITE(InternalPinOTA)
 {
     String otaUrl = param.asString();
-
-    Blynk.virtualWrite(V8, "========================\n");
-    Blynk.virtualWrite(V8, "🚀 กำลังดาวน์โหลดเฟิร์มแวร์ใหม่...\n");
-    Blynk.virtualWrite(V8, "⚠️ กรุณาอย่าปิดไฟหรือรีเซ็ตบอร์ด!\n");
-
+    Blynk.virtualWrite(V8, "🚀 เริ่มการอัพเดตเฟิร์มแวร์ใหม่...\n⚠️ กรุณาอย่าปิดไฟหรือรีเซ็ตบอร์ด!\n");
     WiFiClientSecure client;
     client.setInsecure();
+    httpUpdate.rebootOnUpdate(false);
     httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
+    Blynk.virtualWrite(V8, "📡 กำลังดาวน์โหลดเฟิร์มแวร์ใหม่...\n");
     t_httpUpdate_return ret = httpUpdate.update(client, otaUrl);
 
     switch (ret)
     {
     case HTTP_UPDATE_FAILED:
-        Blynk.virtualWrite(V8, "❌ อัปเดตล้มเหลว: " + httpUpdate.getLastErrorString() + "\n");
+        char errMsg[160];
+        snprintf(errMsg, sizeof(errMsg),
+                 "❌ Error (%d): %s\n",
+                 httpUpdate.getLastError(), // ← numeric code
+                 httpUpdate.getLastErrorString().c_str());
+        Blynk.virtualWrite(V8, errMsg);
         break;
     case HTTP_UPDATE_NO_UPDATES:
-        Blynk.virtualWrite(V8, "⚠️ ไม่มีอัปเดต\n");
+        Blynk.virtualWrite(V8, "⚠️ ไม่มีอัปเดตใหม่บนเซิร์ฟเวอร์\n");
         break;
     case HTTP_UPDATE_OK:
-        Blynk.virtualWrite(V8, "✅ อัปเดตสำเร็จ! กำลังรีบูตระบบใน 3 วินาที...\n");
+        Blynk.virtualWrite(V8, "✅ ดาวน์โหลดและเช็ค MD5 สำเร็จ!\n🔄 กำลังรีบูตเครื่อง...");
         delay(3000);
         ESP.restart();
         break;
@@ -84,11 +98,10 @@ BLYNK_WRITE(V1)
             b_light->setCustomSchedule(sH, sM, eH, eM, true);
         }
 
-        String startStr = String(sH) + ":" + (sM < 10 ? "0" : "") + String(sM);
-        String endStr = String(eH) + ":" + (eM < 10 ? "0" : "") + String(eM);
-        String msg = "⏰ อัปเดตเวลาออโต้: " + startStr + " น. ถึง " + endStr + " น.\n";
+        char msgBuffer[64];
+        snprintf(msgBuffer, sizeof(msgBuffer), "⏰ อัปเดตเวลาออโต้: %d:%02d น. ถึง %d:%02d น.\n", sH, sM, eH, eM);
 
-        Blynk.virtualWrite(V8, msg);
+        Blynk.virtualWrite(V8, msgBuffer);
     }
     else
     {
@@ -102,7 +115,7 @@ BLYNK_CONNECTED()
 
     if (b_logger)
     {
-        Blynk.virtualWrite(V8, "🔄 ระบบออนไลน์ ซิงก์ข้อมูลล่าสุดจากคลาวด์สำเร็จ\n");
+        Blynk.virtualWrite(V8, "🔄 ระบบออนไลน์ ซิงก์ข้อมูลจากคลาวด์สำเร็จ\n");
     }
 }
 
@@ -111,12 +124,22 @@ BLYNK_WRITE(V3)
     int state = param.asInt();
     if (b_light)
     {
-        b_light->setScheduleActive(state == 1);
-        Blynk.virtualWrite(V8, state == 1 ? "⏰ เปิดระบบตั้งเวลาอัตโนมัติ\n" : "🛑 ปิดระบบตั้งเวลาอัตโนมัติ\n");
+        bool isEnabled = (state == 1);
+        b_light->setManualMode(false, false);
+        b_light->setScheduleActive(isEnabled);
+        
+        Blynk.virtualWrite(V8, isEnabled ? "⏰ เปิดระบบตั้งเวลาอัตโนมัติ\n" : "🛑 ปิดระบบตั้งเวลาอัตโนมัติ\n");
+        String currentMode = b_light->isLightMode();
+
+        if (isEnabled) {
+            Blynk.virtualWrite(V0, 1);
+        } else {
+            Blynk.virtualWrite(V0, 0);
+        }
     }
 }
 
-void BlynkManager::begin(LogManager *logger, LightManager *light, PowerManager *power, TempManager *temp, FanManager *fan, TimeManager *time, String fwVer)
+void BlynkManager::begin(LogManager *logger, LightManager *light, PowerManager *power, TempManager *temp, FanManager *fan, TimeManager *time, const String &fwVer)
 {
     b_logger = logger;
     b_light = light;
@@ -144,35 +167,23 @@ void BlynkManager::sendTelemetry()
     float v = b_power->getVoltage();
     float tBuck = b_temp->getBuckTemp();
     int fanSpeed = b_fan->getFanSpeed();
+    int freeRam_kB = ESP.getFreeHeap() / 1024;
 
     // System uptime
     uint64_t uptimeSecs = esp_timer_get_time() / 1000000;
     int days = uptimeSecs / 86400;
     int hours = (uptimeSecs % 86400) / 3600;
     int mins = (uptimeSecs % 3600) / 60;
-    String sysInfo = "WiFi: " + WiFi.SSID() + " | Uptime: " + String(days) + "d " + String(hours) + "h " + String(mins) + "m | FW: " + b_fwVer;
+    char sysInfo[128];
+    snprintf(sysInfo, sizeof(sysInfo), "WiFi: %s | Uptime: %dd %dh %dm | FW: %s",
+             WiFi.SSID().c_str(), days, hours, mins, b_fwVer.c_str());
 
     static float last_v = -100.0;
     static float last_tBuck = -100.0;
     static int last_fanSpeed = -1;
     static int last_mins = -1;
-    static String last_lightStatus = "";
     static int last_schActive = -1;
-
-    String currentLightStatus = b_light->isLightMode();
-
-    if (currentLightStatus != last_lightStatus)
-    {
-        if (currentLightStatus.indexOf("เปิด") >= 0)
-        {
-            Blynk.virtualWrite(V0, 1);
-        }
-        else
-        {
-            Blynk.virtualWrite(V0, 0);
-        }
-        last_lightStatus = currentLightStatus;
-    }
+    static int last_ram = -1;
 
     bool currentSchActive = b_light->getCustomScheduleActive();
     if (currentSchActive != last_schActive)
@@ -205,9 +216,16 @@ void BlynkManager::sendTelemetry()
         Blynk.virtualWrite(V7, sysInfo);
         last_mins = mins;
     }
+    if (abs(freeRam_kB - last_ram) >= 1)
+    {
+        Blynk.virtualWrite(V6, freeRam_kB);
+        last_ram = freeRam_kB;
+    }
 }
 
-void BlynkManager::sendLog(String msg)
+void BlynkManager::sendLog(const String &msg)
 {
-    Blynk.virtualWrite(V8, msg + "\n");
+    char logBuffer[128];
+    snprintf(logBuffer, sizeof(logBuffer), "%s\n", msg.c_str());
+    Blynk.virtualWrite(V8, logBuffer);
 }

@@ -118,7 +118,17 @@ void TimeManager::printTime()
     getCurrentTime(info);
     if (m_logger != nullptr)
     {
-        m_logger->sysLog("TIME", String(info.tm_mday) + "/" + String(info.tm_mon + 1) + "/" + String(info.tm_year + 1900) + " " + String(info.tm_hour) + ":" + String(info.tm_min) + ":" + String(info.tm_sec) + " (" + (_isTimeSynced ? "Online" : "Offline-Internal") + ")");
+        char timeMsg[64];
+        snprintf(timeMsg, sizeof(timeMsg), "%02d/%02d/%d %02d:%02d:%02d (%s)", 
+                 info.tm_mday, 
+                 info.tm_mon + 1, 
+                 info.tm_year + 1900, 
+                 info.tm_hour, 
+                 info.tm_min, 
+                 info.tm_sec, 
+                 _isTimeSynced ? "Online" : "Offline-Internal");
+                 
+        m_logger->sysLog("TIME", timeMsg);
     }
 }
 

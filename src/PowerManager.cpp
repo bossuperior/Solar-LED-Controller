@@ -39,7 +39,8 @@ void PowerManager::printPowerInfo()
         return;
     }
     float voltage = getVoltage();
-    String powerInfo = "Voltage: " + String(voltage, 2) + " V";
+    char powerInfo[64];
+    snprintf(powerInfo, sizeof(powerInfo), "Voltage: %.2f V", voltage);
 
     if (m_logger != nullptr)
         m_logger->sysLog("POWER", powerInfo);

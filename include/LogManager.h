@@ -12,6 +12,6 @@ private:
     void rotateLog();
 public:
     void begin();
-    void sysLog(String module, String message);
+    void sysLog(const String& module,const String& message);
     String getTailLogs(int maxChars = 3000);
 };
