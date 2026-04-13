@@ -31,24 +31,11 @@ void WebDashboardManager::begin(LogManager *sysLogger, LightManager *light, Powe
     m_temp = temp;
     m_fan = fan;
     m_mutex = mutex;
-    if (!LittleFS.begin())
-    {
-        if (m_logger)
-            m_logger->sysLog("WEB", "LittleFS Mount Failed");
-        return;
-    }
     m_fw = fwVer;
 
-    server.on("/", HTTP_GET, [this]()
-              {
-        File file = LittleFS.open("/index.html", "r");
-        if (file) {
-            server.streamFile(file, "text/html");
-            file.close();
-        } else {
-            server.send(404, "text/plain", "index.html not found");
-        } });
-    server.serveStatic("/assets", LittleFS, "/assets");
+    server.on("/", HTTP_GET, [this]() {
+        server.send_P(200, "text/html", index_html); 
+    });
     // Create Routing
     server.on("/lighton", std::bind(&WebDashboardManager::handleManOn, this));
     server.on("/lightoff", std::bind(&WebDashboardManager::handleManOff, this));
@@ -108,6 +95,10 @@ void WebDashboardManager::handleStatus()
     float v = 0.0, t_buck = 0.0;
     bool fan = false;
     String alertMsg = "";
+    String lightStatus = "";
+
+    int sh = 18, sm = 45, eh = 6, em = 10;
+    bool schActive = false;
 
     if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
     {
@@ -117,14 +108,12 @@ void WebDashboardManager::handleStatus()
         v = m_power->getVoltage();
         t_buck = m_temp->getBuckTemp();
         fan = m_fan->isFanRunning();
-        String lightStatus = m_light->isLightMode();
-        prefs.begin("light_config", true); // อ่านอย่างเดียว
-        int sh = prefs.getInt("sHour", 18);
-        int sm = prefs.getInt("sMin", 30);
-        int eh = prefs.getInt("eHour", 6);
-        int em = prefs.getInt("eMin", 20);
-        bool schActive = prefs.getBool("schActive", false);
-        prefs.end();
+        lightStatus = m_light->isLightMode();
+        schActive = m_light->getCustomScheduleActive();
+        sh = m_light->getStartHour();
+        sm = m_light->getStartMin();
+        eh = m_light->getEndHour();
+        em = m_light->getEndMin();
         if (m_pendingAlert != "")
         {
             alertMsg = m_pendingAlert;
@@ -172,7 +161,6 @@ void WebDashboardManager::handleUpdateSchedule()
 
         if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
         {
-
             // Apply to LightManager
             m_light->setCustomSchedule(sHour, sMin, eHour, eMin, isActive);
 

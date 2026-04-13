@@ -45,19 +45,7 @@ async function fetchStatus(): Promise<void> {
         }
 
         const vEl = document.getElementById('v');
-        const batPctEl = document.getElementById('bat-pct');
         if (vEl) vEl.innerText = data.volt.toFixed(2) + ' V';
-        
-        let pct = 0; 
-        const v = data.volt;
-        if (v >= 3.45) pct = 100;
-        else if (v >= 3.35) pct = 90 + ((v - 3.35) / 0.10) * 10;
-        else if (v >= 3.20) pct = 30 + ((v - 3.20) / 0.15) * 60;
-        else if (v >= 2.80) pct = ((v - 2.80) / 0.40) * 30;
-        pct = Math.min(Math.max(Math.round(pct), 0), 100); 
-        
-        if (batPctEl) batPctEl.innerText = `(${pct}%)`;
-        
         const tBuckEl = document.getElementById('t-buck');
         if (tBuckEl) tBuckEl.innerHTML = `${data.temp_buck.toFixed(1)} °C`;
 

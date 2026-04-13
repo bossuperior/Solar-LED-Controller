@@ -19,11 +19,11 @@ void LightManager::begin(LogManager *sysLoggerPtr)
     irsend.begin();
 
     // --- LOAD PREFERENCES ON BOOT ---
-    prefs.begin("light_config", false);
+    prefs.begin("light_config", true);
     startHour = prefs.getInt("sHour", 18);
-    startMinute = prefs.getInt("sMin", 30);
+    startMinute = prefs.getInt("sMin", 45);
     endHour = prefs.getInt("eHour", 6);
-    endMinute = prefs.getInt("eMin", 20);
+    endMinute = prefs.getInt("eMin", 10);
     isCustomScheduleActive = prefs.getBool("schActive", false);
     prefs.end();
 
@@ -147,6 +147,8 @@ void LightManager::setCustomSchedule(int sHour, int sMin, int eHour, int eMin, b
     prefs.putBool("schActive", isCustomScheduleActive);
     prefs.end();
 
+    _forceUpdate = true;
+
     if (m_logger != nullptr)
     {
         char logMsg[64];
@@ -176,6 +178,8 @@ void LightManager::setScheduleActive(bool enable)
     prefs.putBool("schActive", isCustomScheduleActive);
     prefs.end();
 
+    _forceUpdate = true;
+    
     if (m_logger)
     {
         m_logger->sysLog("LIGHT", enable ? "Auto Schedule: ENABLED" : "Auto Schedule: DISABLED");

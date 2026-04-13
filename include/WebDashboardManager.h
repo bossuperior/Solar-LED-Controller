@@ -4,13 +4,13 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include <ArduinoJson.h>
-#include <LittleFS.h>
 #include <Preferences.h>
 #include "LogManager.h"
 #include "LightManager.h"
 #include "PowerManager.h"
 #include "TempManager.h"
 #include "FanManager.h"
+#include "index_html.h"
 
 class WebDashboardManager
 {
@@ -28,7 +28,6 @@ private:
     void handleStatus();
     void handleUpdateSchedule();
     String m_pendingAlert = "";
-    String m_fw = "v0.2.1";
 
 public:
     WebDashboardManager();

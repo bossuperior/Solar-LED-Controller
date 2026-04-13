@@ -38,4 +38,8 @@ public:
     String isLightMode() { return lightMode; }
     void setScheduleActive(bool enable);
     bool getCustomScheduleActive();
+    int getStartHour() const { return startHour; }
+    int getStartMin() const { return startMinute; }
+    int getEndHour() const { return endHour; }
+    int getEndMin() const { return endMinute; }
 };
