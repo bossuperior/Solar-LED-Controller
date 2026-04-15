@@ -5,9 +5,10 @@ void SystemMonitor::begin(LogManager *sysLogger)
     m_logger = sysLogger;
 }
 
-void SystemMonitor::addAlert(const String& module, const String& msg)
+void SystemMonitor::addAlert(const String &module, const String &msg)
 {
-    if (_alertQueue.size() >= 10) {
+    if (_alertQueue.size() >= 10)
+    {
         _alertQueue.pop();
     }
     _alertQueue.push(msg);
@@ -29,6 +30,16 @@ String SystemMonitor::getAlert()
     return msg;
 }
 
+void SystemMonitor::ScheduledReboot(TimeManager *tr)
+{
+    if (tr->getDayOfWeek() == 5 && tr->getHour() == 7 && tr->getMinute() == 0 && millis() > 60000)
+    {
+        addAlert("SYSTEM", "⚙️ Weekly maintenance reboot in progress...");
+        delay(2000);
+        ESP.restart();
+    }
+}
+
 void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, TimeManager *tr, LightManager *lm)
 {
     if (!pm->isPowerSafe())
@@ -38,7 +49,6 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
             lm->setManualMode(true, false);
             addAlert("POWER", "⚠️ อันตราย: แรงดันไฟไม่ปลอดภัย! ระบบปิดไฟเพื่อความปลอดภัย");
             powerErrorLogged = true;
-
         }
     }
     else
@@ -109,6 +119,7 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
     }
     else
     {
+        ScheduledReboot(tr);
         errTime = false;
     }
     float vBus = pm->getVoltage();

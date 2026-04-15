@@ -28,5 +28,6 @@ public:
     int getHour();
     int getMinute();
     int getYear();
+    int getDayOfWeek();
     String getTimeString();
 };

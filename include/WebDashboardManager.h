@@ -28,6 +28,7 @@ private:
     void handleStatus();
     void handleUpdateSchedule();
     String m_pendingAlert = "";
+    String m_fw = "";
 
 public:
     WebDashboardManager();

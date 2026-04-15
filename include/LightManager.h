@@ -42,4 +42,5 @@ public:
     int getStartMin() const { return startMinute; }
     int getEndHour() const { return endHour; }
     int getEndMin() const { return endMinute; }
+    bool isLightOn() { return lastOnState; }
 };

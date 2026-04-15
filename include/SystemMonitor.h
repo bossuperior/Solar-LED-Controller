@@ -34,4 +34,5 @@ public:
     void addAlert(const String& module,const String& msg);
     bool hasAlert();
     String getAlert();
+    void ScheduledReboot(TimeManager* tr);
 };

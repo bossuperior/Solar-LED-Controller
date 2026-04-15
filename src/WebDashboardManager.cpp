@@ -70,14 +70,18 @@ void WebDashboardManager::handle()
 
 void WebDashboardManager::handleManOn()
 {
-    if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+    if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(150)) == pdTRUE)
     {
         m_light->setManualMode(true, true);
         if (m_logger != nullptr)
             m_logger->sysLog("WEB", "Mode Changed: ON (Manual)");
         xSemaphoreGive(*m_mutex);
+        server.send(200, "application/json", "{\"status\":\"success\"}");
     }
-    server.send(200, "application/json", "{\"status\":\"success\"}");
+    else
+    {
+        server.send(503, "application/json", "{\"error\":\"System Busy\"}"); 
+    }
 }
 void WebDashboardManager::handleManOff()
 {
@@ -87,8 +91,12 @@ void WebDashboardManager::handleManOff()
         if (m_logger != nullptr)
             m_logger->sysLog("WEB", "Mode Changed: OFF (Return to AUTO)");
         xSemaphoreGive(*m_mutex);
+        server.send(200, "application/json", "{\"status\":\"success\"}");
     }
-    server.send(200, "application/json", "{\"status\":\"success\"}");
+    else
+    {
+        server.send(503, "application/json", "{\"error\":\"System Busy\"}"); 
+    }
 }
 void WebDashboardManager::handleStatus()
 {

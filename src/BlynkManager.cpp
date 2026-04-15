@@ -63,15 +63,10 @@ BLYNK_WRITE(V0)
     int state = param.asInt();
     if (b_light && b_power)
     {
-        if (state == 1 && b_power->isPowerSafe())
+        if (state == 1)
         {
             b_light->setManualMode(true, true);
             Blynk.virtualWrite(V8, "💡 เปิดไฟแล้ว\n");
-        }
-        else if (state == 1 && !b_power->isPowerSafe())
-        {
-            Blynk.virtualWrite(V0, 0);
-            Blynk.virtualWrite(V8, "⚠️ แบตเตอรี่ต่ำ บล็อกการเปิดไฟ!\n");
         }
         else
         {
@@ -129,13 +124,6 @@ BLYNK_WRITE(V3)
         b_light->setScheduleActive(isEnabled);
         
         Blynk.virtualWrite(V8, isEnabled ? "⏰ เปิดระบบตั้งเวลาอัตโนมัติ\n" : "🛑 ปิดระบบตั้งเวลาอัตโนมัติ\n");
-        String currentMode = b_light->isLightMode();
-
-        if (isEnabled) {
-            Blynk.virtualWrite(V0, 1);
-        } else {
-            Blynk.virtualWrite(V0, 0);
-        }
     }
 }
 
@@ -184,6 +172,14 @@ void BlynkManager::sendTelemetry()
     static int last_mins = -1;
     static int last_schActive = -1;
     static int last_ram = -1;
+
+    static int last_pushed_v0 = -1;
+    int current_physical_state = b_light->isLightOn() ? 1 : 0;
+    if (current_physical_state != last_pushed_v0)
+    {
+        Blynk.virtualWrite(V0, current_physical_state);
+        last_pushed_v0 = current_physical_state;
+    }
 
     bool currentSchActive = b_light->getCustomScheduleActive();
     if (currentSchActive != last_schActive)
