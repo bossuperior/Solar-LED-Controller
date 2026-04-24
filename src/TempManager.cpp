@@ -23,7 +23,7 @@ float TempManager::getBuckTemp()
         return _testBuckTemp;
     }
     if (!_buckSensorOk)
-        return 50.0;
+        return NAN;
     return tempBuck;
 }
 

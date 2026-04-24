@@ -15,40 +15,45 @@ extern TimeManager timer;
 
 void LogManager::begin()
 {
+    _mutex = xSemaphoreCreateMutex();
     Serial.println("[SYSTEM] Log Manager initialized.");
 }
 
 void LogManager::sysLog(const String &module, const String &message)
 {
     String timeNow = timer.getTimeString();
-    char logEntry[256];
+    char logEntry[512];
     snprintf(logEntry, sizeof(logEntry), "[%s] [%s] %s\n", timeNow.c_str(), module.c_str(), message.c_str());
     Serial.print(logEntry);
+
+    // Zero-timeout: never block — avoids deadlock when called while holding mutexKey
+    if (_mutex == nullptr || xSemaphoreTake(_mutex, 0) != pdTRUE)
+        return;
     logBuffer[headIndex] = String(logEntry);
     headIndex = (headIndex + 1) % MAX_LOG_LINES;
     if (currentCount < MAX_LOG_LINES)
-    {
         currentCount++;
-    }
+    xSemaphoreGive(_mutex);
 }
 
 String LogManager::getTailLogs(int maxChars)
 {
-    if (currentCount == 0) return "📭 No logs available.";
-    String finalLogs;
-    finalLogs.reserve(maxChars); // Reserve extra space for safety
-    int startIdx = (currentCount < MAX_LOG_LINES) ? 0 : headIndex;
+    if (currentCount == 0) return "No logs available.";
+    if (_mutex == nullptr || xSemaphoreTake(_mutex, pdMS_TO_TICKS(50)) != pdTRUE)
+        return "Log busy.";
 
+    String finalLogs;
+    finalLogs.reserve(maxChars);
+    int startIdx = (currentCount < MAX_LOG_LINES) ? 0 : headIndex;
     for (int i = 0; i < currentCount; i++)
     {
         int idx = (startIdx + i) % MAX_LOG_LINES;
         finalLogs += logBuffer[idx];
     }
-    if (finalLogs.length() > (size_t)maxChars)
-    {
-        finalLogs = finalLogs.substring(finalLogs.length() - maxChars);
-    }
+    xSemaphoreGive(_mutex);
 
+    if (finalLogs.length() > (size_t)maxChars)
+        finalLogs = finalLogs.substring(finalLogs.length() - maxChars);
     finalLogs.trim();
     return finalLogs;
 }

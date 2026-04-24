@@ -28,13 +28,20 @@ String b_fwVer = "";
 BLYNK_WRITE(InternalPinOTA)
 {
     String otaUrl = param.asString();
+    if (!otaUrl.startsWith("https://") && !otaUrl.startsWith("http://"))
+    {
+        Blynk.virtualWrite(V8, "❌ OTA Error: Invalid URL\n");
+        return;
+    }
     Blynk.virtualWrite(V8, "🚀 เริ่มการอัพเดตเฟิร์มแวร์ใหม่...\n⚠️ กรุณาอย่าปิดไฟหรือรีเซ็ตบอร์ด!\n");
     WiFiClientSecure client;
     client.setInsecure();
     httpUpdate.rebootOnUpdate(false);
     httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
     Blynk.virtualWrite(V8, "📡 กำลังดาวน์โหลดเฟิร์มแวร์ใหม่...\n");
+    esp_task_wdt_delete(NULL); // suspend WDT for this task during download
     t_httpUpdate_return ret = httpUpdate.update(client, otaUrl);
+    esp_task_wdt_add(NULL); // re-register WDT on failure path
 
     switch (ret)
     {
@@ -42,7 +49,7 @@ BLYNK_WRITE(InternalPinOTA)
         char errMsg[160];
         snprintf(errMsg, sizeof(errMsg),
                  "❌ Error (%d): %s\n",
-                 httpUpdate.getLastError(), // ← numeric code
+                 httpUpdate.getLastError(),
                  httpUpdate.getLastErrorString().c_str());
         Blynk.virtualWrite(V8, errMsg);
         break;
@@ -106,7 +113,7 @@ BLYNK_WRITE(V1)
 
 BLYNK_CONNECTED()
 {
-    Blynk.syncVirtual(V0, V1, V3);
+    Blynk.syncVirtual(V0, V1, V3, V9, V10);
 
     if (b_logger)
     {
@@ -122,9 +129,35 @@ BLYNK_WRITE(V3)
         bool isEnabled = (state == 1);
         b_light->setManualMode(false, false);
         b_light->setScheduleActive(isEnabled);
-        
+
         Blynk.virtualWrite(V8, isEnabled ? "⏰ เปิดระบบตั้งเวลาอัตโนมัติ\n" : "🛑 ปิดระบบตั้งเวลาอัตโนมัติ\n");
     }
+}
+
+BLYNK_WRITE(V9)
+{
+    int switchState = param.asInt();
+
+    if (switchState == 1)
+    {
+        b_fan->setManualOverride(true);
+        Blynk.virtualWrite(V8, "🌀 เปิดพัดลมแล้ว");
+    }
+    else
+    {
+        b_fan->setManualOverride(false);
+        Blynk.virtualWrite(V8, "🌀 ปิดพัดลม กลับสู่โหมดออโต้");
+    }
+}
+
+BLYNK_WRITE(V10)
+{
+    float newStart = param[0].asFloat();
+    b_fan->setTempStart(newStart);
+    b_fan->saveFanSetupToPrefs();
+    char logMsg[128];
+    snprintf(logMsg, sizeof(logMsg), "🌀 อัปเดตอุณหภูมิที่พัดลมเริ่มทำงาน: %.1f °C\n", newStart);
+    Blynk.virtualWrite(V8, logMsg);
 }
 
 void BlynkManager::begin(LogManager *logger, LightManager *light, PowerManager *power, TempManager *temp, FanManager *fan, TimeManager *time, const String &fwVer)
@@ -172,9 +205,11 @@ void BlynkManager::sendTelemetry()
     static int last_mins = -1;
     static int last_schActive = -1;
     static int last_ram = -1;
-
     static int last_pushed_v0 = -1;
+    static String last_v_color = "";
+    static String last_t_color = "";
     int current_physical_state = b_light->isLightOn() ? 1 : 0;
+
     if (current_physical_state != last_pushed_v0)
     {
         Blynk.virtualWrite(V0, current_physical_state);
@@ -188,15 +223,40 @@ void BlynkManager::sendTelemetry()
         last_schActive = currentSchActive;
     }
 
+    String current_v_color;
+    if (v < 3.10) {
+        current_v_color = "#FF4444";
+    } else if (v >= 3.10 && v < 3.20) {
+        current_v_color = "#FFB300";
+    } else {
+        current_v_color = "#00E676";
+    }
+    if (current_v_color != last_v_color) {
+        Blynk.setProperty(V2, "color", current_v_color);
+        last_v_color = current_v_color;
+    }
     // Dashboard Update: Only send updates if values have changed significantly to reduce network traffic
-    if (abs(v - last_v) >= 0.03)
-    {
+    if (abs(v - last_v) >= 0.03) {
         Blynk.virtualWrite(V2, v);
         last_v = v;
     }
 
-    if (abs(tBuck - last_tBuck) >= 0.4)
-    {
+    float startTemp = b_fan->getTempStart();
+    float maxTemp = b_fan->getTempMax();
+    String current_t_color;
+
+    if (tBuck < startTemp) {
+        current_t_color = "#FFFFFF";
+    } else if (tBuck >= startTemp && tBuck < maxTemp) {
+        current_t_color = "#FFB300";
+    } else {
+        current_t_color = "#FF4444";
+    }
+    if (current_t_color != last_t_color) {
+        Blynk.setProperty(V4, "color", current_t_color);
+        last_t_color = current_t_color;
+    }
+    if (abs(tBuck - last_tBuck) >= 0.4) {
         Blynk.virtualWrite(V4, tBuck);
         last_tBuck = tBuck;
     }

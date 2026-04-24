@@ -11,6 +11,7 @@
 
 #include <Arduino.h>
 #include <Preferences.h>
+#include <vector>
 #include <esp_task_wdt.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -75,6 +76,12 @@ void HardwareLoop(void *pvParameters)
       monitor.monitor(&power, &temp, &fan, &timer, &light);
       xSemaphoreGive(mutexKey);
     }
+    light.executeIR();
+    if (monitor.isPendingReboot())
+    {
+      vTaskDelay(pdMS_TO_TICKS(3000));
+      ESP.restart();
+    }
     // static unsigned long lastStackPrintHW = 0;
     // if (millis() - lastStackPrintHW >= 10000)
     // {
@@ -105,11 +112,12 @@ void CommLoop(void *pvParameters)
       bool doLog = false;
 
       // Mutex to safely read shared data and check conditions without blocking for too long
+      std::vector<String> pending;
       if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(150)) == pdTRUE)
       {
         while (monitor.hasAlert())
         {
-          blynk.sendLog(monitor.getAlert());
+          pending.push_back(monitor.getAlert());
         }
         send_v = power.getVoltage();
         send_buck_t = temp.getBuckTemp();
@@ -122,6 +130,8 @@ void CommLoop(void *pvParameters)
         }
         xSemaphoreGive(mutexKey);
       }
+      for (auto &alert : pending)
+        blynk.sendLog(alert);
       if (millis() - lastTelemetryUpdate >= 30000)
       {
         if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(150)) == pdTRUE)
@@ -170,7 +180,7 @@ void setup()
   if (crashCounter >= 3)
   {
     Serial.println("[CRITICAL] Bootloop Detected! Erasing NVS to safe state...");
-    nvs_flash_erase(); 
+    nvs_flash_erase();
     nvs_flash_init();
     crashCounter = 0;
     delay(1000);
@@ -203,13 +213,11 @@ void setup()
   monitor.begin(&sysLogger);
   gsheet.begin(&sysLogger, &timer);
   dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey, BLYNK_FIRMWARE_VERSION);
-  char fwMsg[64];
-  snprintf(fwMsg, sizeof(fwMsg), "Firmware Version: %s", BLYNK_FIRMWARE_VERSION);
   blynk.begin(&sysLogger, &light, &power, &temp, &fan, &timer, BLYNK_FIRMWARE_VERSION);
 
   // Create Tasks
   esp_task_wdt_init(WDT_TIMEOUT, true);
-  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 8192, NULL, 3, &TaskHardware, 1);
+  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 10240, NULL, 3, &TaskHardware, 1);
   xTaskCreatePinnedToCore(CommLoop, "TaskComm", 20480, NULL, 1, &TaskComm, 0);
 }
 

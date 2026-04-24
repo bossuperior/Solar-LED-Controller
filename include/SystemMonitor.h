@@ -27,6 +27,7 @@ private:
     bool errBuckVoltage = false;
     unsigned long fanStartTime = 0; //Variable to track when the fan started
     bool powerErrorLogged = false;
+    bool _pendingReboot = false;
 
 public:
     void begin(LogManager* sysLogger);
@@ -35,4 +36,5 @@ public:
     bool hasAlert();
     String getAlert();
     void ScheduledReboot(TimeManager* tr);
+    bool isPendingReboot() const { return _pendingReboot; }
 };

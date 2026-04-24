@@ -28,12 +28,17 @@ private:
     int startHour, startMinute, endHour, endMinute;
     IRsend irsend;
     bool _forceUpdate = false;
+    enum PendingIR { IR_NONE, IR_ON_FULL, IR_ON_SEMI, IR_OFF };
+    PendingIR _pendingIR = IR_NONE;
 
 public:
     LightManager(uint16_t pin);
     void begin(LogManager *sysLogger);
     void handle(int currentHour, int currentMinute, TempManager *tm);
+    void executeIR();
     void setCustomSchedule(int sHour, int sMin, int eHour, int eMin, bool enable);
+    void setScheduleParams(int sHour, int sMin, int eHour, int eMin, bool enable);
+    void saveScheduleToPrefs();
     void setManualMode(bool activateManual, bool turnOnLight);
     String isLightMode() { return lightMode; }
     void setScheduleActive(bool enable);

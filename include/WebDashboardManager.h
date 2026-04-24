@@ -27,6 +27,7 @@ private:
     void handleManOff();
     void handleStatus();
     void handleUpdateSchedule();
+    void handleSetFan();
     String m_pendingAlert = "";
     String m_fw = "";
 

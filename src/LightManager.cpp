@@ -88,58 +88,85 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm)
         _forceUpdate = false;
         if (shouldBeOn)
         {
-            irsend.sendNEC(IR_CODE_ON, 32);
-            vTaskDelay(pdMS_TO_TICKS(50));
-            irsend.sendNEC(IR_CODE_ON, 32);
-            vTaskDelay(pdMS_TO_TICKS(150));
             if (needSemiLight)
             {
-                irsend.sendNEC(IR_CODE_SEMI, 32);
-                vTaskDelay(pdMS_TO_TICKS(50));
-                irsend.sendNEC(IR_CODE_SEMI, 32);
-                vTaskDelay(pdMS_TO_TICKS(150));
+                _pendingIR = IR_ON_SEMI;
                 lightMode = "เปิด(ลดความสว่าง)";
                 if (m_logger)
                     m_logger->sysLog("LIGHT", "Temperature Throttle: Switched to Semi Brightness");
             }
             else
             {
-                irsend.sendNEC(IR_CODE_FULL, 32);
-                vTaskDelay(pdMS_TO_TICKS(50));
-                irsend.sendNEC(IR_CODE_FULL, 32);
-                vTaskDelay(pdMS_TO_TICKS(150));
+                _pendingIR = IR_ON_FULL;
                 lightMode = "เปิด(สว่างสุด)";
                 if (m_logger)
                     m_logger->sysLog("LIGHT", "Turning ON the Light (Full Brightness)");
             }
         }
-        else if (!shouldBeOn)
+        else
         {
-            irsend.sendNEC(IR_CODE_OFF, 32);
-            vTaskDelay(pdMS_TO_TICKS(50));
-            irsend.sendNEC(IR_CODE_OFF, 32);
-            vTaskDelay(pdMS_TO_TICKS(150));
+            _pendingIR = IR_OFF;
             lightMode = "ปิดไฟ";
             if (m_logger)
-            {
                 m_logger->sysLog("LIGHT", "Turning OFF the Light");
-            }
         }
         lastOnState = shouldBeOn;
         lastThrottleState = needSemiLight;
     }
 }
 
-void LightManager::setCustomSchedule(int sHour, int sMin, int eHour, int eMin, bool enable)
+void LightManager::executeIR()
+{
+    if (_pendingIR == IR_NONE)
+        return;
+
+    switch (_pendingIR)
+    {
+    case IR_ON_FULL:
+        irsend.sendNEC(IR_CODE_ON, 32);
+        vTaskDelay(pdMS_TO_TICKS(50));
+        irsend.sendNEC(IR_CODE_ON, 32);
+        vTaskDelay(pdMS_TO_TICKS(150));
+        irsend.sendNEC(IR_CODE_FULL, 32);
+        vTaskDelay(pdMS_TO_TICKS(50));
+        irsend.sendNEC(IR_CODE_FULL, 32);
+        vTaskDelay(pdMS_TO_TICKS(150));
+        break;
+    case IR_ON_SEMI:
+        irsend.sendNEC(IR_CODE_ON, 32);
+        vTaskDelay(pdMS_TO_TICKS(50));
+        irsend.sendNEC(IR_CODE_ON, 32);
+        vTaskDelay(pdMS_TO_TICKS(150));
+        irsend.sendNEC(IR_CODE_SEMI, 32);
+        vTaskDelay(pdMS_TO_TICKS(50));
+        irsend.sendNEC(IR_CODE_SEMI, 32);
+        vTaskDelay(pdMS_TO_TICKS(150));
+        break;
+    case IR_OFF:
+        irsend.sendNEC(IR_CODE_OFF, 32);
+        vTaskDelay(pdMS_TO_TICKS(50));
+        irsend.sendNEC(IR_CODE_OFF, 32);
+        vTaskDelay(pdMS_TO_TICKS(150));
+        break;
+    default:
+        break;
+    }
+    _pendingIR = IR_NONE;
+}
+
+void LightManager::setScheduleParams(int sHour, int sMin, int eHour, int eMin, bool enable)
 {
     startHour = sHour;
     startMinute = sMin;
     endHour = eHour;
     endMinute = eMin;
     isCustomScheduleActive = enable;
+    _forceUpdate = true;
+}
 
-    // --- SAVE PREFERENCES WHEN UPDATED ---
-    prefs.begin("light_config", false); // 'false' means read/write mode
+void LightManager::saveScheduleToPrefs()
+{
+    prefs.begin("light_config", false);
     prefs.putInt("sHour", startHour);
     prefs.putInt("sMin", startMinute);
     prefs.putInt("eHour", endHour);
@@ -147,21 +174,21 @@ void LightManager::setCustomSchedule(int sHour, int sMin, int eHour, int eMin, b
     prefs.putBool("schActive", isCustomScheduleActive);
     prefs.end();
 
-    _forceUpdate = true;
-
     if (m_logger != nullptr)
     {
         char logMsg[64];
-        if (enable)
-        {
-            snprintf(logMsg, sizeof(logMsg), "Custom Schedule ON: %02d:%02d to %02d:%02d", sHour, sMin, eHour, eMin);
-        }
+        if (isCustomScheduleActive)
+            snprintf(logMsg, sizeof(logMsg), "Custom Schedule ON: %02d:%02d to %02d:%02d", startHour, startMinute, endHour, endMinute);
         else
-        {
             snprintf(logMsg, sizeof(logMsg), "Custom Schedule OFF");
-        }
         m_logger->sysLog("LIGHT", logMsg);
     }
+}
+
+void LightManager::setCustomSchedule(int sHour, int sMin, int eHour, int eMin, bool enable)
+{
+    setScheduleParams(sHour, sMin, eHour, eMin, enable);
+    saveScheduleToPrefs();
 }
 
 void LightManager::setManualMode(bool activateManual, bool turnOnLight)

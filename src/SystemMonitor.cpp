@@ -32,11 +32,10 @@ String SystemMonitor::getAlert()
 
 void SystemMonitor::ScheduledReboot(TimeManager *tr)
 {
-    if (tr->getDayOfWeek() == 5 && tr->getHour() == 7 && tr->getMinute() == 0 && millis() > 60000)
+    if (!_pendingReboot && tr->getDayOfWeek() == 5 && tr->getHour() == 7 && tr->getMinute() == 0 && millis() > 60000)
     {
         addAlert("SYSTEM", "⚙️ Weekly maintenance reboot in progress...");
-        delay(2000);
-        ESP.restart();
+        _pendingReboot = true;
     }
 }
 
@@ -124,7 +123,11 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
     }
     float vBus = pm->getVoltage();
     float bTemp = tm->getBuckTemp();
-    if (bTemp > 75.0)
+    if (isnan(bTemp))
+    {
+        errBuckHighTemp = false;
+    }
+    else if (bTemp > 75.0)
     {
         if (!errBuckHighTemp)
         {

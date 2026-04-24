@@ -19,5 +19,5 @@ class PowerManager {
         bool _inaAvailable = false;
         float _testVolt = 0.0;
         bool _isTesting = false;
-        bool _safeState = true;
+        bool _safeState = false;
 };

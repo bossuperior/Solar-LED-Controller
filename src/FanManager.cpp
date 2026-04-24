@@ -1,9 +1,10 @@
 #include "FanManager.h"
+extern Preferences prefs;
 
 void FanManager::begin(LogManager *sysLogger)
 {
     m_logger = sysLogger;
-
+    loadFanSetupFromPrefs();
     ledcSetup(pwmChannel, pwmFreq, pwmRes);
     ledcAttachPin(fanPin, pwmChannel);
     setFanSpeed(0);
@@ -25,8 +26,12 @@ void FanManager::handle(TempManager *tm)
     int targetSpeed = currentSpeed;
     bool isSensorError = false;
 
+    if (m_manualOverride) 
+    {
+        targetSpeed = 255;
+    }
     // Safety Mode if sensor reading is invalid (e.g., NaN or negative)
-    if (isnan(buckTemp) || buckTemp < 0.0)
+    else if (isnan(buckTemp) || buckTemp < 0.0)
     {
         targetSpeed = 255;
         isSensorError = true;
@@ -34,30 +39,24 @@ void FanManager::handle(TempManager *tm)
     // Smart Fan Control Logic with Hysteresis and Linear Mapping
     else
     {
-        // Tunable parameters for fan control thresholds and response curve
-        const float TEMP_START = 38.0;
-        const float TEMP_MAX = 45.0;
-        const int FAN_MIN = 100;
-        const int FAN_MAX = 255;
-
-        // Hysteresis: If temperature is below TEMP_START - 2°C, turn off the fan to prevent short cycling
-        if (buckTemp < TEMP_START - 2.0)
+        // Hysteresis: If temperature is below m_tempStart - 2°C, turn off the fan to prevent short cycling
+        if (buckTemp < m_tempStart - 2.0)
         {
             targetSpeed = 0;
         }
-        else if (buckTemp >= TEMP_MAX)
+        else if (buckTemp >= m_tempMax)
         {
-            targetSpeed = FAN_MAX;
+            targetSpeed = m_fanMax;
         }
-        else if (buckTemp >= TEMP_START)
+        else if (buckTemp >= m_tempStart)
         {
-            float tempRange = TEMP_MAX - TEMP_START;
+            float tempRange = m_tempMax - m_tempStart;
             if (tempRange <= 0.0)
             {
                 tempRange = 1.0;
             }
-            float tempRatio = (buckTemp - TEMP_START) / tempRange;
-            targetSpeed = FAN_MIN + (int)(tempRatio * (FAN_MAX - FAN_MIN));
+            float tempRatio = (buckTemp - m_tempStart) / tempRange;
+            targetSpeed = m_fanMin + (int)(tempRatio * (m_fanMax - m_fanMin));
         }
     }
     // Only update fan speed if there's a significant change to reduce wear and noise
@@ -102,4 +101,22 @@ void FanManager::setFanSpeed(int speed)
 int FanManager::getFanSpeed()
 {
     return map(currentSpeed, 0, 255, 0, 100);
+}
+
+void FanManager::saveFanSetupToPrefs(){
+    prefs.begin("fan_config", false);
+    prefs.putFloat("tempStart", m_tempStart);
+    prefs.end();
+}
+
+void FanManager::setCustomFan(float tempStart){
+    m_tempStart = tempStart;
+    saveFanSetupToPrefs();
+}
+
+void FanManager::loadFanSetupFromPrefs() {
+    prefs.begin("fan_config", true);
+    m_tempStart = prefs.getFloat("tempStart", 38.0);
+    m_manualOverride = false;
+    prefs.end();
 }

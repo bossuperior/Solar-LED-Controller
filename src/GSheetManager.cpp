@@ -1,4 +1,21 @@
 #include "GsheetManager.h"
+
+static String jsonEscapeString(const String &s)
+{
+    String out;
+    out.reserve(s.length() + 8);
+    for (unsigned int i = 0; i < s.length(); i++)
+    {
+        char c = s[i];
+        if (c == '"')       out += "\\\"";
+        else if (c == '\\') out += "\\\\";
+        else if (c == '\n') out += "\\n";
+        else if (c == '\r') out += "\\r";
+        else                out += c;
+    }
+    return out;
+}
+
 void GsheetManager::begin(LogManager *sysLogger, TimeManager *timeManager)
 {
     m_sysLogger = sysLogger;
@@ -20,16 +37,17 @@ void GsheetManager::sendData(float voltage, float tempBuck, int fanSpeed, const 
             m_sysLogger->sysLog("GSHEET", "Skip: Time not synced yet.");
         return;
     }
-    if (voltage < 0.1 || tempBuck <= -100.0)
+    if (voltage < 0.1 || isnan(tempBuck) || tempBuck <= -100.0)
     {
         if (m_sysLogger != nullptr)
             m_sysLogger->sysLog("GSHEET", "Skip: Incomplete sensor data.");
         return;
     }
+    String escapedLight = jsonEscapeString(lightPct);
     char jsonPayload[256];
     snprintf(jsonPayload, sizeof(jsonPayload),
              "{\"time\":\"%s\",\"voltage\":%.2f,\"tempBuck\":%.1f,\"fanSpeed\":%d,\"lightPct\":\"%s\"}",
-             currentTime.c_str(), voltage, tempBuck, fanSpeed, lightPct.c_str());
+             currentTime.c_str(), voltage, tempBuck, fanSpeed, escapedLight.c_str());
 
     HTTPClient http;
     String url = SECRET_GOOGLE_SHEET_URL;

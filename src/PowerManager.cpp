@@ -49,7 +49,7 @@ void PowerManager::printPowerInfo()
 bool PowerManager::isPowerSafe()
 {
     if (!_inaAvailable)
-        return false;
+        return true;
     float currentVoltage = getVoltage();
     if (currentVoltage < 2.90) {
         _safeState = false;
