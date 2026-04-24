@@ -1,4 +1,4 @@
-# 🌞 Solar LED Controller (ESP32 + FreeRTOS)
+# 🌞 Solar LED Controller (ESP32 + FreeRTOS + Blynk app)
 
 ![ESP32](https://img.shields.io/badge/ESP32-100000?style=for-the-badge&logo=espressif&logoColor=white)
 ![FreeRTOS](https://img.shields.io/badge/FreeRTOS-20232A?style=for-the-badge&logo=rtos&logoColor=white)
