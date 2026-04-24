@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <HTTPUpdate.h>
 #include <WiFiClient.h>
+#include <freertos/semphr.h>
 #include "LogManager.h"
 #include "LightManager.h"
 #include "PowerManager.h"
@@ -11,7 +12,7 @@
 
 class BlynkManager {
 public:
-    void begin(LogManager* logger, LightManager* light, PowerManager* power, TempManager* temp, FanManager* fan, TimeManager* time,const String& fwVer);
+    void begin(LogManager* logger, LightManager* light, PowerManager* power, TempManager* temp, FanManager* fan, TimeManager* time, SemaphoreHandle_t* mutex, const String& fwVer);
     void handle();
     void sendTelemetry();
     void sendLog(const String& msg);

@@ -3,7 +3,6 @@
 void PowerManager::begin(LogManager *sysLogger)
 {
     m_logger = sysLogger;
-    Wire.begin();
     if (!ina226.init())
     {
         if (m_logger != nullptr)
@@ -44,18 +43,4 @@ void PowerManager::printPowerInfo()
 
     if (m_logger != nullptr)
         m_logger->sysLog("POWER", powerInfo);
-}
-
-bool PowerManager::isPowerSafe()
-{
-    if (!_inaAvailable)
-        return true;
-    float currentVoltage = getVoltage();
-    if (currentVoltage < 2.90) {
-        _safeState = false;
-    }
-    else if (currentVoltage > 3.10) {
-        _safeState = true;
-    }
-    return _safeState;
 }

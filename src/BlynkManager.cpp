@@ -23,6 +23,7 @@ TempManager *b_temp = nullptr;
 FanManager *b_fan = nullptr;
 LogManager *b_logger = nullptr;
 TimeManager *b_time = nullptr;
+SemaphoreHandle_t *b_mutex = nullptr;
 String b_fwVer = "";
 
 BLYNK_WRITE(InternalPinOTA)
@@ -68,18 +69,15 @@ BLYNK_WRITE(InternalPinOTA)
 BLYNK_WRITE(V0)
 {
     int state = param.asInt();
-    if (b_light && b_power)
+    if (b_light && b_power && b_mutex)
     {
-        if (state == 1)
+        if (xSemaphoreTake(*b_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
         {
-            b_light->setManualMode(true, true);
-            Blynk.virtualWrite(V8, "💡 เปิดไฟแล้ว\n");
+            if (state == 1) b_light->setManualMode(true, true);
+            else            b_light->setManualMode(false, false);
+            xSemaphoreGive(*b_mutex);
         }
-        else
-        {
-            b_light->setManualMode(false, false);
-            Blynk.virtualWrite(V8, "🌑 ปิดไฟ กลับเข้าสู่โหมดตั้งเวลา\n");
-        }
+        Blynk.virtualWrite(V8, state == 1 ? "💡 เปิดไฟแล้ว\n" : "🌑 ปิดไฟ กลับเข้าสู่โหมดตั้งเวลา\n");
     }
 }
 
@@ -95,14 +93,18 @@ BLYNK_WRITE(V1)
         int eH = t.getStopHour();
         int eM = t.getStopMinute();
 
-        if (b_light)
+        if (b_light && b_mutex)
         {
-            b_light->setCustomSchedule(sH, sM, eH, eM, true);
+            if (xSemaphoreTake(*b_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+            {
+                b_light->setScheduleParams(sH, sM, eH, eM, true);
+                xSemaphoreGive(*b_mutex);
+            }
+            b_light->saveScheduleToPrefs(); // NVS write outside mutex
         }
 
         char msgBuffer[64];
         snprintf(msgBuffer, sizeof(msgBuffer), "⏰ อัปเดตเวลาออโต้: %d:%02d น. ถึง %d:%02d น.\n", sH, sM, eH, eM);
-
         Blynk.virtualWrite(V8, msgBuffer);
     }
     else
@@ -124,12 +126,15 @@ BLYNK_CONNECTED()
 BLYNK_WRITE(V3)
 {
     int state = param.asInt();
-    if (b_light)
+    if (b_light && b_mutex)
     {
         bool isEnabled = (state == 1);
-        b_light->setManualMode(false, false);
-        b_light->setScheduleActive(isEnabled);
-
+        if (xSemaphoreTake(*b_mutex, pdMS_TO_TICKS(200)) == pdTRUE)
+        {
+            b_light->setManualMode(false, false);
+            b_light->setScheduleActive(isEnabled); // NVS write inside mutex — rare user action, acceptable
+            xSemaphoreGive(*b_mutex);
+        }
         Blynk.virtualWrite(V8, isEnabled ? "⏰ เปิดระบบตั้งเวลาอัตโนมัติ\n" : "🛑 ปิดระบบตั้งเวลาอัตโนมัติ\n");
     }
 }
@@ -137,30 +142,35 @@ BLYNK_WRITE(V3)
 BLYNK_WRITE(V9)
 {
     int switchState = param.asInt();
-
-    if (switchState == 1)
+    if (b_fan && b_mutex)
     {
-        b_fan->setManualOverride(true);
-        Blynk.virtualWrite(V8, "🌀 เปิดพัดลมแล้ว");
-    }
-    else
-    {
-        b_fan->setManualOverride(false);
-        Blynk.virtualWrite(V8, "🌀 ปิดพัดลม กลับสู่โหมดออโต้");
+        if (xSemaphoreTake(*b_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+        {
+            b_fan->setManualOverride(switchState == 1);
+            xSemaphoreGive(*b_mutex);
+        }
+        Blynk.virtualWrite(V8, switchState == 1 ? "🌀 เปิดพัดลมแล้ว" : "🌀 ปิดพัดลม กลับสู่โหมดออโต้");
     }
 }
 
 BLYNK_WRITE(V10)
 {
     float newStart = param[0].asFloat();
-    b_fan->setTempStart(newStart);
-    b_fan->saveFanSetupToPrefs();
-    char logMsg[128];
-    snprintf(logMsg, sizeof(logMsg), "🌀 อัปเดตอุณหภูมิที่พัดลมเริ่มทำงาน: %.1f °C\n", newStart);
-    Blynk.virtualWrite(V8, logMsg);
+    if (b_fan && b_mutex)
+    {
+        if (xSemaphoreTake(*b_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+        {
+            b_fan->setTempStart(newStart);
+            xSemaphoreGive(*b_mutex);
+        }
+        b_fan->saveFanSetupToPrefs(); // NVS write outside mutex
+        char logMsg[128];
+        snprintf(logMsg, sizeof(logMsg), "🌀 อัปเดตอุณหภูมิที่พัดลมเริ่มทำงาน: %.1f °C\n", newStart);
+        Blynk.virtualWrite(V8, logMsg);
+    }
 }
 
-void BlynkManager::begin(LogManager *logger, LightManager *light, PowerManager *power, TempManager *temp, FanManager *fan, TimeManager *time, const String &fwVer)
+void BlynkManager::begin(LogManager *logger, LightManager *light, PowerManager *power, TempManager *temp, FanManager *fan, TimeManager *time, SemaphoreHandle_t *mutex, const String &fwVer)
 {
     b_logger = logger;
     b_light = light;
@@ -168,6 +178,7 @@ void BlynkManager::begin(LogManager *logger, LightManager *light, PowerManager *
     b_temp = temp;
     b_fan = fan;
     b_time = time;
+    b_mutex = mutex;
     b_fwVer = fwVer;
 
     Blynk.config(BLYNK_AUTH_TOKEN);

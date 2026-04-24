@@ -39,26 +39,8 @@ void SystemMonitor::ScheduledReboot(TimeManager *tr)
     }
 }
 
-void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, TimeManager *tr, LightManager *lm)
+void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, TimeManager *tr)
 {
-    if (!pm->isPowerSafe())
-    {
-        if (!powerErrorLogged)
-        {
-            lm->setManualMode(true, false);
-            addAlert("POWER", "⚠️ อันตราย: แรงดันไฟไม่ปลอดภัย! ระบบปิดไฟเพื่อความปลอดภัย");
-            powerErrorLogged = true;
-        }
-    }
-    else
-    {
-        if (powerErrorLogged)
-        {
-            lm->setManualMode(false, false);
-            addAlert("POWER", "✅ แรงดันไฟปลอดภัยแล้ว! ระบบกลับสู่โหมดอัตโนมัติ");
-            powerErrorLogged = false;
-        }
-    }
     if (millis() - lastCheck < CHECK_INTERVAL)
         return;
     lastCheck = millis();

@@ -22,14 +22,16 @@ void LogManager::begin()
 void LogManager::sysLog(const String &module, const String &message)
 {
     String timeNow = timer.getTimeString();
-    char logEntry[512];
-    snprintf(logEntry, sizeof(logEntry), "[%s] [%s] %s\n", timeNow.c_str(), module.c_str(), message.c_str());
-    Serial.print(logEntry);
+    char entry[LOG_ENTRY_SIZE];
+    int len = snprintf(entry, sizeof(entry), "[%s] [%s] %s\n", timeNow.c_str(), module.c_str(), message.c_str());
+    Serial.print(entry);
 
     // Zero-timeout: never block — avoids deadlock when called while holding mutexKey
     if (_mutex == nullptr || xSemaphoreTake(_mutex, 0) != pdTRUE)
         return;
-    logBuffer[headIndex] = String(logEntry);
+    int copyLen = min(len, (int)sizeof(logBuffer[headIndex]) - 1);
+    memcpy(logBuffer[headIndex], entry, copyLen);
+    logBuffer[headIndex][copyLen] = '\0';
     headIndex = (headIndex + 1) % MAX_LOG_LINES;
     if (currentCount < MAX_LOG_LINES)
         currentCount++;

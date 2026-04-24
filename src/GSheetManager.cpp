@@ -60,6 +60,7 @@ void GsheetManager::sendData(float voltage, float tempBuck, int fanSpeed, const 
     }
 
     http.begin(m_client, url);
+    http.setTimeout(8000);
     http.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);
     http.addHeader("Content-Type", "application/json");
     esp_task_wdt_reset();

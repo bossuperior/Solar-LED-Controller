@@ -16,7 +16,6 @@
 void TimeManager::begin(LogManager *sysLogger)
 {
     m_logger = sysLogger;
-    Wire.begin();
     if (!rtc.begin())
     {
         if (m_logger != nullptr)

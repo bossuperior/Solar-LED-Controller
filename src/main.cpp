@@ -73,7 +73,7 @@ void HardwareLoop(void *pvParameters)
       temp.update();
       fan.handle(&temp);
       light.handle(h, m, &temp);
-      monitor.monitor(&power, &temp, &fan, &timer, &light);
+      monitor.monitor(&power, &temp, &fan, &timer);
       xSemaphoreGive(mutexKey);
     }
     light.executeIR();
@@ -134,12 +134,8 @@ void CommLoop(void *pvParameters)
         blynk.sendLog(alert);
       if (millis() - lastTelemetryUpdate >= 30000)
       {
-        if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(150)) == pdTRUE)
-        {
-          blynk.sendTelemetry();
-          xSemaphoreGive(mutexKey);
-          lastTelemetryUpdate = millis();
-        }
+        blynk.sendTelemetry();
+        lastTelemetryUpdate = millis();
       }
       if (doLog)
       {
@@ -204,6 +200,7 @@ void setup()
   {
     Serial.println("[SYSTEM] NVS Initialized successfully.");
   }
+  Wire.begin(); // Single I2C init — shared by DS3231 and INA226
   network.begin(&sysLogger);
   timer.begin(&sysLogger);
   temp.begin(&sysLogger);
@@ -213,7 +210,7 @@ void setup()
   monitor.begin(&sysLogger);
   gsheet.begin(&sysLogger, &timer);
   dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey, BLYNK_FIRMWARE_VERSION);
-  blynk.begin(&sysLogger, &light, &power, &temp, &fan, &timer, BLYNK_FIRMWARE_VERSION);
+  blynk.begin(&sysLogger, &light, &power, &temp, &fan, &timer, &mutexKey, BLYNK_FIRMWARE_VERSION);
 
   // Create Tasks
   esp_task_wdt_init(WDT_TIMEOUT, true);
