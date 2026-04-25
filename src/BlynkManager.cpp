@@ -34,7 +34,7 @@ BLYNK_WRITE(InternalPinOTA)
         Blynk.virtualWrite(V8, "❌ OTA Error: Invalid URL\n");
         return;
     }
-    Blynk.virtualWrite(V8, "🚀 เริ่มการอัพเดตเฟิร์มแวร์ใหม่...\n⚠️ กรุณาอย่าปิดไฟหรือรีเซ็ตบอร์ด!\n");
+    Blynk.virtualWrite(V8, "🚀 เริ่มการอัพเดตเฟิร์มแวร์ใหม่...\n⚠️ อย่าปิดไฟหรือรีเซ็ตบอร์ด!\n");
     WiFiClientSecure client;
     client.setInsecure();
     httpUpdate.rebootOnUpdate(false);
@@ -56,10 +56,10 @@ BLYNK_WRITE(InternalPinOTA)
         Blynk.virtualWrite(V8, errMsg);
         break;
     case HTTP_UPDATE_NO_UPDATES:
-        Blynk.virtualWrite(V8, "⚠️ ไม่มีอัปเดตใหม่บนเซิร์ฟเวอร์\n");
+        Blynk.virtualWrite(V8, "⚠️ ไม่มีอัปเดตบนเซิร์ฟเวอร์\n");
         break;
     case HTTP_UPDATE_OK:
-        Blynk.virtualWrite(V8, "✅ ดาวน์โหลดและเช็ค MD5 สำเร็จ!\n🔄 กำลังรีบูตเครื่อง...");
+        Blynk.virtualWrite(V8, "✅ ดาวน์โหลดและเช็คไฟล์สำเร็จ!\n🔄 กำลังรีบูตเครื่อง...");
         delay(3000);
         ESP.restart();
         break;
@@ -78,7 +78,7 @@ BLYNK_WRITE(V0)
             else            b_light->setManualMode(false, false);
             xSemaphoreGive(*b_mutex);
         }
-        Blynk.virtualWrite(V8, state == 1 ? "💡 เปิดไฟแล้ว\n" : "🌑 ปิดไฟ กลับเข้าสู่โหมดตั้งเวลา\n");
+        Blynk.virtualWrite(V8, state == 1 ? "💡 เปิดไฟแล้ว\n" : "🌑 ปิดไฟ (กลับสู่โหมดตั้งเวลา)\n");
     }
 }
 
@@ -104,7 +104,7 @@ BLYNK_WRITE(V1)
             b_light->saveScheduleToPrefs(); // NVS write outside mutex
         }
 
-        char msgBuffer[64];
+        char msgBuffer[128];
         snprintf(msgBuffer, sizeof(msgBuffer), "⏰ อัปเดตเวลาออโต้: %d:%02d น. ถึง %d:%02d น.\n", sH, sM, eH, eM);
         Blynk.virtualWrite(V8, msgBuffer);
     }
@@ -120,7 +120,7 @@ BLYNK_CONNECTED()
 
     if (b_logger)
     {
-        Blynk.virtualWrite(V8, "🔄 ระบบออนไลน์ ซิงก์ข้อมูลจากคลาวด์สำเร็จ\n");
+        Blynk.virtualWrite(V8, "🔄 ระบบออนไลน์ โหลดข้อมูลจากคลาวด์สำเร็จ\n");
     }
 }
 
@@ -150,7 +150,7 @@ BLYNK_WRITE(V9)
             b_fan->setManualOverride(switchState == 1);
             xSemaphoreGive(*b_mutex);
         }
-        Blynk.virtualWrite(V8, switchState == 1 ? "🌀 เปิดพัดลมแล้ว" : "🌀 ปิดพัดลม กลับสู่โหมดออโต้\n");
+        Blynk.virtualWrite(V8, switchState == 1 ? "🌀 เปิดพัดลมแล้ว" : "🌀 ปิดพัดลม (กลับสู่โหมดออโต้)\n");
     }
 }
 
