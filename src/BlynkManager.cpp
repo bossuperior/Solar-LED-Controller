@@ -41,6 +41,7 @@ BLYNK_WRITE(InternalPinOTA)
     httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
     Blynk.virtualWrite(V8, "📡 กำลังดาวน์โหลดเฟิร์มแวร์ใหม่...\n");
     esp_task_wdt_delete(NULL); // suspend WDT for this task during download
+    client.setTimeout(60);
     t_httpUpdate_return ret = httpUpdate.update(client, otaUrl);
     esp_task_wdt_add(NULL); // re-register WDT on failure path
 
@@ -149,7 +150,7 @@ BLYNK_WRITE(V9)
             b_fan->setManualOverride(switchState == 1);
             xSemaphoreGive(*b_mutex);
         }
-        Blynk.virtualWrite(V8, switchState == 1 ? "🌀 เปิดพัดลมแล้ว" : "🌀 ปิดพัดลม กลับสู่โหมดออโต้");
+        Blynk.virtualWrite(V8, switchState == 1 ? "🌀 เปิดพัดลมแล้ว" : "🌀 ปิดพัดลม กลับสู่โหมดออโต้\n");
     }
 }
 
