@@ -156,6 +156,7 @@ BLYNK_WRITE(V9)
 BLYNK_WRITE(V10)
 {
     float newStart = param[0].asFloat();
+    newStart = constrain(newStart, 30.0f, 45.0f);
     if (b_fan && b_mutex)
     {
         if (xSemaphoreTake(*b_mutex, pdMS_TO_TICKS(100)) == pdTRUE)

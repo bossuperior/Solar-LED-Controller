@@ -217,9 +217,9 @@ void WebDashboardManager::handleSetFan()
 
     float tempStart = server.arg("ts").toFloat();
 
-    if (tempStart < 30.0 || tempStart > 50.0)
+    if (tempStart < 30.0 || tempStart > 45.0)
     {
-        server.send(400, "text/plain", "Bad Request: tempStart must be 30-50 C");
+        server.send(400, "text/plain", "Bad Request: tempStart must be 30-45 C");
         return;
     }
 

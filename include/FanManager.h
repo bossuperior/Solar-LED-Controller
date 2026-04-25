@@ -15,7 +15,7 @@ private:
     LogManager *m_logger = nullptr;
     // Tunable parameters for fan control thresholds and response curve
     float m_tempStart = 38.0; 
-    float m_tempMax = 45.0;
+    float m_tempMax = 48.0;
     int m_fanMin = 100;
     int m_fanMax = 255;
     bool m_manualOverride = false;

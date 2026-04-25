@@ -99,7 +99,7 @@ const char index_html[] PROGMEM = R"=====(
                     <label class="text-base md:text-lg font-semibold text-slate-300">เริ่มเปิดพัดลมที่:</label>
                     <span id="tempStartVal" class="text-2xl font-black text-emerald-400">-- °C</span>
                 </div>
-                <input type="range" id="tempStart" min="30" max="50" step="1" class="fan-slider w-full" oninput="document.getElementById('tempStartVal').innerText=this.value+' °C'">
+                <input type="range" id="tempStart" min="30" max="45" step="1" class="fan-slider w-full" oninput="document.getElementById('tempStartVal').innerText=this.value+' °C'">
                 <p class="text-sm text-slate-500">พัดลมจะเต็มกำลังที่ <span id="tempMaxDisplay" class="text-slate-400 font-semibold">--</span> °C</p>
             </div>
             <div class="pt-4 border-t border-slate-800">
