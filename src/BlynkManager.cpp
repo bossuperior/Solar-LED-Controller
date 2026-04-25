@@ -268,7 +268,7 @@ void BlynkManager::sendTelemetry()
         Blynk.setProperty(V4, "color", current_t_color);
         last_t_color = current_t_color;
     }
-    if (abs(tBuck - last_tBuck) >= 0.4) {
+    if (abs(tBuck - last_tBuck) >= 0.3) {
         Blynk.virtualWrite(V4, tBuck);
         last_tBuck = tBuck;
     }
