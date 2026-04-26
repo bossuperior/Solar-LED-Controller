@@ -249,7 +249,7 @@ void BlynkManager::sendTelemetry()
         last_v_color = current_v_color;
     }
     // Dashboard Update: Only send updates if values have changed significantly to reduce network traffic
-    if (abs(v - last_v) >= 0.03) {
+    if (abs(v - last_v) >= 0.02) {
         Blynk.virtualWrite(V2, v);
         last_v = v;
     }
@@ -269,7 +269,7 @@ void BlynkManager::sendTelemetry()
         Blynk.setProperty(V4, "color", current_t_color);
         last_t_color = current_t_color;
     }
-    if (abs(tBuck - last_tBuck) >= 0.3) {
+    if (abs(tBuck - last_tBuck) >= 0.2) {
         Blynk.virtualWrite(V4, tBuck);
         last_tBuck = tBuck;
     }
