@@ -201,12 +201,7 @@ void LightManager::setManualMode(bool activateManual, bool turnOnLight)
 void LightManager::setScheduleActive(bool enable)
 {
     isCustomScheduleActive = enable;
-    prefs.begin("light_config", false);
-    prefs.putBool("schActive", isCustomScheduleActive);
-    prefs.end();
-
     _forceUpdate = true;
-    
     if (m_logger)
     {
         m_logger->sysLog("LIGHT", enable ? "Auto Schedule: ENABLED" : "Auto Schedule: DISABLED");

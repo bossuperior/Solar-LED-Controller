@@ -106,6 +106,7 @@ void CommLoop(void *pvParameters)
     if (network.isInternetAvailable())
     {
       blynk.handle();
+      blynk.checkOTA();
       float send_v = 0, send_buck_t = 0;
       int send_fan = 0;
       static String send_light = "ปิดไฟ";
@@ -117,7 +118,8 @@ void CommLoop(void *pvParameters)
       {
         while (monitor.hasAlert())
         {
-          pending.push_back(monitor.getAlert());
+          String alertTxt = monitor.getAlert();
+          pending.push_back(alertTxt);
         }
         send_v = power.getVoltage();
         send_buck_t = temp.getBuckTemp();
@@ -131,7 +133,10 @@ void CommLoop(void *pvParameters)
         xSemaphoreGive(mutexKey);
       }
       for (auto &alert : pending)
+      {
         blynk.sendLog(alert);
+        dashboard.triggerWebAlert("SYSTEM", alert);
+      }
       if (millis() - lastTelemetryUpdate >= 30000)
       {
         blynk.sendTelemetry();
@@ -172,6 +177,10 @@ void setup()
   else if (reason == ESP_RST_PANIC || reason == ESP_RST_INT_WDT || reason == ESP_RST_TASK_WDT)
   {
     crashCounter++;
+  }
+  else if (reason == ESP_RST_SW)
+  {
+    crashCounter = 0;
   }
   if (crashCounter >= 3)
   {

@@ -11,7 +11,6 @@ class GsheetManager
 private:
     LogManager* m_sysLogger;
     TimeManager* m_timeManager;
-    String scriptUrl;
     WiFiClientSecure m_client;
 public:
     void begin(LogManager* sysLogger, TimeManager* timeManager);

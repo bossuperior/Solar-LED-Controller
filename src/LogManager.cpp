@@ -21,7 +21,7 @@ void LogManager::begin()
 
 void LogManager::sysLog(const String &module, const String &message)
 {
-    String timeNow = timer.getTimeString();
+    String timeNow = timer.getCurrentTime();
     char entry[LOG_ENTRY_SIZE];
     int len = snprintf(entry, sizeof(entry), "[%s] [%s] %s\n", timeNow.c_str(), module.c_str(), message.c_str());
     Serial.print(entry);

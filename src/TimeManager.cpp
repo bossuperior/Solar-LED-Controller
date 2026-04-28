@@ -50,6 +50,7 @@ void TimeManager::begin(LogManager *sysLogger)
             time_t t = mktime(&tm_rtc);
             struct timeval tv = {.tv_sec = (t - gmtOffset_sec), .tv_usec = 0};
             settimeofday(&tv, NULL);
+            _isTimeSynced = true;
 
             if (m_logger != nullptr)
                 Serial.println("[TIME] System time loaded securely from DS3231.");
@@ -150,16 +151,6 @@ int TimeManager::getYear()
     struct tm timeinfo;
     getCurrentTime(timeinfo);
     return timeinfo.tm_year + 1900;
-}
-
-String TimeManager::getTimeString()
-{
-    struct tm timeinfo;
-    getCurrentTime(timeinfo);
-    char timeStr[25];
-    strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", &timeinfo);
-
-    return String(timeStr);
 }
 
 int TimeManager::getDayOfWeek()

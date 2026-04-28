@@ -29,7 +29,7 @@ public:
     {
         return currentSpeed > 0;
     }
-    void setTempStart(float temp) { m_tempStart = temp; }
+    void setTempStart(float temp) { m_tempStart = constrain(temp, 30.0f, m_tempMax - 1.0f); }
     float getTempStart() { return m_tempStart; }
     float getTempMax() { return m_tempMax; }
     void setManualOverride(bool state) { m_manualOverride = state; }

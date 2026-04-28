@@ -15,7 +15,6 @@ public:
         _testBuckTemp = temp;
     }
     float getBuckTemp();
-    bool isSensorHealthy() { return _buckSensorOk; }
     bool isBuckSensorOk() { return _buckSensorOk; }
 
 private:

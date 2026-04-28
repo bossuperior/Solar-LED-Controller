@@ -29,5 +29,4 @@ public:
     int getMinute();
     int getYear();
     int getDayOfWeek();
-    String getTimeString();
 };

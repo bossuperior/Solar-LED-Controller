@@ -10,7 +10,6 @@ class PowerManager {
         float getVoltage();
         void setVoltage(float v) { _isTesting = true; _testVolt = v; }
         void printPowerInfo();
-        bool isPowerSafe();
         bool isInaAvailable() { return _inaAvailable; }
         
     private:

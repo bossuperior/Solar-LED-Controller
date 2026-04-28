@@ -27,6 +27,7 @@ void NetworkManager::begin(LogManager *sysLogger)
 
 void NetworkManager::handle()
 {
+    //AP-Mode
     static unsigned long lastScanTime = 0;
     uint8_t currentStatus = WiFi.status();
     if (_apModeStarted)
@@ -51,8 +52,9 @@ void NetworkManager::handle()
         }
         return;
     }
+    // Normal STA mode handling
     currentStatus = wifiMulti.run();
-    if (currentStatus != WL_CONNECTED && !_apModeStarted)
+    if (currentStatus != WL_CONNECTED)
     {
         if (millis() - _startAttemptTime > maxAttemptTime)
         {
@@ -79,17 +81,6 @@ void NetworkManager::handle()
             lastScanTime = millis();
         }
     }
-    else if (currentStatus == WL_CONNECTED && _apModeStarted)
-    {
-        WiFi.softAPdisconnect(true);
-        delay(100);
-        WiFi.mode(WIFI_STA);
-        _apModeStarted = false;
-        if (m_logger != nullptr)
-        {
-            m_logger->sysLog("NETWORK", "Internet can accesible! Closed AP and returned to STA mode.");
-        }
-    }
 
     if (currentStatus != lastStatus)
     {
@@ -105,6 +96,7 @@ void NetworkManager::handle()
         }
         else
         {
+            _startAttemptTime = millis();
             if (m_logger != nullptr && !_apModeStarted)
             {
                 m_logger->sysLog("NETWORK", "WiFi Connection Lost / Seeking...");

@@ -11,8 +11,6 @@
 
 #include "WebDashboardManager.h"
 
-extern Preferences prefs;
-
 WebDashboardManager::WebDashboardManager() : server(80)
 {
     m_logger = nullptr;
@@ -246,9 +244,7 @@ void WebDashboardManager::triggerWebAlert(const String &module, const String &me
 {
     if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
     {
-        char alertBuf[256];
-        snprintf(alertBuf, sizeof(alertBuf), "🚨 อันตราย โมดูล: %s | สถานะ: %s", module.c_str(), message.c_str());
-        m_pendingAlert = alertBuf;
+        m_pendingAlert = "🚨 อันตราย โมดูล: " + module + " | สถานะ: " + message;
         xSemaphoreGive(*m_mutex);
     }
 }

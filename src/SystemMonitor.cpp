@@ -11,7 +11,7 @@ void SystemMonitor::addAlert(const String &module, const String &msg)
     {
         _alertQueue.pop();
     }
-    _alertQueue.push(msg);
+    _alertQueue.push("[" + module + "] " + msg);
     if (m_logger)
         m_logger->sysLog(module, msg);
 }
