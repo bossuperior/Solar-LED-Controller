@@ -16,13 +16,8 @@ private:
     bool pendingOTA = false;
     String otaDownloadUrl = "";
     String b_fwVer = "";
-    LightManager *b_light = nullptr;
-    PowerManager *b_power = nullptr;
     TempManager *b_temp = nullptr;
-    FanManager *b_fan = nullptr;
-    LogManager *b_logger = nullptr;
     TimeManager *b_time = nullptr;
-    SemaphoreHandle_t *b_mutex = nullptr;
 
 public:
     void begin(LogManager *logger, LightManager *light, PowerManager *power, TempManager *temp, FanManager *fan, TimeManager *time, SemaphoreHandle_t *mutex, const String &fwVer);

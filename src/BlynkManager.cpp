@@ -17,10 +17,16 @@
 #include "BlynkManager.h"
 
 BlynkManager *b_manager = nullptr;
+LightManager *b_light = nullptr;
+PowerManager *b_power = nullptr;
+FanManager *b_fan = nullptr;
+LogManager *b_logger = nullptr;
+SemaphoreHandle_t *b_mutex = nullptr;
 
 BLYNK_WRITE(InternalPinOTA)
 {
-    if (!b_manager) return;
+    if (!b_manager)
+        return;
     String otaUrl = param.asString();
     if (!otaUrl.startsWith("https://") && !otaUrl.startsWith("http://"))
     {
@@ -84,11 +90,12 @@ BLYNK_WRITE(V0)
                 b_light->setManualMode(false, false);
             xSemaphoreGive(*b_mutex);
             Blynk.virtualWrite(V8, state == 1 ? "💡 เปิดไฟแล้ว\n" : "🌑 ปิดไฟ (กลับสู่โหมดตั้งเวลา)\n");
-        }else{
+        }
+        else
+        {
             Blynk.virtualWrite(V8, "⚠️ ระบบไม่ว่างกรุณาลองเปิดปิดไฟใหม่!\n");
             Blynk.virtualWrite(V0, !state); // Revert the switch state in the app since we couldn't process it
         }
-        
     }
 }
 
@@ -147,11 +154,12 @@ BLYNK_WRITE(V3)
             xSemaphoreGive(*b_mutex);
             b_light->saveScheduleToPrefs(); // NVS write outside mutex
             Blynk.virtualWrite(V8, isEnabled ? "⏰ เปิดระบบตั้งเวลาอัตโนมัติ\n" : "🛑 ปิดระบบตั้งเวลาอัตโนมัติ\n");
-        }else{
+        }
+        else
+        {
             Blynk.virtualWrite(V8, "⚠️ ระบบไม่ว่างกรุณาลองกดปุ่มตั้งเวลาใหม่!\n");
             Blynk.virtualWrite(V3, !state); // Revert the switch state in the app since we couldn't process it
         }
-        
     }
 }
 
