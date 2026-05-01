@@ -66,7 +66,6 @@ unsigned long lastLogSent = 0;
 void HardwareLoop(void *pvParameters)
 {
   esp_task_wdt_add(NULL);
-  unsigned long bootTime = millis();
   for (;;)
   {
     if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(100)) == pdTRUE)
@@ -76,9 +75,7 @@ void HardwareLoop(void *pvParameters)
       int m = timer.getMinute();
       temp.update();
       fan.handle(&temp);
-      if (millis() - bootTime > 10000) {
-          light.handle(h, m, &temp);
-      }
+      light.handle(h, m, &temp);
       monitor.monitor(&power, &temp, &fan, &timer);
       xSemaphoreGive(mutexKey);
     }
@@ -88,6 +85,14 @@ void HardwareLoop(void *pvParameters)
       vTaskDelay(pdMS_TO_TICKS(3000));
       ESP.restart();
     }
+    // static unsigned long lastStackPrintHW = 0;
+    // if (millis() - lastStackPrintHW >= 10000)
+    // {
+    //     UBaseType_t stackLeft = uxTaskGetStackHighWaterMark(NULL);
+    //     Serial.print("HW Task Free Stack: ");
+    //     Serial.println(stackLeft);
+    //     lastStackPrintHW = millis();
+    // }
     esp_task_wdt_reset();
     vTaskDelay(50 / portTICK_PERIOD_MS); // Delay to prevent watchdog reset
   }
@@ -96,7 +101,6 @@ void CommLoop(void *pvParameters)
 {
   esp_task_wdt_add(NULL);
   unsigned long lastTelemetryUpdate = 0;
-  std::vector<String> pending;
   for (;;)
   {
     network.handle();
@@ -109,9 +113,9 @@ void CommLoop(void *pvParameters)
       int send_fan = 0;
       static String send_light = "ปิดไฟ";
       bool doLog = false;
-      pending.clear();
 
       // Mutex to safely read shared data and check conditions without blocking for too long
+      std::vector<String> pending;
       if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(150)) == pdTRUE)
       {
         while (monitor.hasAlert())
@@ -150,11 +154,20 @@ void CommLoop(void *pvParameters)
         esp_task_wdt_reset();
       }
     }
+    // static unsigned long lastStackPrintComm = 0;
+    // if (millis() - lastStackPrintComm >= 10000)
+    // {
+    //     UBaseType_t stackLeft = uxTaskGetStackHighWaterMark(NULL);
+    //     Serial.print("Comm Task Free Stack: ");
+    //     Serial.println(stackLeft);
+    //     lastStackPrintComm = millis();
+    // }
     esp_task_wdt_reset();
     vTaskDelay(100 / portTICK_PERIOD_MS);
   }
 }
-void SystemInitTask(void *pvParameters)
+
+void setup()
 {
   Serial.begin(115200);
   delay(1000);
@@ -208,11 +221,11 @@ void SystemInitTask(void *pvParameters)
   {
     Serial.println("[SYSTEM] NVS Initialized successfully.");
   }
-  String activeVersion; 
-  { 
+  String activeVersion;
+  {
     Preferences tempPrefs;
-    tempPrefs.begin("app_info", true); 
-    activeVersion = tempPrefs.getString("fw_ver", BLYNK_FIRMWARE_VERSION); 
+    tempPrefs.begin("app_info", true);
+    activeVersion = tempPrefs.getString("fw_ver", BLYNK_FIRMWARE_VERSION);
     tempPrefs.end();
   }
   Wire.begin(); // Single I2C init — shared by DS3231 and INA226
@@ -229,20 +242,13 @@ void SystemInitTask(void *pvParameters)
 
   // Create Tasks
   esp_task_wdt_init(WDT_TIMEOUT, true);
-  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 8192, NULL, 3, &TaskHardware, 0);
+  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 16384, NULL, 3, &TaskHardware, 1);
   xTaskCreatePinnedToCore(CommLoop, "TaskComm", 20480, NULL, 1, &TaskComm, 0);
-
-  vTaskSuspend(NULL);
-}
-
-void setup()
-{
-  xTaskCreatePinnedToCore(SystemInitTask, "InitTask", 16384, NULL, 5, NULL, 0);
 }
 
 void loop()
 {
-  vTaskDelay(portMAX_DELAY);
+  vTaskDelete(NULL);
 }
 
 #endif
