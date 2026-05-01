@@ -87,7 +87,10 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
     else
     {
         fanStartTime = 0;
-        errFan = false;
+        if (tm->getBuckTemp() < 50.0) 
+        {
+            errFan = false; 
+        }
     }
 
     if (tr->getYear() < 2024)

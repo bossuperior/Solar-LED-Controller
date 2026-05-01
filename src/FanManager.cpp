@@ -109,11 +109,6 @@ void FanManager::saveFanSetupToPrefs(){
     prefs.end();
 }
 
-void FanManager::setCustomFan(float tempStart){
-    m_tempStart = tempStart;
-    saveFanSetupToPrefs();
-}
-
 void FanManager::loadFanSetupFromPrefs() {
     prefs.begin("fan_config", true);
     m_tempStart = prefs.getFloat("tempStart", 38.0);

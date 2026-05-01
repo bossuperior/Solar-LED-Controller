@@ -22,59 +22,7 @@ PowerManager *b_power = nullptr;
 FanManager *b_fan = nullptr;
 LogManager *b_logger = nullptr;
 SemaphoreHandle_t *b_mutex = nullptr;
-
-BLYNK_WRITE(InternalPinOTA)
-{
-    if (!b_manager)
-        return;
-    String otaUrl = param.asString();
-    if (!otaUrl.startsWith("https://") && !otaUrl.startsWith("http://"))
-    {
-        Blynk.virtualWrite(V8, "❌ ไม่สามารถอัพเดตได้: ลิงก์ไม่ถูกต้อง\n");
-        return;
-    }
-    b_manager->setPendingOTA(otaUrl);
-    Blynk.virtualWrite(V8, "🚀 เริ่มการอัพเดตเฟิร์มแวร์ใหม่...\n⚠️ อย่าปิดไฟหรือรีเซ็ตบอร์ด!\n");
-}
-
-void BlynkManager::checkOTA()
-{
-    if (pendingOTA)
-    {
-        pendingOTA = false; // Reset the flag to prevent multiple triggers
-        Blynk.virtualWrite(V8, "📡 กำลังดาวน์โหลดเฟิร์มแวร์ใหม่...\n");
-        WiFiClientSecure client;
-        client.setInsecure();
-        httpUpdate.rebootOnUpdate(false);
-        httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
-
-        esp_task_wdt_delete(NULL); // suspend WDT for this task during download
-        client.setTimeout(60);
-
-        t_httpUpdate_return ret = httpUpdate.update(client, otaDownloadUrl);
-        esp_task_wdt_add(NULL); // re-register WDT on failure path
-
-        switch (ret)
-        {
-        case HTTP_UPDATE_FAILED:
-            char errMsg[160];
-            snprintf(errMsg, sizeof(errMsg),
-                     "❌ Error (%d): %s\n",
-                     httpUpdate.getLastError(),
-                     httpUpdate.getLastErrorString().c_str());
-            Blynk.virtualWrite(V8, errMsg);
-            break;
-        case HTTP_UPDATE_NO_UPDATES:
-            Blynk.virtualWrite(V8, "⚠️ ไม่มีอัปเดตบนเซิร์ฟเวอร์\n");
-            break;
-        case HTTP_UPDATE_OK:
-            Blynk.virtualWrite(V8, "✅ ดาวน์โหลดและเช็คไฟล์สำเร็จ!\n🔄 กำลังรีบูตเครื่อง...");
-            delay(3000);
-            ESP.restart();
-            break;
-        }
-    }
-}
+OTAManager *b_ota = nullptr;
 
 // V0: switchonoff
 BLYNK_WRITE(V0)
@@ -200,7 +148,28 @@ BLYNK_WRITE(V10)
     }
 }
 
-void BlynkManager::begin(LogManager *logger, LightManager *light, PowerManager *power, TempManager *temp, FanManager *fan, TimeManager *time, SemaphoreHandle_t *mutex, const String &fwVer)
+// V11: Check OTA from GitHub
+BLYNK_WRITE(V11)
+{
+    int state = param.asInt();
+    if (state == 1 && b_ota != nullptr && b_manager != nullptr) 
+    {
+        b_ota->checkUpdate(BLYNK_FIRMWARE_VERSION, b_logger, b_power, b_manager, true); 
+        Blynk.virtualWrite(V11, 0);
+    }
+}
+// V12: Trigger OTA rollback
+BLYNK_WRITE(V12)
+{
+    int state = param.asInt();
+    if (state == 1 && b_ota != nullptr) 
+    {
+        b_ota->triggerRollback(b_manager);
+        Blynk.virtualWrite(V12, 0);
+    }
+}
+
+void BlynkManager::begin(LogManager *logger, LightManager *light, PowerManager *power, TempManager *temp, FanManager *fan, TimeManager *time, SemaphoreHandle_t *mutex, OTAManager *ota, const String &fwVer)
 {
     b_logger = logger;
     b_light = light;
@@ -209,6 +178,7 @@ void BlynkManager::begin(LogManager *logger, LightManager *light, PowerManager *
     b_fan = fan;
     b_time = time;
     b_mutex = mutex;
+    b_ota = ota;
     b_fwVer = fwVer;
 
     b_manager = this;

@@ -36,5 +36,4 @@ public:
     bool isManualOverride() { return m_manualOverride; }
     void saveFanSetupToPrefs();
     void loadFanSetupFromPrefs();
-    void setCustomFan(float tempStart);
 };

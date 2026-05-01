@@ -18,6 +18,7 @@
 #include <freertos/semphr.h>
 #include <nvs_flash.h>
 #include <rom/rtc.h>
+#include <Update.h>
 #include "NetworkManager.h"
 #include "TimeManager.h"
 #include "LightManager.h"
@@ -29,6 +30,7 @@
 #include "GsheetManager.h"
 #include "WebDashboardManager.h"
 #include "BlynkManager.h"
+#include "OTAManager.h"
 
 #ifndef PIO_UNIT_TESTING
 #define WDT_TIMEOUT 45
@@ -53,6 +55,7 @@ FanManager fan;
 GsheetManager gsheet;
 WebDashboardManager dashboard;
 BlynkManager blynk;
+OTAManager ota;
 
 // --- Global Shared Variables ---
 const int LOG_INTERVAL = 60000; // Log every 60 seconds
@@ -106,7 +109,6 @@ void CommLoop(void *pvParameters)
     if (network.isInternetAvailable())
     {
       blynk.handle();
-      blynk.checkOTA();
       float send_v = 0, send_buck_t = 0;
       int send_fan = 0;
       static String send_light = "ปิดไฟ";
@@ -184,12 +186,22 @@ void setup()
   }
   if (crashCounter >= 3)
   {
-    Serial.println("[CRITICAL] Bootloop Detected! Erasing NVS to safe state...");
-    nvs_flash_erase();
-    nvs_flash_init();
-    crashCounter = 0;
-    delay(1000);
-    ESP.restart();
+    Serial.println("[CRITICAL] Bootloop Detected!");
+    
+    if (Update.canRollBack()) {
+        Serial.println("Rolling back to previous firmware...");
+        Update.rollBack();
+        crashCounter = 0;
+        delay(1000);
+        ESP.restart();
+    } else {
+        Serial.println("Rollback unavailable. Erasing NVS to safe state...");
+        nvs_flash_erase();
+        nvs_flash_init();
+        crashCounter = 0;
+        delay(1000);
+        ESP.restart();
+    }
   }
   mutexKey = xSemaphoreCreateMutex();
   if (mutexKey == NULL)
@@ -219,7 +231,7 @@ void setup()
   monitor.begin(&sysLogger);
   gsheet.begin(&sysLogger, &timer);
   dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey, BLYNK_FIRMWARE_VERSION);
-  blynk.begin(&sysLogger, &light, &power, &temp, &fan, &timer, &mutexKey, BLYNK_FIRMWARE_VERSION);
+  blynk.begin(&sysLogger, &light, &power, &temp, &fan, &timer, &mutexKey, &ota, BLYNK_FIRMWARE_VERSION);
 
   // Create Tasks
   esp_task_wdt_init(WDT_TIMEOUT, true);
