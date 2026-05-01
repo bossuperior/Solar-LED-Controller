@@ -85,13 +85,6 @@ void HardwareLoop(void *pvParameters)
       vTaskDelay(pdMS_TO_TICKS(3000));
       ESP.restart();
     }
-    static unsigned long lastStackPrintHW = 0;
-    if (millis() - lastStackPrintHW >= 10000)
-    {
-        UBaseType_t stackLeft = uxTaskGetStackHighWaterMark(NULL);
-        Serial.printf("[DIAG] HW Task Free Stack: %u words\n", stackLeft);
-        lastStackPrintHW = millis();
-    }
     esp_task_wdt_reset();
     vTaskDelay(50 / portTICK_PERIOD_MS); // Delay to prevent watchdog reset
   }
@@ -108,13 +101,6 @@ void CommLoop(void *pvParameters)
 
     if (network.isInternetAvailable())
     {
-      static bool firstConnect = true;
-      if (firstConnect)
-      {
-        firstConnect = false;
-        Serial.printf("[DIAG] First internet connect. Free heap: %u bytes\n", ESP.getFreeHeap());
-        Serial.flush();
-      }
       blynk.handle();
       float send_v = 0, send_buck_t = 0;
       int send_fan = 0;
@@ -160,13 +146,6 @@ void CommLoop(void *pvParameters)
         gsheet.sendData(send_v, send_buck_t, send_fan, send_light);
         esp_task_wdt_reset();
       }
-    }
-    static unsigned long lastStackPrintComm = 0;
-    if (millis() - lastStackPrintComm >= 10000)
-    {
-        UBaseType_t stackLeft = uxTaskGetStackHighWaterMark(NULL);
-        Serial.printf("[DIAG] Comm Task Free Stack: %u words\n", stackLeft);
-        lastStackPrintComm = millis();
     }
     esp_task_wdt_reset();
     vTaskDelay(100 / portTICK_PERIOD_MS);
@@ -246,13 +225,10 @@ void setup()
   dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey, activeVersion);
   blynk.begin(&sysLogger, &light, &power, &temp, &fan, &timer, &mutexKey, &ota, activeVersion);
 
-  Serial.printf("[DIAG] Post-init free heap: %u bytes, min: %u bytes\n", ESP.getFreeHeap(), ESP.getMinFreeHeap());
-  Serial.flush();
-
   // Create Tasks
   esp_task_wdt_init(WDT_TIMEOUT, true);
-  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 24576, NULL, 3, &TaskHardware, 1);
-  xTaskCreatePinnedToCore(CommLoop, "TaskComm", 24576, NULL, 1, &TaskComm, 0);
+  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 16384, NULL, 3, &TaskHardware, 1);
+  xTaskCreatePinnedToCore(CommLoop, "TaskComm", 20480, NULL, 1, &TaskComm, 0);
 }
 
 void loop()

@@ -62,8 +62,7 @@ jobs:
         env:
           VERSION: ${{ github.ref_name }}
         run: |
-          VERSION_CLEAN="${VERSION#v}"
-          export PLATFORMIO_BUILD_FLAGS="-D BLYNK_FIRMWARE_VERSION='\"$VERSION_CLEAN\"'"
+          export PLATFORMIO_BUILD_FLAGS="-D BLYNK_FIRMWARE_VERSION='\"$VERSION\"'"
           pio run -e esp32doit-devkit-v1
 
       - name: Create GitHub Release
