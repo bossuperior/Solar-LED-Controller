@@ -63,9 +63,12 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
         m_logger->sysLog("OTA", "Checking GitHub for new release...");
     if (m_blynk)
         m_blynk->sendLog("🔍 กำลังตรวจสอบอัปเดตจากเซิร์ฟเวอร์...");
+    WiFi.setSleep(false);
+    esp_task_wdt_reset();
     WiFiClientSecure client;
     client.setInsecure();
-    client.setTimeout(15000);
+    client.setTimeout(10000);
+    client.setHandshakeTimeout(10000);
     HTTPClient http;
     http.begin(client, SECRET_OTA_UPDATE_API);
     http.addHeader("User-Agent", "ESP32-OTA");
@@ -101,6 +104,7 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
                             m_blynk->sendLog("✅ เฟิร์มแวร์เป็นเวอร์ชันล่าสุดแล้ว (" + currentVersion + ")");
                     }
                     http.end();
+                    WiFi.setSleep(true);
                     isUpdating = false;
                     return;
                 }
@@ -120,6 +124,7 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
             if (m_blynk && force)
                 m_blynk->sendLog("❌ ข้อผิดพลาด: รูปแบบข้อมูลจากเซิร์ฟเวอร์ไม่ถูกต้อง");
             http.end();
+            WiFi.setSleep(true);
             isUpdating = false;
             return;
         }
@@ -133,6 +138,7 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
         if (m_blynk != nullptr && force)
             m_blynk->sendLog("❌ ข้อผิดพลาด: เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว (Code: " + String(httpCode) + ")");
         http.end();
+        WiFi.setSleep(true);
         isUpdating = false;
         return;
     }

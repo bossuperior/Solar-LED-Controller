@@ -66,6 +66,7 @@ unsigned long lastLogSent = 0;
 void HardwareLoop(void *pvParameters)
 {
   esp_task_wdt_add(NULL);
+  unsigned long bootTime = millis();
   for (;;)
   {
     if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(100)) == pdTRUE)
@@ -75,7 +76,9 @@ void HardwareLoop(void *pvParameters)
       int m = timer.getMinute();
       temp.update();
       fan.handle(&temp);
-      light.handle(h, m, &temp);
+      if (millis() - bootTime > 10000) {
+          light.handle(h, m, &temp);
+      }
       monitor.monitor(&power, &temp, &fan, &timer);
       xSemaphoreGive(mutexKey);
     }
@@ -151,8 +154,7 @@ void CommLoop(void *pvParameters)
     vTaskDelay(100 / portTICK_PERIOD_MS);
   }
 }
-
-void setup()
+void SystemInitTask(void *pvParameters)
 {
   Serial.begin(115200);
   delay(1000);
@@ -227,8 +229,15 @@ void setup()
 
   // Create Tasks
   esp_task_wdt_init(WDT_TIMEOUT, true);
-  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 16384, NULL, 3, &TaskHardware, 1);
+  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 8192, NULL, 3, &TaskHardware, 0);
   xTaskCreatePinnedToCore(CommLoop, "TaskComm", 20480, NULL, 1, &TaskComm, 0);
+
+  vTaskSuspend(NULL);
+}
+
+void setup()
+{
+  xTaskCreatePinnedToCore(SystemInitTask, "InitTask", 16384, NULL, 5, NULL, 0);
 }
 
 void loop()
