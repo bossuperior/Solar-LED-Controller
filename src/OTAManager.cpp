@@ -82,6 +82,8 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
         {
             latestTag = payload.substring(tagIndex + 12);
             latestTag = latestTag.substring(0, latestTag.indexOf("\""));
+            if (latestTag.startsWith("v") || latestTag.startsWith("V"))
+                latestTag = latestTag.substring(1);
 
             if (m_logger != nullptr)
             {
