@@ -221,6 +221,9 @@ void setup()
   {
     Serial.println("[SYSTEM] NVS Initialized successfully.");
   }
+  prefs.begin("app_info", true); 
+  String activeVersion = prefs.getString("fw_ver", BLYNK_FIRMWARE_VERSION); 
+  prefs.end();
   Wire.begin(); // Single I2C init — shared by DS3231 and INA226
   network.begin(&sysLogger);
   timer.begin(&sysLogger);
@@ -230,8 +233,8 @@ void setup()
   fan.begin(&sysLogger);
   monitor.begin(&sysLogger);
   gsheet.begin(&sysLogger, &timer);
-  dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey, BLYNK_FIRMWARE_VERSION);
-  blynk.begin(&sysLogger, &light, &power, &temp, &fan, &timer, &mutexKey, &ota, BLYNK_FIRMWARE_VERSION);
+  dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey, activeVersion);
+  blynk.begin(&sysLogger, &light, &power, &temp, &fan, &timer, &mutexKey, &ota, activeVersion);
 
   // Create Tasks
   esp_task_wdt_init(WDT_TIMEOUT, true);
