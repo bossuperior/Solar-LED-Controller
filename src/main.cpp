@@ -66,11 +66,8 @@ unsigned long lastLogSent = 0;
 void HardwareLoop(void *pvParameters)
 {
   esp_task_wdt_add(NULL);
-  unsigned long bootTime = millis();
   for (;;)
   {
-    if (millis() - bootTime > 10000) 
-        {
     if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(100)) == pdTRUE)
     {
       timer.handle();
@@ -78,15 +75,7 @@ void HardwareLoop(void *pvParameters)
       int m = timer.getMinute();
       temp.update();
       fan.handle(&temp);
-      static unsigned long bootTimer = millis();
-      if (millis() - bootTimer > 5000)
-      { 
-        if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(100)) == pdTRUE)
-        {
-          light.handle(h, m, &temp);
-          xSemaphoreGive(mutexKey);
-        }
-      }
+      light.handle(h, m, &temp);
       monitor.monitor(&power, &temp, &fan, &timer);
       xSemaphoreGive(mutexKey);
     }
@@ -97,9 +86,8 @@ void HardwareLoop(void *pvParameters)
       ESP.restart();
     }
     esp_task_wdt_reset();
-    vTaskDelay(100 / portTICK_PERIOD_MS); // Delay to prevent watchdog reset
+    vTaskDelay(50 / portTICK_PERIOD_MS); // Delay to prevent watchdog reset
   }
-}
 }
 void CommLoop(void *pvParameters)
 {
@@ -164,7 +152,7 @@ void CommLoop(void *pvParameters)
   }
 }
 
-void SystemInitTask(void *pvParameters)
+void setup()
 {
   Serial.begin(115200);
   delay(1000);
@@ -184,23 +172,20 @@ void SystemInitTask(void *pvParameters)
   if (crashCounter >= 3)
   {
     Serial.println("[CRITICAL] Bootloop Detected!");
-
-    if (Update.canRollBack())
-    {
-      Serial.println("Rolling back to previous firmware...");
-      Update.rollBack();
-      crashCounter = 0;
-      delay(1000);
-      ESP.restart();
-    }
-    else
-    {
-      Serial.println("Rollback unavailable. Erasing NVS to safe state...");
-      nvs_flash_erase();
-      nvs_flash_init();
-      crashCounter = 0;
-      delay(1000);
-      ESP.restart();
+    
+    if (Update.canRollBack()) {
+        Serial.println("Rolling back to previous firmware...");
+        Update.rollBack();
+        crashCounter = 0;
+        delay(1000);
+        ESP.restart();
+    } else {
+        Serial.println("Rollback unavailable. Erasing NVS to safe state...");
+        nvs_flash_erase();
+        nvs_flash_init();
+        crashCounter = 0;
+        delay(1000);
+        ESP.restart();
     }
   }
   mutexKey = xSemaphoreCreateMutex();
@@ -221,11 +206,11 @@ void SystemInitTask(void *pvParameters)
   {
     Serial.println("[SYSTEM] NVS Initialized successfully.");
   }
-  String activeVersion;
-  {
+  String activeVersion; 
+  { 
     Preferences tempPrefs;
-    tempPrefs.begin("app_info", true);
-    activeVersion = tempPrefs.getString("fw_ver", BLYNK_FIRMWARE_VERSION);
+    tempPrefs.begin("app_info", true); 
+    activeVersion = tempPrefs.getString("fw_ver", BLYNK_FIRMWARE_VERSION); 
     tempPrefs.end();
   }
   Wire.begin(); // Single I2C init — shared by DS3231 and INA226
@@ -242,15 +227,8 @@ void SystemInitTask(void *pvParameters)
 
   // Create Tasks
   esp_task_wdt_init(WDT_TIMEOUT, true);
-  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 8192, NULL, 3, &TaskHardware, 0);
-  xTaskCreatePinnedToCore(CommLoop, "TaskComm", 20480, NULL, 1, &TaskComm, 1);
-
-  vTaskSuspend(NULL);
-}
-
-void setup()
-{
-  xTaskCreatePinnedToCore(SystemInitTask, "InitTask", 16384, NULL, 5, NULL, 0);
+  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 16384, NULL, 3, &TaskHardware, 1);
+  xTaskCreatePinnedToCore(CommLoop, "TaskComm", 20480, NULL, 1, &TaskComm, 0);
 }
 
 void loop()

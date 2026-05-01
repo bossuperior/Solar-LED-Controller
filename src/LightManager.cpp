@@ -86,21 +86,20 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm)
     if (stateChanged || throttleChanged || _forceUpdate)
     {
         _forceUpdate = false;
-        static bool isFirstRun = true;
         if (shouldBeOn)
         {
             if (needSemiLight)
             {
                 _pendingIR = IR_ON_SEMI;
                 lightMode = "เปิด(ลดความสว่าง)";
-                if (m_logger && !isFirstRun) 
+                if (m_logger)
                     m_logger->sysLog("LIGHT", "Temperature Throttle: Switched to Semi Brightness");
             }
             else
             {
                 _pendingIR = IR_ON_FULL;
                 lightMode = "เปิด(สว่างสุด)";
-                if (m_logger && !isFirstRun)
+                if (m_logger)
                     m_logger->sysLog("LIGHT", "Turning ON the Light (Full Brightness)");
             }
         }
@@ -108,12 +107,11 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm)
         {
             _pendingIR = IR_OFF;
             lightMode = "ปิดไฟ";
-            if (m_logger && !isFirstRun)
+            if (m_logger)
                 m_logger->sysLog("LIGHT", "Turning OFF the Light");
         }
         lastOnState = shouldBeOn;
         lastThrottleState = needSemiLight;
-        isFirstRun = false;
     }
 }
 
