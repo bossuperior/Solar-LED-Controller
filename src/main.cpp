@@ -230,12 +230,12 @@ void SystemInitTask(void *pvParameters)
   xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 16384, NULL, 3, &TaskHardware, 1);
   xTaskCreatePinnedToCore(CommLoop, "TaskComm", 20480, NULL, 1, &TaskComm, 0);
 
-  vTaskDelete(NULL);
+  vTaskSuspend(NULL);
 }
 
 void setup()
 {
-xTaskCreatePinnedToCore(SystemInitTask, "InitTask", 16384, NULL, 5, NULL, 1);
+xTaskCreatePinnedToCore(SystemInitTask, "InitTask", 16384, NULL, 5, NULL, 0);
 }
 
 void loop()
