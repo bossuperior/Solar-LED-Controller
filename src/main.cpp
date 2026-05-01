@@ -152,7 +152,7 @@ void CommLoop(void *pvParameters)
   }
 }
 
-void setup()
+void SystemInitTask(void *pvParameters)
 {
   Serial.begin(115200);
   delay(1000);
@@ -229,6 +229,13 @@ void setup()
   esp_task_wdt_init(WDT_TIMEOUT, true);
   xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 16384, NULL, 3, &TaskHardware, 1);
   xTaskCreatePinnedToCore(CommLoop, "TaskComm", 20480, NULL, 1, &TaskComm, 0);
+
+  vTaskDelete(NULL);
+}
+
+void setup()
+{
+xTaskCreatePinnedToCore(SystemInitTask, "InitTask", 16384, NULL, 5, NULL, 1);
 }
 
 void loop()
