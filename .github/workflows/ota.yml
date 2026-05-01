@@ -1,66 +1,66 @@
-name: Build and Release Firmware
+# name: Build and Release Firmware
 
-on:
-  push:
-    tags:
-      - 'v*'
+# on:
+#   push:
+#     tags:
+#       - 'v*'
 
-permissions:
-  contents: write
+# permissions:
+#   contents: write
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+#       - name: Set up Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.11'
 
-      - name: Cache PlatformIO Packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.platformio
-          key: ${{ runner.os }}-pio-packages-${{ hashFiles('**/platformio.ini') }}
+#       - name: Cache PlatformIO Packages
+#         uses: actions/cache@v4
+#         with:
+#           path: ~/.platformio
+#           key: ${{ runner.os }}-pio-packages-${{ hashFiles('**/platformio.ini') }}
               
-      - name: Install PlatformIO
-        run: pip install -U platformio
+#       - name: Install PlatformIO
+#         run: pip install -U platformio
       
-      - name: Create secret.h
-        run: |
-          cat <<'EOF' > include/secret.h
-          #pragma once
-          #define SECRET_SSID_HOME "${{ secrets.WIFI_SSID_HOME }}"
-          #define SECRET_PASS_HOME "${{ secrets.WIFI_PASS_HOME }}"
-          #define SECRET_SSID_BOSS "${{ secrets.WIFI_SSID_BOSS }}"
-          #define SECRET_PASS_BOSS "${{ secrets.WIFI_PASS_BOSS }}"
-          #define SECRET_AP_PASS "${{ secrets.AP_PASS }}"
-          #define SECRET_OTA_HOSTNAME "${{ secrets.OTA_HOSTNAME }}"
-          #define SECRET_OTA_PASS "${{ secrets.OTA_PASS }}"
-          #define SECRET_OTA_UPDATE_URL "${{ secrets.OTA_UPDATE_URL }}"
-          #define SECRET_OTA_UPDATE_API "${{ secrets.OTA_UPDATE_API }}"
-          #define SECRET_GOOGLE_SHEET_URL "${{ secrets.GOOGLE_SHEET_URL }}"
-          #define SECRET_BLYNK_TEMPLATE_ID "${{ secrets.BLYNK_TEMPLATE_ID }}"
-          #define SECRET_BLYNK_TEMPLATE_NAME "${{ secrets.BLYNK_TEMPLATE_NAME }}"
-          #define SECRET_BLYNK_AUTH_TOKEN "${{ secrets.BLYNK_AUTH_TOKEN }}"
-          EOF
+#       - name: Create secret.h
+#         run: |
+#           cat <<'EOF' > include/secret.h
+#           #pragma once
+#           #define SECRET_SSID_HOME "${{ secrets.WIFI_SSID_HOME }}"
+#           #define SECRET_PASS_HOME "${{ secrets.WIFI_PASS_HOME }}"
+#           #define SECRET_SSID_BOSS "${{ secrets.WIFI_SSID_BOSS }}"
+#           #define SECRET_PASS_BOSS "${{ secrets.WIFI_PASS_BOSS }}"
+#           #define SECRET_AP_PASS "${{ secrets.AP_PASS }}"
+#           #define SECRET_OTA_HOSTNAME "${{ secrets.OTA_HOSTNAME }}"
+#           #define SECRET_OTA_PASS "${{ secrets.OTA_PASS }}"
+#           #define SECRET_OTA_UPDATE_URL "${{ secrets.OTA_UPDATE_URL }}"
+#           #define SECRET_OTA_UPDATE_API "${{ secrets.OTA_UPDATE_API }}"
+#           #define SECRET_GOOGLE_SHEET_URL "${{ secrets.GOOGLE_SHEET_URL }}"
+#           #define SECRET_BLYNK_TEMPLATE_ID "${{ secrets.BLYNK_TEMPLATE_ID }}"
+#           #define SECRET_BLYNK_TEMPLATE_NAME "${{ secrets.BLYNK_TEMPLATE_NAME }}"
+#           #define SECRET_BLYNK_AUTH_TOKEN "${{ secrets.BLYNK_AUTH_TOKEN }}"
+#           EOF
 
-      - name: Build Firmware
-        env:
-          VERSION: ${{ github.ref_name }}
-        run: |
-          VERSION_CLEAN="${VERSION#v}"
-          export PLATFORMIO_BUILD_FLAGS="-D BLYNK_FIRMWARE_VERSION='\"$VERSION_CLEAN\"'"
-          pio run -e esp32doit-devkit-v1
+#       - name: Build Firmware
+#         env:
+#           VERSION: ${{ github.ref_name }}
+#         run: |
+#           VERSION_CLEAN="${VERSION#v}"
+#           export PLATFORMIO_BUILD_FLAGS="-D BLYNK_FIRMWARE_VERSION='\"$VERSION_CLEAN\"'"
+#           pio run -e esp32doit-devkit-v1
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: .pio/build/esp32doit-devkit-v1/firmware.bin
-          name: Release ${{ github.ref_name }}
-          body: "Auto-generated release for version ${{ github.ref_name }}"
-          draft: false
-          prerelease: false
+#       - name: Create GitHub Release
+#         uses: softprops/action-gh-release@v2
+#         with:
+#           files: .pio/build/esp32doit-devkit-v1/firmware.bin
+#           name: Release ${{ github.ref_name }}
+#           body: "Auto-generated release for version ${{ github.ref_name }}"
+#           draft: false
+#           prerelease: false
