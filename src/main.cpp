@@ -221,9 +221,13 @@ void setup()
   {
     Serial.println("[SYSTEM] NVS Initialized successfully.");
   }
-  prefs.begin("app_info", true); 
-  String activeVersion = prefs.getString("fw_ver", BLYNK_FIRMWARE_VERSION); 
-  prefs.end();
+  String activeVersion;
+  {
+    Preferences tempPrefs;
+    tempPrefs.begin("app_info", true);
+    activeVersion = tempPrefs.getString("fw_ver", BLYNK_FIRMWARE_VERSION);
+    tempPrefs.end();
+  }
   Wire.begin(); // Single I2C init — shared by DS3231 and INA226
   network.begin(&sysLogger);
   timer.begin(&sysLogger);
@@ -238,7 +242,7 @@ void setup()
 
   // Create Tasks
   esp_task_wdt_init(WDT_TIMEOUT, true);
-  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 10240, NULL, 3, &TaskHardware, 1);
+  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 16384, NULL, 3, &TaskHardware, 1);
   xTaskCreatePinnedToCore(CommLoop, "TaskComm", 20480, NULL, 1, &TaskComm, 0);
 }
 
