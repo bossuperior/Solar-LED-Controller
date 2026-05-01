@@ -120,6 +120,8 @@ bool NetworkManager::isInternetAvailable()
         lastNetCheck = millis();
         _firstCheck = false;
         esp_task_wdt_reset();
+        WiFiClient client;
+        HTTPClient http;
         http.begin(client,"http://clients3.google.com/generate_204");
         http.setTimeout(2000);
         int httpCode = http.GET();
