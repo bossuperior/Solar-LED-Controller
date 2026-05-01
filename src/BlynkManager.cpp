@@ -24,6 +24,9 @@ LogManager *b_logger = nullptr;
 SemaphoreHandle_t *b_mutex = nullptr;
 OTAManager *b_ota = nullptr;
 
+static bool pendingOtaUpdate = false;
+static bool pendingOtaRollback = false;
+
 // V0: switchonoff
 BLYNK_WRITE(V0)
 {
@@ -165,10 +168,10 @@ BLYNK_WRITE(V11)
     if (param.isEmpty())
         return;
     int state = param.asInt();
-    if (state == 1 && b_ota != nullptr && b_manager != nullptr)
+    if (state == 1)
     {
-        b_ota->checkUpdate(BLYNK_FIRMWARE_VERSION, b_logger, b_power, b_manager, true);
-        Blynk.virtualWrite(V11, 0);
+        pendingOtaUpdate = true;
+        Blynk.virtualWrite(V11, 0); // Reset button in UI
     }
 }
 // V12: Trigger OTA rollback
@@ -177,10 +180,10 @@ BLYNK_WRITE(V12)
     if (param.isEmpty())
         return;
     int state = param.asInt();
-    if (state == 1 && b_ota != nullptr)
+    if (state == 1)
     {
-        b_ota->triggerRollback(b_manager);
-        Blynk.virtualWrite(V12, 0);
+        pendingOtaRollback = true;
+        Blynk.virtualWrite(V12, 0); // Reset button in UI
     }
 }
 
@@ -205,6 +208,24 @@ void BlynkManager::begin(LogManager *logger, LightManager *light, PowerManager *
 void BlynkManager::handle()
 {
     Blynk.run();
+
+    if (pendingOtaUpdate)
+    {
+        pendingOtaUpdate = false;
+        if (b_ota != nullptr && b_manager != nullptr)
+        {
+             b_ota->checkUpdate(b_fwVer, b_logger, b_power, b_manager, true);
+        }
+    }
+
+    if (pendingOtaRollback)
+    {
+        pendingOtaRollback = false;
+        if (b_ota != nullptr && b_manager != nullptr)
+        {
+             b_ota->triggerRollback(b_manager);
+        }
+    }
 }
 
 void BlynkManager::sendTelemetry()

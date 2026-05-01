@@ -40,12 +40,13 @@ void LogManager::sysLog(const String &module, const String &message)
 
 String LogManager::getTailLogs(int maxChars)
 {
-    if (currentCount == 0) return "No logs available.";
+    if (currentCount == 0)
+        return "No logs available.";
     if (_mutex == nullptr || xSemaphoreTake(_mutex, pdMS_TO_TICKS(50)) != pdTRUE)
         return "Log busy.";
 
     String finalLogs;
-    finalLogs.reserve(maxChars);
+    finalLogs.reserve(MAX_LOG_LINES * 128);
     int startIdx = (currentCount < MAX_LOG_LINES) ? 0 : headIndex;
     for (int i = 0; i < currentCount; i++)
     {
@@ -55,7 +56,14 @@ String LogManager::getTailLogs(int maxChars)
     xSemaphoreGive(_mutex);
 
     if (finalLogs.length() > (size_t)maxChars)
+    {
         finalLogs = finalLogs.substring(finalLogs.length() - maxChars);
+        int firstNewLine = finalLogs.indexOf('\n');
+        if (firstNewLine != -1 && firstNewLine < finalLogs.length() - 1)
+        {
+            finalLogs = finalLogs.substring(firstNewLine + 1);
+        }
+    }
     finalLogs.trim();
     return finalLogs;
 }

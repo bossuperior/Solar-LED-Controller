@@ -66,6 +66,7 @@ unsigned long lastLogSent = 0;
 void HardwareLoop(void *pvParameters)
 {
   esp_task_wdt_add(NULL);
+  unsigned long bootTime = millis();
   for (;;)
   {
     if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(100)) == pdTRUE)
@@ -75,7 +76,9 @@ void HardwareLoop(void *pvParameters)
       int m = timer.getMinute();
       temp.update();
       fan.handle(&temp);
-      light.handle(h, m, &temp);
+      if (millis() - bootTime > 10000) {
+          light.handle(h, m, &temp);
+      }
       monitor.monitor(&power, &temp, &fan, &timer);
       xSemaphoreGive(mutexKey);
     }
@@ -85,14 +88,6 @@ void HardwareLoop(void *pvParameters)
       vTaskDelay(pdMS_TO_TICKS(3000));
       ESP.restart();
     }
-    // static unsigned long lastStackPrintHW = 0;
-    // if (millis() - lastStackPrintHW >= 10000)
-    // {
-    //     UBaseType_t stackLeft = uxTaskGetStackHighWaterMark(NULL);
-    //     Serial.print("HW Task Free Stack: ");
-    //     Serial.println(stackLeft);
-    //     lastStackPrintHW = millis();
-    // }
     esp_task_wdt_reset();
     vTaskDelay(50 / portTICK_PERIOD_MS); // Delay to prevent watchdog reset
   }
@@ -154,20 +149,12 @@ void CommLoop(void *pvParameters)
         esp_task_wdt_reset();
       }
     }
-    // static unsigned long lastStackPrintComm = 0;
-    // if (millis() - lastStackPrintComm >= 10000)
-    // {
-    //     UBaseType_t stackLeft = uxTaskGetStackHighWaterMark(NULL);
-    //     Serial.print("Comm Task Free Stack: ");
-    //     Serial.println(stackLeft);
-    //     lastStackPrintComm = millis();
-    // }
     esp_task_wdt_reset();
     vTaskDelay(100 / portTICK_PERIOD_MS);
   }
 }
 
-void setup()
+void SystemInitTask(void *pvParameters)
 {
   Serial.begin(115200);
   delay(1000);
@@ -187,20 +174,23 @@ void setup()
   if (crashCounter >= 3)
   {
     Serial.println("[CRITICAL] Bootloop Detected!");
-    
-    if (Update.canRollBack()) {
-        Serial.println("Rolling back to previous firmware...");
-        Update.rollBack();
-        crashCounter = 0;
-        delay(1000);
-        ESP.restart();
-    } else {
-        Serial.println("Rollback unavailable. Erasing NVS to safe state...");
-        nvs_flash_erase();
-        nvs_flash_init();
-        crashCounter = 0;
-        delay(1000);
-        ESP.restart();
+
+    if (Update.canRollBack())
+    {
+      Serial.println("Rolling back to previous firmware...");
+      Update.rollBack();
+      crashCounter = 0;
+      delay(1000);
+      ESP.restart();
+    }
+    else
+    {
+      Serial.println("Rollback unavailable. Erasing NVS to safe state...");
+      nvs_flash_erase();
+      nvs_flash_init();
+      crashCounter = 0;
+      delay(1000);
+      ESP.restart();
     }
   }
   mutexKey = xSemaphoreCreateMutex();
@@ -242,13 +232,20 @@ void setup()
 
   // Create Tasks
   esp_task_wdt_init(WDT_TIMEOUT, true);
-  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 16384, NULL, 3, &TaskHardware, 1);
+  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 8192, NULL, 3, &TaskHardware, 0);
   xTaskCreatePinnedToCore(CommLoop, "TaskComm", 20480, NULL, 1, &TaskComm, 0);
+
+  vTaskSuspend(NULL);
+}
+
+void setup()
+{
+  xTaskCreatePinnedToCore(SystemInitTask, "InitTask", 16384, NULL, 5, NULL, 0);
 }
 
 void loop()
 {
-  vTaskDelete(NULL);
+  vTaskDelay(portMAX_DELAY);
 }
 
 #endif
