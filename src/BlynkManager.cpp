@@ -132,7 +132,9 @@ BLYNK_WRITE(V9)
 
 BLYNK_WRITE(V10)
 {
-    float newStart = param[0].asFloat();
+    if (param.isEmpty())
+        return;
+    float newStart = param.asFloat();
     newStart = constrain(newStart, 30.0f, 45.0f);
     if (b_fan && b_mutex)
     {
@@ -141,7 +143,7 @@ BLYNK_WRITE(V10)
             b_fan->setTempStart(newStart);
             xSemaphoreGive(*b_mutex);
             b_fan->saveFanSetupToPrefs(); // NVS write outside mutex
-            char logMsg[128];
+            char logMsg[256];
             snprintf(logMsg, sizeof(logMsg), "🌀 อัปเดตอุณหภูมิที่พัดลมเริ่มทำงาน: %.1f °C\n", newStart);
             Blynk.virtualWrite(V8, logMsg);
         }
@@ -151,18 +153,22 @@ BLYNK_WRITE(V10)
 // V11: Check OTA from GitHub
 BLYNK_WRITE(V11)
 {
+    if (param.isEmpty())
+        return;
     int state = param.asInt();
-    if (state == 1 && b_ota != nullptr && b_manager != nullptr) 
+    if (state == 1 && b_ota != nullptr && b_manager != nullptr)
     {
-        b_ota->checkUpdate(BLYNK_FIRMWARE_VERSION, b_logger, b_power, b_manager, true); 
+        b_ota->checkUpdate(BLYNK_FIRMWARE_VERSION, b_logger, b_power, b_manager, true);
         Blynk.virtualWrite(V11, 0);
     }
 }
 // V12: Trigger OTA rollback
 BLYNK_WRITE(V12)
 {
+    if (param.isEmpty())
+        return;
     int state = param.asInt();
-    if (state == 1 && b_ota != nullptr) 
+    if (state == 1 && b_ota != nullptr)
     {
         b_ota->triggerRollback(b_manager);
         Blynk.virtualWrite(V12, 0);
