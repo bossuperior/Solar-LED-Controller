@@ -53,7 +53,8 @@ jobs:
           VERSION: ${{ github.ref_name }}
         run: |
           VERSION_CLEAN="${VERSION#v}"
-          pio run -e esp32doit-devkit-v1 --build-flag "-D BLYNK_FIRMWARE_VERSION='\"$VERSION_CLEAN\"'"
+          export PLATFORMIO_BUILD_FLAGS="-D BLYNK_FIRMWARE_VERSION='\"$VERSION_CLEAN\"'"
+          pio run -e esp32doit-devkit-v1
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
