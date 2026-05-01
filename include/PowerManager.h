@@ -13,7 +13,7 @@ class PowerManager {
         bool isInaAvailable() { return _inaAvailable; }
         
     private:
-        LogManager *m_logger;
+        LogManager *m_logger = nullptr;
         INA226_WE ina226 = INA226_WE(0x40);
         bool _inaAvailable = false;
         float _testVolt = 0.0;

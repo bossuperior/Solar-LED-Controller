@@ -95,7 +95,7 @@ void TimeManager::getCurrentTime(struct tm &timeinfo)
     if (!getLocalTime(&timeinfo))
     {
         time_t zero = 0;
-        timeinfo = *localtime(&zero);
+        localtime_r(&zero, &timeinfo);
     }
 }
 String TimeManager::getCurrentTime()

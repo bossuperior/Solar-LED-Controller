@@ -81,8 +81,15 @@ BLYNK_WRITE(V1)
 
 BLYNK_CONNECTED()
 {
-    Blynk.syncVirtual(V0, V1, V3, V9, V10);
-
+    Blynk.syncVirtual(V1, V3, V9, V10);
+    if (b_light && b_mutex)
+    {
+        if (xSemaphoreTake(*b_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+        {
+            Blynk.virtualWrite(V0, b_light->isLightOn() ? 1 : 0);
+            xSemaphoreGive(*b_mutex);
+        }
+    }
     if (b_logger)
     {
         Blynk.virtualWrite(V8, "🔄 ระบบออนไลน์ โหลดข้อมูลจากคลาวด์สำเร็จ\n");
@@ -97,7 +104,9 @@ BLYNK_WRITE(V3)
         bool isEnabled = (state == 1);
         if (xSemaphoreTake(*b_mutex, pdMS_TO_TICKS(200)) == pdTRUE)
         {
-            b_light->setManualMode(false, false);
+            bool wasActive = b_light->getCustomScheduleActive();
+            if (!wasActive && isEnabled)
+                b_light->setManualMode(false, false);
             b_light->setScheduleActive(isEnabled);
             xSemaphoreGive(*b_mutex);
             b_light->saveScheduleToPrefs(); // NVS write outside mutex

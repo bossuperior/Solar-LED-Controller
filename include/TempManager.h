@@ -21,7 +21,7 @@ private:
     float tempBuck = 0.0;
     DeviceAddress buckAddress;
     bool _buckSensorOk = true;
-    LogManager *m_sysLogger;
+    LogManager *m_sysLogger = nullptr;
     float _testBuckTemp = 0.0;
     bool _isTesting = false;
 };

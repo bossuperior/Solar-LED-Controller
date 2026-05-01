@@ -73,7 +73,7 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm)
         {
             isTempThrottled = true;
         }
-        else if (temp < 40.0 && temp > 20)
+        else if (!isnan(temp) && temp < 40.0)
         {
             isTempThrottled = false;
         }
@@ -110,8 +110,6 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm)
             if (m_logger)
                 m_logger->sysLog("LIGHT", "Turning OFF the Light");
         }
-        lastOnState = shouldBeOn;
-        lastThrottleState = needSemiLight;
     }
 }
 
@@ -131,6 +129,8 @@ void LightManager::executeIR()
         vTaskDelay(pdMS_TO_TICKS(50));
         irsend.sendNEC(IR_CODE_FULL, 32);
         vTaskDelay(pdMS_TO_TICKS(150));
+        lastOnState = true;
+        lastThrottleState = false;
         break;
     case IR_ON_SEMI:
         irsend.sendNEC(IR_CODE_ON, 32);
@@ -141,12 +141,16 @@ void LightManager::executeIR()
         vTaskDelay(pdMS_TO_TICKS(50));
         irsend.sendNEC(IR_CODE_SEMI, 32);
         vTaskDelay(pdMS_TO_TICKS(150));
+        lastOnState = true;
+        lastThrottleState = true;
         break;
     case IR_OFF:
         irsend.sendNEC(IR_CODE_OFF, 32);
         vTaskDelay(pdMS_TO_TICKS(50));
         irsend.sendNEC(IR_CODE_OFF, 32);
         vTaskDelay(pdMS_TO_TICKS(150));
+        lastOnState = false;
+        lastThrottleState = false;
         break;
     default:
         break;

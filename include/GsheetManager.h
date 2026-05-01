@@ -9,8 +9,8 @@
 class GsheetManager
 {
 private:
-    LogManager* m_sysLogger;
-    TimeManager* m_timeManager;
+    LogManager* m_sysLogger = nullptr;
+    TimeManager* m_timeManager = nullptr;
     WiFiClientSecure m_client;
 public:
     void begin(LogManager* sysLogger, TimeManager* timeManager);

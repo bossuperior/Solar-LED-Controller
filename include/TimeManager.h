@@ -15,7 +15,7 @@ private:
     const long gmtOffset_sec = 7 * 3600;
     const int daylightOffset_sec = 0;
     const char *ntpServer = "pool.ntp.org";
-    LogManager* m_logger;
+    LogManager* m_logger = nullptr;
     RTC_DS3231 rtc;
     bool _rtcAvailable = false;
 

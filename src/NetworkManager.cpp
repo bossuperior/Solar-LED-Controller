@@ -45,6 +45,7 @@ void NetworkManager::handle()
                 delay(100);
                 WiFi.mode(WIFI_STA);
                 _apModeStarted = false;
+                _startAttemptTime = millis();
                 if (m_logger)
                     m_logger->sysLog("NETWORK", "Home WiFi is back! Returning to STA mode.");
                 return;

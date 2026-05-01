@@ -16,9 +16,9 @@ class BlynkManager;
 class OTAManager
 {
 private:
-  LogManager *m_logger;
-  PowerManager *m_power;
-  BlynkManager *m_blynk;
+  LogManager *m_logger = nullptr;
+  PowerManager *m_power = nullptr;
+  BlynkManager *m_blynk = nullptr;
 
 public:
   bool isUpdating = false;
