@@ -12,11 +12,6 @@
 class OTAManager;
 class BlynkManager
 {
-private:
-    String b_fwVer = "";
-    TempManager *b_temp = nullptr;
-    TimeManager *b_time = nullptr;
-
 public:
     void begin(LogManager *logger, LightManager *light, PowerManager *power, TempManager *temp, FanManager *fan, TimeManager *time, SemaphoreHandle_t *mutex, OTAManager *ota, const String &fwVer);
     void handle();

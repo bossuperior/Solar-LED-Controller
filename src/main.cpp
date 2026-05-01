@@ -10,7 +10,6 @@
  */
 
 #include <Arduino.h>
-#include <Preferences.h>
 #include <vector>
 #include <esp_task_wdt.h>
 #include <freertos/FreeRTOS.h>
@@ -19,6 +18,7 @@
 #include <nvs_flash.h>
 #include <rom/rtc.h>
 #include <Update.h>
+#include <Preferences.h>
 #include "NetworkManager.h"
 #include "TimeManager.h"
 #include "LightManager.h"
@@ -41,13 +41,13 @@ RTC_NOINIT_ATTR int crashCounter;
 TaskHandle_t TaskHardware;
 TaskHandle_t TaskComm;
 SemaphoreHandle_t mutexKey;
+Preferences prefs;
 
 // --- Managers ---
 NetworkManager network;
 TimeManager timer;
 LightManager light(IR_TX_PIN);
 SystemMonitor monitor;
-Preferences prefs;
 TempManager temp;
 LogManager sysLogger;
 PowerManager power;
@@ -76,9 +76,7 @@ void HardwareLoop(void *pvParameters)
       int m = timer.getMinute();
       temp.update();
       fan.handle(&temp);
-      if (millis() - bootTime > 10000) {
-          light.handle(h, m, &temp);
-      }
+      light.handle(h, m, &temp);
       monitor.monitor(&power, &temp, &fan, &timer);
       xSemaphoreGive(mutexKey);
     }
@@ -154,7 +152,7 @@ void CommLoop(void *pvParameters)
   }
 }
 
-void SystemInitTask(void *pvParameters)
+void setup()
 {
   Serial.begin(115200);
   delay(1000);
@@ -211,13 +209,6 @@ void SystemInitTask(void *pvParameters)
   {
     Serial.println("[SYSTEM] NVS Initialized successfully.");
   }
-  String activeVersion;
-  {
-    Preferences tempPrefs;
-    tempPrefs.begin("app_info", true);
-    activeVersion = tempPrefs.getString("fw_ver", BLYNK_FIRMWARE_VERSION);
-    tempPrefs.end();
-  }
   Wire.begin(); // Single I2C init — shared by DS3231 and INA226
   network.begin(&sysLogger);
   timer.begin(&sysLogger);
@@ -227,25 +218,18 @@ void SystemInitTask(void *pvParameters)
   fan.begin(&sysLogger);
   monitor.begin(&sysLogger);
   gsheet.begin(&sysLogger, &timer);
-  dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey, activeVersion);
-  blynk.begin(&sysLogger, &light, &power, &temp, &fan, &timer, &mutexKey, &ota, activeVersion);
+  dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey, BLYNK_FIRMWARE_VERSION);
+  blynk.begin(&sysLogger, &light, &power, &temp, &fan, &timer, &mutexKey, &ota, BLYNK_FIRMWARE_VERSION);
 
   // Create Tasks
   esp_task_wdt_init(WDT_TIMEOUT, true);
-  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 8192, NULL, 3, &TaskHardware, 0);
+  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 10240, NULL, 3, &TaskHardware, 1);
   xTaskCreatePinnedToCore(CommLoop, "TaskComm", 20480, NULL, 1, &TaskComm, 0);
-
-  vTaskSuspend(NULL);
-}
-
-void setup()
-{
-  xTaskCreatePinnedToCore(SystemInitTask, "InitTask", 16384, NULL, 5, NULL, 0);
 }
 
 void loop()
 {
-  vTaskDelay(portMAX_DELAY);
+  vTaskDelete(NULL);
 }
 
 #endif
