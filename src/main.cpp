@@ -101,6 +101,7 @@ void CommLoop(void *pvParameters)
 {
   esp_task_wdt_add(NULL);
   unsigned long lastTelemetryUpdate = 0;
+  std::vector<String> pending;
   for (;;)
   {
     network.handle();
@@ -113,9 +114,9 @@ void CommLoop(void *pvParameters)
       int send_fan = 0;
       static String send_light = "ปิดไฟ";
       bool doLog = false;
+      pending.clear();
 
       // Mutex to safely read shared data and check conditions without blocking for too long
-      std::vector<String> pending;
       if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(150)) == pdTRUE)
       {
         while (monitor.hasAlert())
@@ -221,11 +222,11 @@ void setup()
   {
     Serial.println("[SYSTEM] NVS Initialized successfully.");
   }
-  String activeVersion;
-  {
+  String activeVersion; 
+  { 
     Preferences tempPrefs;
-    tempPrefs.begin("app_info", true);
-    activeVersion = tempPrefs.getString("fw_ver", BLYNK_FIRMWARE_VERSION);
+    tempPrefs.begin("app_info", true); 
+    activeVersion = tempPrefs.getString("fw_ver", BLYNK_FIRMWARE_VERSION); 
     tempPrefs.end();
   }
   Wire.begin(); // Single I2C init — shared by DS3231 and INA226
@@ -248,7 +249,7 @@ void setup()
 
 void loop()
 {
-  vTaskDelete(NULL);
+  vTaskDelay(portMAX_DELAY);
 }
 
 #endif

@@ -174,7 +174,7 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
             m_logger->sysLog("OTA", "Update successful! Rebooting...");
         if (m_blynk)
         {
-            m_blynk->sendLog("✅ อัปเดตเรียบร้อย! ระบบกำลังรีสตาร์ทเป็นเวอร์ชัน " + latestTag);
+            m_blynk->sendLog("✅ อัปเดตเรียบร้อย! กำลังรีสตาร์ทเป็นเวอร์ชัน " + latestTag);
             delay(1500);
         }
         ESP.restart();
@@ -195,7 +195,7 @@ void OTAManager::triggerRollback(BlynkManager* bk)
         {
             if (m_logger) m_logger->sysLog("SYSTEM", "Rollback successful! Rebooting...");
             if (m_blynk) {
-                m_blynk->sendLog("✅ ย้อนกลับเวอร์ชันสำเร็จ! ระบบกำลังรีสตาร์ท...");
+                m_blynk->sendLog("✅ ย้อนกลับเวอร์ชันสำเร็จ! กำลังรีสตาร์ท...");
                 delay(1500);
             }
             delay(2000);
