@@ -85,14 +85,14 @@ void HardwareLoop(void *pvParameters)
       vTaskDelay(pdMS_TO_TICKS(3000));
       ESP.restart();
     }
-    static unsigned long lastStackPrintHW = 0;
-    if (millis() - lastStackPrintHW >= 10000)
-    {
-        UBaseType_t stackLeft = uxTaskGetStackHighWaterMark(NULL);
-        Serial.print("HW Task Free Stack: ");
-        Serial.println(stackLeft);
-        lastStackPrintHW = millis();
-    }
+    // static unsigned long lastStackPrintHW = 0;
+    // if (millis() - lastStackPrintHW >= 10000)
+    // {
+    //     UBaseType_t stackLeft = uxTaskGetStackHighWaterMark(NULL);
+    //     Serial.print("HW Task Free Stack: ");
+    //     Serial.println(stackLeft);
+    //     lastStackPrintHW = millis();
+    // }
     esp_task_wdt_reset();
     vTaskDelay(50 / portTICK_PERIOD_MS); // Delay to prevent watchdog reset
   }
@@ -155,14 +155,14 @@ void CommLoop(void *pvParameters)
         esp_task_wdt_reset();
       }
     }
-    static unsigned long lastStackPrintComm = 0;
-    if (millis() - lastStackPrintComm >= 10000)
-    {
-        UBaseType_t stackLeft = uxTaskGetStackHighWaterMark(NULL);
-        Serial.print("Comm Task Free Stack: ");
-        Serial.println(stackLeft);
-        lastStackPrintComm = millis();
-    }
+    // static unsigned long lastStackPrintComm = 0;
+    // if (millis() - lastStackPrintComm >= 10000)
+    // {
+    //     UBaseType_t stackLeft = uxTaskGetStackHighWaterMark(NULL);
+    //     Serial.print("Comm Task Free Stack: ");
+    //     Serial.println(stackLeft);
+    //     lastStackPrintComm = millis();
+    // }
     esp_task_wdt_reset();
     vTaskDelay(100 / portTICK_PERIOD_MS);
   }
@@ -243,8 +243,8 @@ void setup()
 
   // Create Tasks
   esp_task_wdt_init(WDT_TIMEOUT, true);
-  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 16384, NULL, 3, &TaskHardware, 1);
-  xTaskCreatePinnedToCore(CommLoop, "TaskComm", 20480, NULL, 1, &TaskComm, 0);
+  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 24576, NULL, 3, &TaskHardware, 1);
+  xTaskCreatePinnedToCore(CommLoop, "TaskComm", 32768, NULL, 1, &TaskComm, 0);
 }
 
 void loop()
