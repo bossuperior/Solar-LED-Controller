@@ -95,7 +95,7 @@ void NetworkManager::handle()
                 m_logger->sysLog("NETWORK", connMsg);
             }
         }
-        else
+        else if (lastStatus == WL_CONNECTED)
         {
             _startAttemptTime = millis();
             if (m_logger != nullptr && !_apModeStarted)

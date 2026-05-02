@@ -202,10 +202,7 @@ void OTAManager::triggerRollback(BlynkManager* bk)
         if (Update.rollBack())
         {
             if (m_logger) m_logger->sysLog("SYSTEM", "Rollback successful! Rebooting...");
-            if (m_blynk) {
-                m_blynk->sendLog("✅ ย้อนกลับเวอร์ชันสำเร็จ! กำลังรีสตาร์ท...");
-                delay(1500);
-            }
+            if (m_blynk) m_blynk->sendLog("✅ ย้อนกลับเวอร์ชันสำเร็จ! กำลังรีสตาร์ท...");
             delay(2000);
             ESP.restart();
         }

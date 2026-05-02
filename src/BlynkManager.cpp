@@ -187,7 +187,7 @@ void BlynkManager::handle()
     if (pendingOtaUpdate)
     {
         pendingOtaUpdate = false;
-        if (b_ota != nullptr && b_manager != nullptr)
+        if (b_ota != nullptr && b_manager != nullptr && b_power != nullptr)
         {
              b_ota->checkUpdate(b_fwVer, b_logger, b_power, b_manager, true);
         }

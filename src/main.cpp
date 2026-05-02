@@ -36,6 +36,7 @@
 #define WDT_TIMEOUT 45
 const uint16_t IR_TX_PIN = 17;
 RTC_NOINIT_ATTR int crashCounter;
+RTC_NOINIT_ATTR uint32_t crashMagic;
 
 // --- Task & Sync Handles ---
 TaskHandle_t TaskHardware;
@@ -66,7 +67,6 @@ unsigned long lastLogSent = 0;
 void HardwareLoop(void *pvParameters)
 {
   esp_task_wdt_add(NULL);
-  unsigned long bootTime = millis();
   for (;;)
   {
     if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(100)) == pdTRUE)
@@ -156,6 +156,11 @@ void setup()
 {
   Serial.begin(115200);
   delay(1000);
+  if (crashMagic != 0xDEADBEEF)
+  {
+    crashCounter = 0;
+    crashMagic = 0xDEADBEEF;
+  }
   esp_reset_reason_t reason = esp_reset_reason();
   if (reason == ESP_RST_POWERON || reason == ESP_RST_BROWNOUT)
   {

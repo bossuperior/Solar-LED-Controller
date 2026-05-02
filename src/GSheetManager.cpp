@@ -28,6 +28,7 @@ void GsheetManager::begin(LogManager *sysLogger, TimeManager *timeManager)
 }
 void GsheetManager::sendData(float voltage, float tempBuck, int fanSpeed, const String &lightPct)
 {
+    if (m_timeManager == nullptr) return;
     String currentTime = m_timeManager->getCurrentTime();
     currentTime.trim();
 
@@ -44,7 +45,7 @@ void GsheetManager::sendData(float voltage, float tempBuck, int fanSpeed, const 
         return;
     }
     String escapedLight = jsonEscapeString(lightPct);
-    char jsonPayload[256];
+    char jsonPayload[512];
     snprintf(jsonPayload, sizeof(jsonPayload),
              "{\"time\":\"%s\",\"voltage\":%.2f,\"tempBuck\":%.1f,\"fanSpeed\":%d,\"lightPct\":\"%s\"}",
              currentTime.c_str(), voltage, tempBuck, fanSpeed, escapedLight.c_str());

@@ -69,6 +69,7 @@ void WebDashboardManager::handle()
 
 void WebDashboardManager::handleManOn()
 {
+    if (m_mutex == nullptr) { server.send(503, "application/json", "{\"error\":\"Not initialized\"}"); return; }
     if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(150)) == pdTRUE)
     {
         m_light->setManualMode(true, true);
@@ -84,6 +85,7 @@ void WebDashboardManager::handleManOn()
 }
 void WebDashboardManager::handleManOff()
 {
+    if (m_mutex == nullptr) { server.send(503, "application/json", "{\"error\":\"Not initialized\"}"); return; }
     if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
     {
         m_light->setManualMode(false, false);
@@ -109,6 +111,11 @@ void WebDashboardManager::handleStatus()
     int sh = 18, sm = 45, eh = 6, em = 10;
     bool schActive = false;
 
+    if (m_mutex == nullptr || m_power == nullptr || m_temp == nullptr || m_fan == nullptr || m_light == nullptr)
+    {
+        server.send(503, "application/json", "{\"error\":\"Not initialized\"}");
+        return;
+    }
     if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
     {
 
@@ -181,6 +188,7 @@ void WebDashboardManager::handleUpdateSchedule()
             return;
         }
 
+        if (m_mutex == nullptr) { server.send(503, "text/plain", "Not initialized"); return; }
         if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
         {
             m_light->setScheduleParams(sHour, sMin, eHour, eMin, isActive);
@@ -221,6 +229,7 @@ void WebDashboardManager::handleSetFan()
         return;
     }
 
+    if (m_mutex == nullptr) { server.send(503, "text/plain", "Not initialized"); return; }
     if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
     {
         m_fan->setTempStart(tempStart);
@@ -242,6 +251,7 @@ void WebDashboardManager::handleSetFan()
 
 void WebDashboardManager::triggerWebAlert(const String &module, const String &message)
 {
+    if (m_mutex == nullptr) return;
     if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
     {
         m_pendingAlert = "🚨 อันตราย โมดูล: " + module + " | สถานะ: " + message;
