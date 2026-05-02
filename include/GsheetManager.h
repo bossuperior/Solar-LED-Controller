@@ -5,6 +5,7 @@
 #include "LogManager.h"
 #include "secret.h"
 #include "TimeManager.h"
+#include "Configs.h"
 
 class GsheetManager
 {

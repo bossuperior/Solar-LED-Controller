@@ -31,10 +31,9 @@
 #include "WebDashboardManager.h"
 #include "BlynkManager.h"
 #include "OTAManager.h"
+#include "Configs.h"
 
 #ifndef PIO_UNIT_TESTING
-#define WDT_TIMEOUT 45
-const uint16_t IR_TX_PIN = 17;
 RTC_NOINIT_ATTR int crashCounter;
 RTC_NOINIT_ATTR uint32_t crashMagic;
 
@@ -57,9 +56,6 @@ GsheetManager gsheet;
 WebDashboardManager dashboard;
 BlynkManager blynk;
 OTAManager ota;
-
-// --- Global Shared Variables ---
-const int LOG_INTERVAL = 60000; // Log every 60 seconds
 
 // Shared Data (Accessed via Mutex)
 unsigned long lastLogSent = 0;
@@ -132,7 +128,7 @@ void CommLoop(void *pvParameters)
         blynk.sendLog(alert);
         dashboard.triggerWebAlert("SYSTEM", alert);
       }
-      if (millis() - lastTelemetryUpdate >= 30000)
+      if (millis() - lastTelemetryUpdate >= SEND_TELEMETRY_INTERVAL)
       {
         blynk.sendTelemetry();
         lastTelemetryUpdate = millis();
@@ -154,7 +150,7 @@ void CommLoop(void *pvParameters)
 
 void setup()
 {
-  Serial.begin(115200);
+  Serial.begin(SERIAL_BAUD_RATE);
   delay(1000);
   if (crashMagic != 0xDEADBEEF)
   {
@@ -174,7 +170,7 @@ void setup()
   {
     crashCounter = 0;
   }
-  if (crashCounter >= 3)
+  if (crashCounter >= BOOTLOOP_CRASH_LIMIT)
   {
     Serial.println("[CRITICAL] Bootloop Detected!");
 
@@ -223,13 +219,13 @@ void setup()
   fan.begin(&sysLogger);
   monitor.begin(&sysLogger);
   gsheet.begin(&sysLogger, &timer);
-  dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey, BLYNK_FIRMWARE_VERSION);
-  blynk.begin(&sysLogger, &light, &power, &temp, &fan, &timer, &mutexKey, &ota, BLYNK_FIRMWARE_VERSION);
+  dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey, FW_VERSION);
+  blynk.begin(&sysLogger, &light, &power, &temp, &fan, &timer, &mutexKey, &ota, FW_VERSION);
 
   // Create Tasks
   esp_task_wdt_init(WDT_TIMEOUT, true);
-  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", 10240, NULL, 3, &TaskHardware, 1);
-  xTaskCreatePinnedToCore(CommLoop, "TaskComm", 20480, NULL, 1, &TaskComm, 0);
+  xTaskCreatePinnedToCore(HardwareLoop, "TaskHW", TASK_HW_STACK_SIZE, NULL, TASK_HW_PRIORITY, &TaskHardware, TASK_HW_CORE);
+  xTaskCreatePinnedToCore(CommLoop, "TaskComm", TASK_COMM_STACK_SIZE, NULL, TASK_COMM_PRIORITY, &TaskComm, TASK_COMM_CORE);
 }
 
 void loop()

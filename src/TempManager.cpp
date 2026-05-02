@@ -8,7 +8,7 @@ void TempManager::begin(LogManager *sysLogger)
     m_sysLogger = sysLogger;
     sensors.begin();
     sensors.setWaitForConversion(false); // Non-blocking mode
-    if (!sensors.getAddress(buckAddress, 0))
+    if (!sensors.getAddress(buckAddress, TEMP_SENSOR_INDEX))
     {
         if (m_sysLogger != nullptr)
             m_sysLogger->sysLog("TEMP", "CRITICAL: DS18B20 sensor not found on bus!");
@@ -16,7 +16,7 @@ void TempManager::begin(LogManager *sysLogger)
     }
     else
     {
-        sensors.setResolution(buckAddress, 10);
+        sensors.setResolution(buckAddress, TEMP_SENSOR_RESOLUTION);
         sensors.requestTemperatures();
         _buckSensorOk = true;
         if (m_sysLogger != nullptr)
@@ -37,12 +37,12 @@ float TempManager::getBuckTemp()
 void TempManager::update()
 {
     static unsigned long lastReq = 0;
-    if (millis() - lastReq > 2000)
+    if (millis() - lastReq > TEMP_UPDATE_INTERVAL)
     {
         esp_task_wdt_reset();
         float rawBuck = sensors.getTempC(buckAddress);
 
-        if (rawBuck != -127.0 && rawBuck != 85.0)
+        if (rawBuck != DS18B20_ERR_DISCONNECT && rawBuck != DS18B20_ERR_POWER_ON)
         {
             tempBuck = rawBuck;
             _buckSensorOk = true;

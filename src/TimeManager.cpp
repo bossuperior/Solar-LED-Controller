@@ -48,7 +48,7 @@ void TimeManager::begin(LogManager *sysLogger)
             tm_rtc.tm_sec = now.second();
 
             time_t t = mktime(&tm_rtc);
-            struct timeval tv = {.tv_sec = (t - gmtOffset_sec), .tv_usec = 0};
+            struct timeval tv = {.tv_sec = (t - NTP_GMT_OFFSET_SEC), .tv_usec = 0};
             settimeofday(&tv, NULL);
             _isTimeSynced = true;
 
@@ -56,7 +56,7 @@ void TimeManager::begin(LogManager *sysLogger)
                 Serial.println("[TIME] System time loaded securely from DS3231.");
         }
     }
-    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer, "time.nist.gov");
+    configTime(NTP_GMT_OFFSET_SEC, NTP_DAYLIGHT_OFFSET_SEC, NTP_SERVER_1, NTP_SERVER_2);
     if (m_logger != nullptr)
     {
         m_logger->sysLog("TIME", "NTP Configured. Waiting for sync...");

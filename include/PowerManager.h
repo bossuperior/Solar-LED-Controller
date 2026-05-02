@@ -3,6 +3,7 @@
 #include <Wire.h>
 #include <INA226_WE.h>
 #include "LogManager.h"
+#include "Configs.h"
 
 class PowerManager {
     public:
@@ -14,7 +15,7 @@ class PowerManager {
         
     private:
         LogManager *m_logger = nullptr;
-        INA226_WE ina226 = INA226_WE(0x40);
+        INA226_WE ina226 = INA226_WE(INA226_I2C_ADDRESS);
         bool _inaAvailable = false;
         float _testVolt = 0.0;
         bool _isTesting = false;

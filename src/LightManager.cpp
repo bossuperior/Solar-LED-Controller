@@ -20,10 +20,10 @@ void LightManager::begin(LogManager *sysLoggerPtr)
 
     // --- LOAD PREFERENCES ON BOOT ---
     prefs.begin("light_config", true);
-    startHour = prefs.getInt("sHour", 18);
-    startMinute = prefs.getInt("sMin", 45);
-    endHour = prefs.getInt("eHour", 6);
-    endMinute = prefs.getInt("eMin", 10);
+    startHour = prefs.getInt("sHour", LIGHT_DEFAULT_START_H);
+    startMinute = prefs.getInt("sMin", LIGHT_DEFAULT_START_M);
+    endHour = prefs.getInt("eHour", LIGHT_DEFAULT_END_H);
+    endMinute = prefs.getInt("eMin", LIGHT_DEFAULT_END_M);
     isCustomScheduleActive = prefs.getBool("schActive", false);
     prefs.end();
 
@@ -69,11 +69,11 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm)
     if (tm != nullptr)
     {
         float temp = tm->getBuckTemp();
-        if (temp > 45.0)
+        if (temp > TEMP_THROTTLE_ON)
         {
             isTempThrottled = true;
         }
-        else if (!isnan(temp) && temp < 40.0)
+        else if (!isnan(temp) && temp < TEMP_THROTTLE_OFF)
         {
             isTempThrottled = false;
         }
@@ -123,30 +123,18 @@ void LightManager::executeIR()
     switch (_pendingIR)
     {
     case IR_ON_FULL:
-        irsend.sendNEC(IR_CODE_ON, 32);
-        vTaskDelay(pdMS_TO_TICKS(50));
-        irsend.sendNEC(IR_CODE_ON, 32);
-        vTaskDelay(pdMS_TO_TICKS(150));
-        irsend.sendNEC(IR_CODE_FULL, 32);
-        vTaskDelay(pdMS_TO_TICKS(50));
-        irsend.sendNEC(IR_CODE_FULL, 32);
-        vTaskDelay(pdMS_TO_TICKS(150));
+        irsend.sendNEC(IR_CODE_ON, IR_BITS);
+        vTaskDelay(pdMS_TO_TICKS(IR_SEND_DELAY_MS));
+        irsend.sendNEC(IR_CODE_FULL, IR_BITS);
         break;
     case IR_ON_SEMI:
-        irsend.sendNEC(IR_CODE_ON, 32);
-        vTaskDelay(pdMS_TO_TICKS(50));
-        irsend.sendNEC(IR_CODE_ON, 32);
-        vTaskDelay(pdMS_TO_TICKS(150));
-        irsend.sendNEC(IR_CODE_SEMI, 32);
-        vTaskDelay(pdMS_TO_TICKS(50));
-        irsend.sendNEC(IR_CODE_SEMI, 32);
-        vTaskDelay(pdMS_TO_TICKS(150));
+        irsend.sendNEC(IR_CODE_ON, IR_BITS);
+        vTaskDelay(pdMS_TO_TICKS(IR_SEND_DELAY_MS));
+        irsend.sendNEC(IR_CODE_SEMI, IR_BITS);
         break;
     case IR_OFF:
-        irsend.sendNEC(IR_CODE_OFF, 32);
-        vTaskDelay(pdMS_TO_TICKS(50));
-        irsend.sendNEC(IR_CODE_OFF, 32);
-        vTaskDelay(pdMS_TO_TICKS(150));
+        irsend.sendNEC(IR_CODE_OFF, IR_BITS);
+        vTaskDelay(pdMS_TO_TICKS(IR_SEND_DELAY_MS));
         break;
     default:
         break;

@@ -45,7 +45,7 @@ void GsheetManager::sendData(float voltage, float tempBuck, int fanSpeed, const 
         return;
     }
     String escapedLight = jsonEscapeString(lightPct);
-    char jsonPayload[512];
+    char jsonPayload[GSHEET_JSON_BUFFER_SIZE];
     snprintf(jsonPayload, sizeof(jsonPayload),
              "{\"time\":\"%s\",\"voltage\":%.2f,\"tempBuck\":%.1f,\"fanSpeed\":%d,\"lightPct\":\"%s\"}",
              currentTime.c_str(), voltage, tempBuck, fanSpeed, escapedLight.c_str());
@@ -61,12 +61,12 @@ void GsheetManager::sendData(float voltage, float tempBuck, int fanSpeed, const 
     }
 
     http.begin(m_client, url);
-    http.setTimeout(8000);
-    http.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);
+    http.setTimeout(GSHEET_HTTP_TIMEOUT);
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
     http.addHeader("Content-Type", "application/json");
     esp_task_wdt_reset();
     int httpResponseCode = http.POST(jsonPayload);
-    if (httpResponseCode == 200 || httpResponseCode == 302)
+    if (httpResponseCode == 200)
     {
         if (m_sysLogger != nullptr)
         {

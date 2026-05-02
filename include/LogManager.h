@@ -2,8 +2,7 @@
 #include <Arduino.h>
 #include <freertos/semphr.h>
 #include "TimeManager.h"
-#define MAX_LOG_LINES 30   // Maximum number of log lines to keep in memory
-#define LOG_ENTRY_SIZE 320 // Fits longest Thai alert (~277 bytes) with margin
+#include "Configs.h"
 
 class LogManager
 {
@@ -15,5 +14,5 @@ private:
 public:
     void begin();
     void sysLog(const String& module,const String& message);
-    String getTailLogs(int maxChars = 1000);
+    String getTailLogs(int maxChars = LOG_DEFAULT_MAX_CHARS);
 };

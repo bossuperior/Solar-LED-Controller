@@ -32,7 +32,7 @@ void NetworkManager::handle()
     uint8_t currentStatus = WiFi.status();
     if (_apModeStarted)
     {
-        if (millis() - lastScanTime > 60000)
+        if (millis() - lastScanTime > NET_CHECK_INTERVAL)
         {
             if (m_logger)
                 m_logger->sysLog("NETWORK", "Checking if Home WiFi is back...");
@@ -57,7 +57,7 @@ void NetworkManager::handle()
     currentStatus = wifiMulti.run();
     if (currentStatus != WL_CONNECTED)
     {
-        if (millis() - _startAttemptTime > maxAttemptTime)
+        if (millis() - _startAttemptTime > WIFI_MAX_ATTEMPT_TIME)
         {
             if (m_logger != nullptr)
             {
@@ -116,7 +116,7 @@ bool NetworkManager::isInternetAvailable()
         return false;
     }
 
-    if (_firstCheck || (millis() - lastNetCheck > netInterval))
+    if (_firstCheck || (millis() - lastNetCheck > NET_CHECK_INTERVAL))
     {
         lastNetCheck = millis();
         _firstCheck = false;

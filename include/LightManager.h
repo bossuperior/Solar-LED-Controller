@@ -5,14 +5,7 @@
 #include <Preferences.h>
 #include "LogManager.h"
 #include "TempManager.h"
-
-#define IR_CODE_ON 0xFFC23D
-#define IR_CODE_OFF 0xFFB04F
-#define IR_CODE_FULL 0xFF10EF
-#define IR_CODE_SEMI 0xFF5AA5
-// #define IR_CODE_3H 0xFF22DD
-// #define IR_CODE_5H 0xFFA857
-// #define IR_CODE_8H 0xFF6897
+#include "Configs.h"
 
 class LightManager
 {
@@ -25,7 +18,10 @@ private:
     bool isTempThrottled = false;
     bool lastThrottleState = false;
     String lightMode = "ปิดไฟ";
-    int startHour, startMinute, endHour, endMinute;
+    int startHour = LIGHT_DEFAULT_START_H;
+    int startMinute = LIGHT_DEFAULT_START_M;
+    int endHour = LIGHT_DEFAULT_END_H;
+    int endMinute = LIGHT_DEFAULT_END_M;
     IRsend irsend;
     bool _forceUpdate = false;
     enum PendingIR { IR_NONE, IR_ON_FULL, IR_ON_SEMI, IR_OFF };
