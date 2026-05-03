@@ -7,7 +7,7 @@ void SystemMonitor::begin(LogManager *sysLogger)
 
 void SystemMonitor::addAlert(const String &module, const String &msg)
 {
-    if (_alertQueue.size() >= 10)
+    if (_alertQueue.size() >= MONITOR_MAX_ALERTS)
     {
         _alertQueue.pop();
     }
@@ -32,7 +32,7 @@ String SystemMonitor::getAlert()
 
 void SystemMonitor::ScheduledReboot(TimeManager *tr)
 {
-    if (!_pendingReboot && tr->getDayOfWeek() == 5 && tr->getHour() == 7 && tr->getMinute() == 0 && millis() > 60000)
+    if (!_pendingReboot && tr->getDayOfWeek() == REBOOT_DAY_OF_WEEK && tr->getHour() == REBOOT_HOUR && tr->getMinute() == REBOOT_MINUTE && millis() > REBOOT_UPTIME_MIN_MS)
     {
         addAlert("SYSTEM", "⚙️ Weekly maintenance reboot in progress...");
         _pendingReboot = true;
@@ -41,7 +41,9 @@ void SystemMonitor::ScheduledReboot(TimeManager *tr)
 
 void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, TimeManager *tr)
 {
-    if (millis() - lastCheck < CHECK_INTERVAL)
+    if (!pm || !tm || !fm || !tr)
+        return;
+    if (millis() - lastCheck < MONITOR_CHECK_INTERVAL)
         return;
     lastCheck = millis();
 
@@ -75,7 +77,7 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
     {
         if (fanStartTime == 0)
             fanStartTime = millis();
-        if (millis() - fanStartTime > 600000 && tm->getBuckTemp() > 55.0)
+        if (millis() - fanStartTime > ALERT_FAN_CHECK_TIME && tm->getBuckTemp() > ALERT_FAN_TEMP_FAIL)
         {
             if (!errFan)
             {
@@ -87,13 +89,13 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
     else
     {
         fanStartTime = 0;
-        if (tm->getBuckTemp() < 50.0) 
+        if (tm->getBuckTemp() < ALERT_FAN_TEMP_SAFE) 
         {
             errFan = false; 
         }
     }
 
-    if (tr->getYear() < 2024)
+    if (tr->getYear() < ALERT_RTC_MIN_YEAR)
     { // if RTC lost power, it will reset to 1970 or similar.
         if (!errTime)
         {
@@ -112,7 +114,7 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
     {
         errBuckHighTemp = false;
     }
-    else if (bTemp > 75.0)
+    else if (bTemp > ALERT_TEMP_CRITICAL)
     {
         if (!errBuckHighTemp)
         {
@@ -122,12 +124,12 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
             errBuckHighTemp = true;
         }
     }
-    else if (bTemp < 65.0)
+    else if (bTemp < ALERT_TEMP_RECOVERY)
     {
         errBuckHighTemp = false;
     }
 
-    if (vBus > 3.8)
+    if (vBus > ALERT_VOLTAGE_HIGH)
     {
         if (!errBuckVoltage)
         {

@@ -3,13 +3,13 @@
 #include <HTTPClient.h>
 #include <HTTPUpdate.h>
 #include <WiFiClientSecure.h>
-#include <Preferences.h>
 #include <esp_task_wdt.h>
 #include <Update.h>
 #include "LogManager.h"
 #include "secret.h"
 #include "PowerManager.h"
 #include "BlynkManager.h"
+#include "Configs.h"
 
 class BlynkManager;
 
@@ -23,5 +23,5 @@ private:
 public:
   bool isUpdating = false;
   void checkUpdate(String currentVersion,LogManager* sysLogger ,PowerManager* pm, BlynkManager* bk, bool force = false);
-  void triggerRollback(BlynkManager* bk);
+  void triggerRollback(BlynkManager* bk, LogManager* logger = nullptr);
 };

@@ -3,33 +3,24 @@
 #include <IRremoteESP8266.h>
 #include <IRsend.h>
 #include <Preferences.h>
+#include <freertos/semphr.h>
 #include "LogManager.h"
 #include "TempManager.h"
-
-#define IR_CODE_ON 0xFFC23D
-#define IR_CODE_OFF 0xFFB04F
-#define IR_CODE_FULL 0xFF10EF
-#define IR_CODE_SEMI 0xFF5AA5
-// #define IR_CODE_3H 0xFF22DD
-// #define IR_CODE_5H 0xFFA857
-// #define IR_CODE_8H 0xFF6897
+#include "Configs.h"
 
 class LightManager
 {
 private:
-    LogManager *m_logger = nullptr;
-    bool isCustomScheduleActive = false;
-    bool isManualMode = false;
-    bool manualLightState = false;
-    bool lastOnState = false;
-    bool isTempThrottled = false;
-    bool lastThrottleState = false;
-    String lightMode = "ปิดไฟ";
-    int startHour, startMinute, endHour, endMinute;
     IRsend irsend;
-    bool _forceUpdate = false;
+    LogManager *m_logger = nullptr;
+    bool isCustomScheduleActive = false ,isManualMode = false ,manualLightState = false,lastOnState = false,isTempThrottled = false,lastThrottleState = false,_forceUpdate = false;
+    int startHour, startMinute, endHour, endMinute;
     enum PendingIR { IR_NONE, IR_ON_FULL, IR_ON_SEMI, IR_OFF };
     PendingIR _pendingIR = IR_NONE;
+    bool _pendingNewOnState = false;
+    bool _pendingNewThrottleState = false;
+    SemaphoreHandle_t _irMutex = nullptr;
+    String lightMode = "ปิดไฟ";
 
 public:
     LightManager(uint16_t pin);

@@ -11,6 +11,7 @@
 #include "TempManager.h"
 #include "FanManager.h"
 #include "index_html.h"
+#include "Configs.h"
 
 class WebDashboardManager
 {

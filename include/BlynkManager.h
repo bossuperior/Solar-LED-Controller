@@ -8,6 +8,7 @@
 #include "FanManager.h"
 #include "TimeManager.h"
 #include "OTAManager.h"
+#include "Configs.h"
 
 class OTAManager;
 class BlynkManager

@@ -7,21 +7,14 @@
 #include "FanManager.h"
 #include "TimeManager.h"
 #include "NetworkManager.h"
+#include "Configs.h"
 
 class SystemMonitor {
 private:
     LogManager* m_logger = nullptr;
     std::queue<String> _alertQueue;
-    unsigned long lastCheck = 0;
-    const unsigned long CHECK_INTERVAL = 60000;
-    bool errPower = false;
-    bool errTemp = false;
-    bool errTime = false;
-    bool errFan = false;
-    bool errBuckHighTemp = false;
-    bool errBuckVoltage = false;
-    unsigned long fanStartTime = 0;
-    bool _pendingReboot = false;
+    unsigned long lastCheck = 0,fanStartTime = 0;
+    bool errPower = false ,errTemp = false, errTime = false, errFan = false, errBuckHighTemp = false, errBuckVoltage = false ,_pendingReboot = false;
 
 public:
     void begin(LogManager* sysLogger);

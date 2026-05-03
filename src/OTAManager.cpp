@@ -10,8 +10,9 @@
  */
 
 #include "OTAManager.h"
+#include <freertos/task.h>
 
-extern Preferences prefs;
+extern TaskHandle_t TaskHardware;
 
 void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, PowerManager *pm, BlynkManager *bk, bool force)
 {
@@ -23,7 +24,7 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
     int rssi = WiFi.RSSI();
     if (force == false)
     {
-        if (pm->isInaAvailable() && voltage < 0.1)
+        if (pm->isInaAvailable() && voltage < OTA_MIN_VALID_VOLTAGE)
         {
             if (m_logger)
                 m_logger->sysLog("OTA", "Abort: Power sensor unreliable or 0.00V detected!");
@@ -33,16 +34,16 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
             return;
         }
     }
-    if (voltage > 0.1 && voltage < 3.15)
+    if (voltage > OTA_MIN_VALID_VOLTAGE && voltage < BATT_CRITICAL_LOW_V)
     {
         if (m_logger)
             m_logger->sysLog("OTA", "Abort: Battery too low (" + String(voltage) + "V)");
-        if (m_blynk && force)
+        if (m_blynk)
             m_blynk->sendLog("❌ ยกเลิกการอัปเดต: แบตเตอรี่ต่ำเกินไป (" + String(voltage) + "V)");
         isUpdating = false;
         return;
     }
-    if (rssi < -85)
+    if (rssi < MIN_WIFI_RSSI)
     {
         if (m_logger)
             m_logger->sysLog("OTA", "Abort: WiFi signal too weak (" + String(rssi) + "dBm)");
@@ -67,11 +68,11 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
     esp_task_wdt_reset();
     WiFiClientSecure client;
     client.setInsecure();
-    client.setTimeout(10000);
-    client.setHandshakeTimeout(10000);
+    client.setTimeout(OTA_HTTP_TIMEOUT);
+    client.setHandshakeTimeout(OTA_HTTP_TIMEOUT);
     HTTPClient http;
     http.begin(client, SECRET_OTA_UPDATE_API);
-    http.addHeader("User-Agent", "ESP32-OTA");
+    http.addHeader("User-Agent", OTA_USER_AGENT);
 
     String latestTag = "";
     esp_task_wdt_reset();
@@ -153,10 +154,16 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
     httpUpdate.rebootOnUpdate(false);
     WiFi.setSleep(false);
     esp_task_wdt_reset();
+    esp_task_wdt_delete(TaskHardware); // prevent WDT timeout on suspended task during flash
+    esp_task_wdt_delete(NULL);         // unsubscribe CommLoop — download can stall longer than WDT timeout
+    vTaskSuspend(TaskHardware);
     t_httpUpdate_return ret = httpUpdate.update(client, SECRET_OTA_UPDATE_URL);
     WiFi.setSleep(true);
     if (ret != HTTP_UPDATE_OK)
     {
+        esp_task_wdt_add(TaskHardware); // re-subscribe before resume to avoid WDT fire on wake
+        vTaskResume(TaskHardware);
+        esp_task_wdt_add(NULL);         // re-subscribe CommLoop
         isUpdating = false;
     }
 
@@ -175,38 +182,34 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
             m_blynk->sendLog("⚠️ ไม่มีอัปเดตบนเซิร์ฟเวอร์");
         break;
     case HTTP_UPDATE_OK:
-        prefs.begin("app_info", false);
-        prefs.putString("fw_ver", latestTag);
-        prefs.end();
         if (m_logger)
             m_logger->sysLog("OTA", "Update successful! Rebooting...");
         if (m_blynk)
-        {
             m_blynk->sendLog("✅ อัปเดตเรียบร้อย! กำลังรีสตาร์ทเป็นเวอร์ชัน " + latestTag);
-            delay(1500);
-        }
+        esp_task_wdt_reset();
+        vTaskDelay(pdMS_TO_TICKS(OTA_DELAY_TIME));
         ESP.restart();
         break;
     }
 }
-void OTAManager::triggerRollback(BlynkManager* bk)
+void OTAManager::triggerRollback(BlynkManager* bk, LogManager* logger)
 {
-    if (bk != nullptr) {
+    if (bk != nullptr)
         m_blynk = bk;
-    }
+    if (logger != nullptr)
+        m_logger = logger;
+
     if (Update.canRollBack())
     {
         if (m_logger) m_logger->sysLog("SYSTEM", "Rolling back to previous version...");
         if (m_blynk) m_blynk->sendLog("⚠️ กำลังย้อนกลับไปเวอร์ชันก่อนหน้า...");
-        
+
         if (Update.rollBack())
         {
             if (m_logger) m_logger->sysLog("SYSTEM", "Rollback successful! Rebooting...");
-            if (m_blynk) {
-                m_blynk->sendLog("✅ ย้อนกลับเวอร์ชันสำเร็จ! กำลังรีสตาร์ท...");
-                delay(1500);
-            }
-            delay(2000);
+            if (m_blynk) m_blynk->sendLog("✅ ย้อนกลับเวอร์ชันสำเร็จ! กำลังรีสตาร์ท...");
+            esp_task_wdt_reset();
+            vTaskDelay(pdMS_TO_TICKS(OTA_DELAY_TIME));
             ESP.restart();
         }
         else

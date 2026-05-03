@@ -64,9 +64,9 @@ BLYNK_WRITE(V1)
             if (xSemaphoreTake(*b_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
             {
                 b_light->setScheduleParams(sH, sM, eH, eM, true);
+                b_light->saveScheduleToPrefs();
                 xSemaphoreGive(*b_mutex);
             }
-            b_light->saveScheduleToPrefs(); // NVS write outside mutex
         }
 
         char msgBuffer[128];
@@ -95,10 +95,11 @@ BLYNK_WRITE(V3)
     if (b_light && b_mutex)
     {
         bool isEnabled = (state == 1);
-        if (xSemaphoreTake(*b_mutex, pdMS_TO_TICKS(200)) == pdTRUE)
+        if (xSemaphoreTake(*b_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
         {
             b_light->setManualMode(false, false);
-            b_light->setScheduleActive(isEnabled); // NVS write inside mutex — rare user action, acceptable
+            b_light->setScheduleActive(isEnabled);
+            b_light->saveScheduleToPrefs();
             xSemaphoreGive(*b_mutex);
         }
         Blynk.virtualWrite(V8, isEnabled ? "⏰ เปิดระบบตั้งเวลาอัตโนมัติ\n" : "🛑 ปิดระบบตั้งเวลาอัตโนมัติ\n");
@@ -128,9 +129,9 @@ BLYNK_WRITE(V10)
         if (xSemaphoreTake(*b_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
         {
             b_fan->setTempStart(newStart);
+            b_fan->saveFanSetupToPrefs();
             xSemaphoreGive(*b_mutex);
         }
-        b_fan->saveFanSetupToPrefs(); // NVS write outside mutex
         char logMsg[256];
         snprintf(logMsg, sizeof(logMsg), "🌀 อัปเดตอุณหภูมิที่พัดลมเริ่มทำงาน: %.1f °C\n", newStart);
         Blynk.virtualWrite(V8, logMsg);
@@ -182,12 +183,16 @@ void BlynkManager::begin(LogManager *logger, LightManager *light, PowerManager *
 
 void BlynkManager::handle()
 {
+    if (!Blynk.connected())
+    {
+        Blynk.connect(3000);
+    }
     Blynk.run();
 
     if (pendingOtaUpdate)
     {
         pendingOtaUpdate = false;
-        if (b_ota != nullptr && b_manager != nullptr)
+        if (b_ota != nullptr && b_manager != nullptr && b_power != nullptr)
         {
              b_ota->checkUpdate(b_fwVer, b_logger, b_power, b_manager, true);
         }
@@ -198,7 +203,7 @@ void BlynkManager::handle()
         pendingOtaRollback = false;
         if (b_ota != nullptr && b_manager != nullptr)
         {
-             b_ota->triggerRollback(b_manager);
+             b_ota->triggerRollback(b_manager, b_logger);
         }
     }
 }
@@ -247,17 +252,17 @@ void BlynkManager::sendTelemetry()
     }
 
     String current_v_color;
-    if (v < 3.10)
+    if (v < BATT_CRITICAL_LOW_V)
     {
-        current_v_color = "#FF4444";
+        current_v_color = COLOR_CRITICAL;
     }
-    else if (v >= 3.10 && v < 3.20)
+    else if (v >= BATT_CRITICAL_LOW_V && v < UI_BATT_WARN_V)
     {
-        current_v_color = "#FFB300";
+        current_v_color = COLOR_WARNING;
     }
     else
     {
-        current_v_color = "#00E676";
+        current_v_color = COLOR_NORMAL;
     }
     if (current_v_color != last_v_color)
     {
@@ -265,7 +270,7 @@ void BlynkManager::sendTelemetry()
         last_v_color = current_v_color;
     }
     // Dashboard Update: Only send updates if values have changed significantly to reduce network traffic
-    if (abs(v - last_v) >= 0.02)
+    if (abs(v - last_v) >= BLYNK_DELTA_VOLT)
     {
         Blynk.virtualWrite(V2, v);
         last_v = v;
@@ -277,22 +282,22 @@ void BlynkManager::sendTelemetry()
 
     if (tBuck < startTemp)
     {
-        current_t_color = "#FFFFFF";
+        current_t_color = COLOR_WHITE;
     }
     else if (tBuck >= startTemp && tBuck < maxTemp)
     {
-        current_t_color = "#FFB300";
+        current_t_color = COLOR_WARNING;
     }
     else
     {
-        current_t_color = "#FF4444";
+        current_t_color = COLOR_CRITICAL;
     }
     if (current_t_color != last_t_color)
     {
         Blynk.setProperty(V4, "color", current_t_color);
         last_t_color = current_t_color;
     }
-    if (abs(tBuck - last_tBuck) >= 0.2)
+    if (abs(tBuck - last_tBuck) >= BLYNK_DELTA_TEMP)
     {
         Blynk.virtualWrite(V4, tBuck);
         last_tBuck = tBuck;
@@ -309,7 +314,7 @@ void BlynkManager::sendTelemetry()
         Blynk.virtualWrite(V7, sysInfo);
         last_mins = mins;
     }
-    if (abs(freeRam_kB - last_ram) >= 1)
+    if (abs(freeRam_kB - last_ram) >= BLYNK_DELTA_RAM_KB)
     {
         Blynk.virtualWrite(V6, freeRam_kB);
         last_ram = freeRam_kB;
@@ -318,7 +323,7 @@ void BlynkManager::sendTelemetry()
 
 void BlynkManager::sendLog(const String &msg)
 {
-    char logBuffer[256];
+    char logBuffer[512];
     snprintf(logBuffer, sizeof(logBuffer), "%s\n", msg.c_str());
     Blynk.virtualWrite(V8, logBuffer);
 }

@@ -11,7 +11,7 @@
 
 #include "WebDashboardManager.h"
 
-WebDashboardManager::WebDashboardManager() : server(80)
+WebDashboardManager::WebDashboardManager() : server(WEB_SERVER_PORT)
 {
     m_logger = nullptr;
     m_light = nullptr;
@@ -42,7 +42,7 @@ void WebDashboardManager::begin(LogManager *sysLogger, LightManager *light, Powe
     server.on("/set_fan", std::bind(&WebDashboardManager::handleSetFan, this));
     server.on("/log", HTTP_GET, [this]() {
         if (m_logger != nullptr) {
-            String logData = m_logger->getTailLogs(1000);
+            String logData = m_logger->getTailLogs(WEB_LOG_MAX_LENGTH);
             
             server.setContentLength(CONTENT_LENGTH_UNKNOWN);
             server.send(200, "text/html", ""); 
@@ -69,6 +69,7 @@ void WebDashboardManager::handle()
 
 void WebDashboardManager::handleManOn()
 {
+    if (m_mutex == nullptr || m_light == nullptr) { server.send(503, "application/json", "{\"error\":\"Not initialized\"}"); return; }
     if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(150)) == pdTRUE)
     {
         m_light->setManualMode(true, true);
@@ -84,6 +85,7 @@ void WebDashboardManager::handleManOn()
 }
 void WebDashboardManager::handleManOff()
 {
+    if (m_mutex == nullptr || m_light == nullptr) { server.send(503, "application/json", "{\"error\":\"Not initialized\"}"); return; }
     if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
     {
         m_light->setManualMode(false, false);
@@ -102,13 +104,19 @@ void WebDashboardManager::handleStatus()
     float v = 0.0, t_buck = 0.0;
     bool fan = false;
     int fanPct = 0;
-    float fanTempStart = 38.0, fanTempMax = 45.0;
+    float fanTempStart = FAN_DEFAULT_TEMP_START, fanTempMax = FAN_DEFAULT_TEMP_MAX;
     String alertMsg = "";
     String lightStatus = "";
 
-    int sh = 18, sm = 45, eh = 6, em = 10;
+    int sh = LIGHT_DEFAULT_START_H, sm = LIGHT_DEFAULT_START_M;
+    int eh = LIGHT_DEFAULT_END_H, em = LIGHT_DEFAULT_END_M;
     bool schActive = false;
 
+    if (m_mutex == nullptr || m_power == nullptr || m_temp == nullptr || m_fan == nullptr || m_light == nullptr)
+    {
+        server.send(503, "application/json", "{\"error\":\"Not initialized\"}");
+        return;
+    }
     if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
     {
 
@@ -133,7 +141,7 @@ void WebDashboardManager::handleStatus()
         }
         xSemaphoreGive(*m_mutex);
 
-        DynamicJsonDocument doc(768);
+        DynamicJsonDocument doc(WEB_JSON_DOC_SIZE);
         doc["firmware"] = m_fw;
         doc["uptime_sec"] = uptime;
         doc["volt"] = v;
@@ -181,12 +189,12 @@ void WebDashboardManager::handleUpdateSchedule()
             return;
         }
 
+        if (m_mutex == nullptr) { server.send(503, "text/plain", "Not initialized"); return; }
         if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
         {
             m_light->setScheduleParams(sHour, sMin, eHour, eMin, isActive);
-            xSemaphoreGive(*m_mutex);
-            // NVS write and logging happen outside the mutex
             m_light->saveScheduleToPrefs();
+            xSemaphoreGive(*m_mutex);
             if (m_logger != nullptr)
             {
                 char logMsg[128];
@@ -215,17 +223,18 @@ void WebDashboardManager::handleSetFan()
 
     float tempStart = server.arg("ts").toFloat();
 
-    if (tempStart < 30.0 || tempStart > 45.0)
+    if (tempStart < FAN_MIN_TEMP_LIMIT || tempStart > FAN_DEFAULT_TEMP_MAX)
     {
-        server.send(400, "text/plain", "Bad Request: tempStart must be 30-45 C");
+        server.send(400, "text/plain", "Bad Request: tempStart must be " + String(FAN_MIN_TEMP_LIMIT) + "-" + String(FAN_DEFAULT_TEMP_MAX) + " C");
         return;
     }
 
+    if (m_mutex == nullptr) { server.send(503, "text/plain", "Not initialized"); return; }
     if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
     {
         m_fan->setTempStart(tempStart);
-        xSemaphoreGive(*m_mutex);
         m_fan->saveFanSetupToPrefs();
+        xSemaphoreGive(*m_mutex);
         if (m_logger != nullptr)
         {
             char logMsg[64];
@@ -242,9 +251,12 @@ void WebDashboardManager::handleSetFan()
 
 void WebDashboardManager::triggerWebAlert(const String &module, const String &message)
 {
+    if (m_mutex == nullptr) return;
     if (xSemaphoreTake(*m_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
     {
-        m_pendingAlert = "🚨 อันตราย โมดูล: " + module + " | สถานะ: " + message;
+        char alertBuf[256];
+        snprintf(alertBuf, sizeof(alertBuf), "🚨 อันตราย โมดูล: %s | สถานะ: %s", module.c_str(), message.c_str());
+        m_pendingAlert = alertBuf;
         xSemaphoreGive(*m_mutex);
     }
 }

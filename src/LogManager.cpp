@@ -26,8 +26,10 @@ void LogManager::sysLog(const String &module, const String &message)
     int len = snprintf(entry, sizeof(entry), "[%s] [%s] %s\n", timeNow.c_str(), module.c_str(), message.c_str());
     Serial.print(entry);
 
-    // Zero-timeout: never block — avoids deadlock when called while holding mutexKey
-    if (_mutex == nullptr || xSemaphoreTake(_mutex, 0) != pdTRUE)
+    if (len <= 0)
+        return;
+
+    if (_mutex == nullptr || xSemaphoreTake(_mutex, pdMS_TO_TICKS(20)) != pdTRUE)
         return;
     int copyLen = min(len, (int)sizeof(logBuffer[headIndex]) - 1);
     memcpy(logBuffer[headIndex], entry, copyLen);
