@@ -53,6 +53,7 @@ void TempManager::update()
         }
 
         sensors.requestTemperatures();
+        tempChip = temperatureRead();
         lastReq = millis();
         esp_task_wdt_reset();
     }

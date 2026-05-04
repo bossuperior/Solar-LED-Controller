@@ -26,7 +26,7 @@ void GsheetManager::begin(LogManager *sysLogger, TimeManager *timeManager)
         m_sysLogger->sysLog("GSHEET", "Google Sheets manager initialized");
     }
 }
-void GsheetManager::sendData(float voltage, float tempBuck, int fanSpeed, const String &lightPct)
+void GsheetManager::sendData(float voltage, float tempBuck, float tempChip, int fanSpeed, const String &lightPct)
 {
     if (m_timeManager == nullptr) return;
     String currentTime = m_timeManager->getCurrentTime();
@@ -47,8 +47,8 @@ void GsheetManager::sendData(float voltage, float tempBuck, int fanSpeed, const 
     String escapedLight = jsonEscapeString(lightPct);
     char jsonPayload[GSHEET_JSON_BUFFER_SIZE];
     snprintf(jsonPayload, sizeof(jsonPayload),
-             "{\"time\":\"%s\",\"voltage\":%.2f,\"tempBuck\":%.1f,\"fanSpeed\":%d,\"lightPct\":\"%s\"}",
-             currentTime.c_str(), voltage, tempBuck, fanSpeed, escapedLight.c_str());
+             "{\"time\":\"%s\",\"voltage\":%.2f,\"tempBuck\":%.1f,\"tempChip\":%.1f,\"fanSpeed\":%d,\"lightPct\":\"%s\"}",
+             currentTime.c_str(), voltage, tempBuck, tempChip, fanSpeed, escapedLight.c_str());
 
     HTTPClient http;
     String url = SECRET_GOOGLE_SHEET_URL;

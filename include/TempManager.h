@@ -15,10 +15,12 @@ public:
         _testBuckTemp = temp;
     }
     float getBuckTemp();
+    float getChipTemp() { return tempChip; }
     bool isBuckSensorOk() { return _buckSensorOk; }
 
 private:
     float tempBuck = 0.0;
+    float tempChip = 0.0;
     DeviceAddress buckAddress;
     bool _buckSensorOk = true;
     LogManager *m_sysLogger = nullptr;

@@ -176,6 +176,10 @@ void LightManager::executeIR()
 
 void LightManager::setScheduleParams(int sHour, int sMin, int eHour, int eMin, bool enable)
 {
+    if (startHour == sHour && startMinute == sMin &&
+        endHour == eHour && endMinute == eMin &&
+        isCustomScheduleActive == enable)
+        return;
     startHour = sHour;
     startMinute = sMin;
     endHour = eHour;
@@ -213,6 +217,8 @@ void LightManager::setCustomSchedule(int sHour, int sMin, int eHour, int eMin, b
 
 void LightManager::setManualMode(bool activateManual, bool turnOnLight)
 {
+    if (isManualMode == activateManual && manualLightState == turnOnLight)
+        return;
     isManualMode = activateManual;
     manualLightState = turnOnLight;
     _forceUpdate = true;
@@ -220,6 +226,8 @@ void LightManager::setManualMode(bool activateManual, bool turnOnLight)
 
 void LightManager::setScheduleActive(bool enable)
 {
+    if (isCustomScheduleActive == enable)
+        return;
     isCustomScheduleActive = enable;
     _forceUpdate = true;
 

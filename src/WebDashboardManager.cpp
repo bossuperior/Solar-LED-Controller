@@ -101,7 +101,7 @@ void WebDashboardManager::handleManOff()
 }
 void WebDashboardManager::handleStatus()
 {
-    float v = 0.0, t_buck = 0.0;
+    float v = 0.0, t_buck = 0.0, t_chip = 0.0;
     bool fan = false;
     int fanPct = 0;
     float fanTempStart = FAN_DEFAULT_TEMP_START, fanTempMax = FAN_DEFAULT_TEMP_MAX;
@@ -124,6 +124,7 @@ void WebDashboardManager::handleStatus()
 
         v = m_power->getVoltage();
         t_buck = m_temp->getBuckTemp();
+        t_chip = m_temp->getChipTemp();
         fan = m_fan->isFanRunning();
         fanPct = m_fan->getFanSpeed();
         fanTempStart = m_fan->getTempStart();
@@ -146,6 +147,7 @@ void WebDashboardManager::handleStatus()
         doc["uptime_sec"] = uptime;
         doc["volt"] = v;
         doc["temp_buck"] = isnan(t_buck) ? -1.0 : t_buck;
+        doc["temp_chip"] = t_chip;
         doc["fan_on"] = fan;
         doc["fan_pct"] = fanPct;
         doc["temp_start"] = fanTempStart;

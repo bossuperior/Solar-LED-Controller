@@ -14,7 +14,7 @@ private:
     LogManager* m_logger = nullptr;
     std::queue<String> _alertQueue;
     unsigned long lastCheck = 0,fanStartTime = 0;
-    bool errPower = false ,errTemp = false, errTime = false, errFan = false, errBuckHighTemp = false, errBuckVoltage = false ,_pendingReboot = false;
+    bool errPower = false ,errTemp = false, errTime = false, errFan = false, errBuckHighTemp = false, errBuckVoltage = false, errChipTemp = false, _pendingReboot = false;
 
 public:
     void begin(LogManager* sysLogger);

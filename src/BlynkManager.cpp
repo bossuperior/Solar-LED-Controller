@@ -39,8 +39,10 @@ BLYNK_WRITE(V0)
     {
         if (xSemaphoreTake(*b_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
         {
-            if (state == 1) b_light->setManualMode(true, true);
-            else            b_light->setManualMode(false, false);
+            if (state == 1)
+                b_light->setManualMode(true, true);
+            else
+                b_light->setManualMode(false, false);
             xSemaphoreGive(*b_mutex);
         }
         Blynk.virtualWrite(V8, state == 1 ? "💡 เปิดไฟแล้ว\n" : "🌑 ปิดไฟ (กลับสู่โหมดตั้งเวลา)\n");
@@ -81,7 +83,12 @@ BLYNK_WRITE(V1)
 
 BLYNK_CONNECTED()
 {
-    Blynk.syncVirtual(V0, V1, V3, V9, V10);
+    Blynk.syncVirtual(V1, V9, V10);
+    if (b_light)
+    {
+        Blynk.virtualWrite(V0, b_light->isLightOn() ? 1 : 0);
+        Blynk.virtualWrite(V3, b_light->getCustomScheduleActive() ? 1 : 0);
+    }
 
     if (b_logger)
     {
@@ -194,7 +201,7 @@ void BlynkManager::handle()
         pendingOtaUpdate = false;
         if (b_ota != nullptr && b_manager != nullptr && b_power != nullptr)
         {
-             b_ota->checkUpdate(b_fwVer, b_logger, b_power, b_manager, true);
+            b_ota->checkUpdate(b_fwVer, b_logger, b_power, b_manager, true);
         }
     }
 
@@ -203,7 +210,7 @@ void BlynkManager::handle()
         pendingOtaRollback = false;
         if (b_ota != nullptr && b_manager != nullptr)
         {
-             b_ota->triggerRollback(b_manager, b_logger);
+            b_ota->triggerRollback(b_manager, b_logger);
         }
     }
 }
@@ -212,9 +219,12 @@ void BlynkManager::sendTelemetry()
 {
     if (!b_power || !b_temp || !b_fan || !b_light || !b_time)
         return;
+    if (!Blynk.connected())
+        return;
 
     float v = b_power->getVoltage();
     float tBuck = b_temp->getBuckTemp();
+    float tChip = b_temp->getChipTemp();
     int fanSpeed = b_fan->getFanSpeed();
     int freeRam_kB = ESP.getFreeHeap() / 1024;
 
@@ -229,11 +239,14 @@ void BlynkManager::sendTelemetry()
 
     static float last_v = -100.0;
     static float last_tBuck = -100.0;
+    static float last_tChip = -100.0;
+    static String last_chip_color = "";
     static int last_fanSpeed = -1;
     static int last_mins = -1;
     static int last_schActive = -1;
     static int last_ram = -1;
     static int last_pushed_v0 = -1;
+    static uint8_t same_v_count = 0;
     static String last_v_color = "";
     static String last_t_color = "";
     int current_physical_state = b_light->isLightOn() ? 1 : 0;
@@ -270,10 +283,13 @@ void BlynkManager::sendTelemetry()
         last_v_color = current_v_color;
     }
     // Dashboard Update: Only send updates if values have changed significantly to reduce network traffic
-    if (abs(v - last_v) >= BLYNK_DELTA_VOLT)
+    bool volt_changed = fabsf(v - last_v) >= BLYNK_DELTA_VOLT;
+    same_v_count = volt_changed ? 0 : same_v_count + 1;
+    if (volt_changed || same_v_count >= BLYNK_SAME_VOLT_COUNT)
     {
         Blynk.virtualWrite(V2, v);
         last_v = v;
+        same_v_count = 0;
     }
 
     float startTemp = b_fan->getTempStart();
@@ -297,7 +313,7 @@ void BlynkManager::sendTelemetry()
         Blynk.setProperty(V4, "color", current_t_color);
         last_t_color = current_t_color;
     }
-    if (abs(tBuck - last_tBuck) >= BLYNK_DELTA_TEMP)
+    if (fabsf(tBuck - last_tBuck) >= BLYNK_DELTA_TEMP)
     {
         Blynk.virtualWrite(V4, tBuck);
         last_tBuck = tBuck;
@@ -307,6 +323,24 @@ void BlynkManager::sendTelemetry()
     {
         Blynk.virtualWrite(V5, fanSpeed);
         last_fanSpeed = fanSpeed;
+    }
+
+    String current_chip_color;
+    if (tChip >= ALERT_CHIP_TEMP_CRITICAL)
+        current_chip_color = COLOR_CRITICAL;
+    else if (tChip >= ALERT_CHIP_TEMP_WARNING)
+        current_chip_color = COLOR_WARNING;
+    else
+        current_chip_color = COLOR_WHITE;
+    if (current_chip_color != last_chip_color)
+    {
+        Blynk.setProperty(V13, "color", current_chip_color);
+        last_chip_color = current_chip_color;
+    }
+    if (fabsf(tChip - last_tChip) >= BLYNK_DELTA_CHIP_TEMP)
+    {
+        Blynk.virtualWrite(V13, tChip);
+        last_tChip = tChip;
     }
 
     if (mins != last_mins)

@@ -1,12 +1,12 @@
 #pragma once
 
 // ========  SYSTEM CONFIGURATION ===========
-#define FW_VERSION        "0.2.6.3"
+#define FW_VERSION        "0.2.6.6"
 #define WDT_TIMEOUT       45
 #define LOG_INTERVAL      60000
 #define SERIAL_BAUD_RATE        115200
 #define BOOTLOOP_CRASH_LIMIT    3
-#define SEND_TELEMETRY_INTERVAL      30000
+#define SEND_TELEMETRY_INTERVAL      40000
 // - Hardware Task: High priority for sensor reading and control
 #define TASK_HW_STACK_SIZE      12288
 #define TASK_HW_PRIORITY        3
@@ -54,7 +54,8 @@
 #define LIGHT_DEFAULT_END_H     6
 #define LIGHT_DEFAULT_END_M     10
 
-// //  ========  TEMPERATURE SENSOR SETTINGS (DS18B20) ========
+// //  ========  TEMPERATURE SENSOR SETTINGS  ========
+// DS18B20 Settings (Buck Sensor)
 #define TEMP_SENSOR_INDEX  0 // Buck Sensor
 #define TEMP_SENSOR_RESOLUTION  10
 #define TEMP_UPDATE_INTERVAL    2000
@@ -63,6 +64,11 @@
 #define DS18B20_ERR_POWER_ON    85.0f
 #define TEMP_THROTTLE_ON  45.0f
 #define TEMP_THROTTLE_OFF 40.0f
+// Chip (Internal) Temperature Alerts
+#define ALERT_CHIP_TEMP_WARNING   70.0f
+#define ALERT_CHIP_TEMP_CRITICAL  85.0f
+#define ALERT_CHIP_TEMP_RECOVERY  75.0f
+#define BLYNK_DELTA_CHIP_TEMP     0.5f
 
 // //  ========  NETWORK SETTINGS ========
 #define NET_CHECK_INTERVAL      60000
@@ -120,6 +126,8 @@
 #define BLYNK_DELTA_VOLT        0.02f
 #define BLYNK_DELTA_TEMP        0.2f
 #define BLYNK_DELTA_RAM_KB      1
+#define BLYNK_SAME_VOLT_COUNT   5
+
 
 // //  ========  WEB DASHBOARD & SERVER SETTINGS  ========
 #define WEB_SERVER_PORT         80

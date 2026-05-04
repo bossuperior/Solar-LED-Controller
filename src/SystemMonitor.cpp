@@ -64,7 +64,7 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
     {
         if (!errTemp)
         {
-            addAlert("TEMP", "🚨 อันตราย: ตัววัดอุณหภูมิวงจรลดแรงดันไม่ทำงาน (ตรวจสอบ DS18B20)");
+            addAlert("TEMP", "🚨 อันตราย: ตัววัดอุณหภูมิไม่ทำงาน (ตรวจสอบ DS18B20)");
             errTemp = true;
         }
     }
@@ -99,7 +99,7 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
     { // if RTC lost power, it will reset to 1970 or similar.
         if (!errTime)
         {
-            addAlert("TIME", "⚠️ ระวัง: นาฬิกาในเครื่องถ่านหมดหรือพัง ทำให้ระบบตั้งเวลาเปิด/ปิดไฟไม่ทำงาน (ตรวจสอบ RTC DS3231)");
+            addAlert("TIME", "⚠️ ระวัง: นาฬิกาถ่านหมดหรือพัง (ตรวจสอบ RTC DS3231)");
             errTime = true;
         }
     }
@@ -142,5 +142,21 @@ void SystemMonitor::monitor(PowerManager *pm, TempManager *tm, FanManager *fm, T
     else
     {
         errBuckVoltage = false;
+    }
+
+    float cTemp = tm->getChipTemp();
+    if (cTemp > ALERT_CHIP_TEMP_CRITICAL)
+    {
+        if (!errChipTemp)
+        {
+            char msg[256];
+            snprintf(msg, sizeof(msg), "⚠️ ระวัง: ชิป ESP32 ร้อนเกินไป (%.1f°C) ตรวจสอบการระบายอากาศ", cTemp);
+            addAlert("CHIP", msg);
+            errChipTemp = true;
+        }
+    }
+    else if (cTemp < ALERT_CHIP_TEMP_RECOVERY)
+    {
+        errChipTemp = false;
     }
 }

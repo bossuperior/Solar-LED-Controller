@@ -69,8 +69,10 @@ void HardwareLoop(void *pvParameters)
     if (xSemaphoreTake(mutexKey, pdMS_TO_TICKS(100)) == pdTRUE)
     {
       timer.handle();
-      int h = timer.getHour();
-      int m = timer.getMinute();
+      struct tm now;
+      timer.getCurrentTime(now);
+      int h = now.tm_hour;
+      int m = now.tm_min;
       temp.update();
       fan.handle(&temp);
       light.handle(h, m, &temp);
@@ -107,7 +109,7 @@ void CommLoop(void *pvParameters)
     if (network.isInternetAvailable())
     {
       blynk.handle();
-      float send_v = 0, send_buck_t = 0;
+      float send_v = 0, send_buck_t = 0, send_chip_t = 0;
       int send_fan = 0;
       static String send_light = "ปิดไฟ";
       bool doLog = false;
@@ -123,6 +125,7 @@ void CommLoop(void *pvParameters)
         }
         send_v = power.getVoltage();
         send_buck_t = temp.getBuckTemp();
+        send_chip_t = temp.getChipTemp();
         send_fan = fan.getFanSpeed();
         if (millis() - lastLogSent >= LOG_INTERVAL)
         {
@@ -148,7 +151,7 @@ void CommLoop(void *pvParameters)
         char tempLogMsg[32];
         snprintf(tempLogMsg, sizeof(tempLogMsg), "Buck: %.1fC", send_buck_t);
         sysLogger.sysLog("TEMP", tempLogMsg);
-        gsheet.sendData(send_v, send_buck_t, send_fan, send_light);
+        gsheet.sendData(send_v, send_buck_t, send_chip_t, send_fan, send_light);
         esp_task_wdt_reset();
       }
     }
