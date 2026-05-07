@@ -21,6 +21,7 @@ void GsheetManager::begin(LogManager *sysLogger, TimeManager *timeManager)
     m_sysLogger = sysLogger;
     m_timeManager = timeManager;
     m_client.setInsecure();
+    m_client.setHandshakeTimeout(8);
     if (m_sysLogger != nullptr)
     {
         m_sysLogger->sysLog("GSHEET", "Google Sheets manager initialized");

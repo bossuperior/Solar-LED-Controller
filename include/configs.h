@@ -1,18 +1,18 @@
 #pragma once
 
 // ========  SYSTEM CONFIGURATION ===========
-#define FW_VERSION        "0.2.6.6"
+#define FW_VERSION        "0.2.7"
 #define WDT_TIMEOUT       45
-#define LOG_INTERVAL      60000
+#define LOG_INTERVAL      300000
 #define SERIAL_BAUD_RATE        115200
 #define BOOTLOOP_CRASH_LIMIT    3
-#define SEND_TELEMETRY_INTERVAL      40000
+#define SEND_TELEMETRY_INTERVAL      60000
 // - Hardware Task: High priority for sensor reading and control
 #define TASK_HW_STACK_SIZE      12288
 #define TASK_HW_PRIORITY        3
 #define TASK_HW_CORE            1
 // - IR Task: Medium priority, separate from HardwareLoop to avoid blocking
-#define TASK_IR_STACK_SIZE      2048
+#define TASK_IR_STACK_SIZE      3072
 #define TASK_IR_PRIORITY        2
 #define TASK_IR_CORE            1
 // - Communication Task: Lower priority for network and UI updates
@@ -71,7 +71,8 @@
 #define BLYNK_DELTA_CHIP_TEMP     0.5f
 
 // //  ========  NETWORK SETTINGS ========
-#define NET_CHECK_INTERVAL      60000
+#define NET_CHECK_INTERVAL      120000
+#define INTERNET_CHECK_INTERVAL  300000
 #define WIFI_MAX_ATTEMPT_TIME   15000
 #define MIN_WIFI_RSSI     -85
 

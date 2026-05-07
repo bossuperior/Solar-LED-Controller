@@ -17,6 +17,7 @@ void NetworkManager::begin(LogManager *sysLogger)
     WiFi.disconnect(true, true);
     delay(100);
     WiFi.mode(WIFI_STA);
+    WiFi.setSleep(true);
     delay(100);
     wifiMulti.addAP(SECRET_SSID_HOME, SECRET_PASS_HOME);
     wifiMulti.addAP(SECRET_SSID_BOSS, SECRET_PASS_BOSS);
@@ -44,6 +45,7 @@ void NetworkManager::handle()
                 WiFi.softAPdisconnect(true);
                 delay(100);
                 WiFi.mode(WIFI_STA);
+                WiFi.setSleep(true);
                 _apModeStarted = false;
                 _startAttemptTime = millis();
                 if (m_logger)
@@ -66,6 +68,7 @@ void NetworkManager::handle()
             WiFi.disconnect();
             delay(100);
             WiFi.mode(WIFI_AP_STA);
+            WiFi.setSleep(false);
             delay(100);
             bool apStatus = WiFi.softAP("T_SOLAR_LED_AP", SECRET_AP_PASS);
             if (apStatus && m_logger != nullptr)
@@ -116,7 +119,7 @@ bool NetworkManager::isInternetAvailable()
         return false;
     }
 
-    if (_firstCheck || (millis() - lastNetCheck > NET_CHECK_INTERVAL))
+    if (_firstCheck || (millis() - lastNetCheck > INTERNET_CHECK_INTERVAL))
     {
         lastNetCheck = millis();
         _firstCheck = false;

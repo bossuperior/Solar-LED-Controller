@@ -28,6 +28,7 @@ void LightManager::begin(LogManager *sysLoggerPtr)
     isCustomScheduleActive = prefs.getBool("schActive", false);
     prefs.end();
 
+    _forceUpdate = true;
     m_logger = sysLoggerPtr;
     if (m_logger != nullptr)
     {
@@ -48,7 +49,7 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm)
     }
     else if (isCustomScheduleActive)
     {
-        if (startTotalMinutes >= endTotalMinutes) // Handle overnight schedule
+        if (startTotalMinutes > endTotalMinutes) // Handle overnight schedule
         {
             if (currentTotalMinutes >= startTotalMinutes || currentTotalMinutes < endTotalMinutes)
             {
@@ -164,6 +165,8 @@ void LightManager::executeIR()
     case IR_OFF:
         irsend.sendNEC(IR_CODE_OFF, IR_BITS);
         vTaskDelay(pdMS_TO_TICKS(50));
+        irsend.sendNEC(IR_CODE_OFF, IR_BITS);
+        vTaskDelay(pdMS_TO_TICKS(150));
         irsend.sendNEC(IR_CODE_OFF, IR_BITS);
         vTaskDelay(pdMS_TO_TICKS(150));
         break;

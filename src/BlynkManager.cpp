@@ -30,6 +30,7 @@ String b_fwVer = "";
 
 static bool pendingOtaUpdate = false;
 static bool pendingOtaRollback = false;
+static bool b_scheduledReboot = false;
 
 // V0: switchonoff
 BLYNK_WRITE(V0)
@@ -65,7 +66,7 @@ BLYNK_WRITE(V1)
         {
             if (xSemaphoreTake(*b_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
             {
-                b_light->setScheduleParams(sH, sM, eH, eM, true);
+                b_light->setScheduleParams(sH, sM, eH, eM, b_light->getCustomScheduleActive());
                 b_light->saveScheduleToPrefs();
                 xSemaphoreGive(*b_mutex);
             }
@@ -92,7 +93,15 @@ BLYNK_CONNECTED()
 
     if (b_logger)
     {
-        Blynk.virtualWrite(V8, "🔄 ระบบออนไลน์ โหลดข้อมูลจากคลาวด์สำเร็จ\n");
+        if (b_scheduledReboot)
+        {
+            Blynk.virtualWrite(V8, "🔄 ระบบออนไลน์ รีบู๊ตระบบรายสัปดาห์เรียบร้อย\n");
+            b_scheduledReboot = false;
+        }
+        else
+        {
+            Blynk.virtualWrite(V8, "🔄 ระบบออนไลน์ โหลดข้อมูลจากคลาวด์สำเร็จ\n");
+        }
     }
 }
 
@@ -168,6 +177,17 @@ BLYNK_WRITE(V12)
         pendingOtaRollback = true;
         Blynk.virtualWrite(V12, 0); // Reset button in UI
     }
+}
+
+void BlynkManager::keepAlive()
+{
+    if (Blynk.connected())
+        Blynk.run();
+}
+
+void BlynkManager::setScheduledReboot(bool wasScheduled)
+{
+    b_scheduledReboot = wasScheduled;
 }
 
 void BlynkManager::begin(LogManager *logger, LightManager *light, PowerManager *power, TempManager *temp, FanManager *fan, TimeManager *time, SemaphoreHandle_t *mutex, OTAManager *ota, const String &fwVer)

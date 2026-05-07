@@ -19,4 +19,5 @@ public:
   void begin(LogManager *sysLogger);
   void handle();
   bool isInternetAvailable();
+  bool isWiFiConnected() { return WiFi.status() == WL_CONNECTED; }
 };

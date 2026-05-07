@@ -36,6 +36,7 @@
 #ifndef PIO_UNIT_TESTING
 RTC_NOINIT_ATTR int crashCounter;
 RTC_NOINIT_ATTR uint32_t crashMagic;
+RTC_NOINIT_ATTR uint8_t scheduledRebootFlag;
 
 // --- Task & Sync Handles ---
 TaskHandle_t TaskHardware;
@@ -81,6 +82,7 @@ void HardwareLoop(void *pvParameters)
     }
     if (monitor.isPendingReboot())
     {
+      scheduledRebootFlag = 0xAB;
       vTaskDelay(pdMS_TO_TICKS(3000));
       ESP.restart();
     }
@@ -101,14 +103,18 @@ void CommLoop(void *pvParameters)
 {
   esp_task_wdt_add(NULL);
   unsigned long lastTelemetryUpdate = 0;
+  static float cachedVoltage = BATT_CRITICAL_LOW_V;
   for (;;)
   {
     network.handle();
-    dashboard.handle();
+    if (cachedVoltage >= BATT_CRITICAL_LOW_V || !power.isInaAvailable())
+      dashboard.handle();
 
     if (network.isInternetAvailable())
     {
+      esp_task_wdt_reset();
       blynk.handle();
+      esp_task_wdt_reset();
       float send_v = 0, send_buck_t = 0, send_chip_t = 0;
       int send_fan = 0;
       static String send_light = "ปิดไฟ";
@@ -124,6 +130,7 @@ void CommLoop(void *pvParameters)
           pending.push_back(alertTxt);
         }
         send_v = power.getVoltage();
+        cachedVoltage = send_v;
         send_buck_t = temp.getBuckTemp();
         send_chip_t = temp.getChipTemp();
         send_fan = fan.getFanSpeed();
@@ -151,12 +158,23 @@ void CommLoop(void *pvParameters)
         char tempLogMsg[32];
         snprintf(tempLogMsg, sizeof(tempLogMsg), "Buck: %.1fC", send_buck_t);
         sysLogger.sysLog("TEMP", tempLogMsg);
-        gsheet.sendData(send_v, send_buck_t, send_chip_t, send_fan, send_light);
+        if (send_v >= BATT_CRITICAL_LOW_V)
+        {
+          gsheet.sendData(send_v, send_buck_t, send_chip_t, send_fan, send_light);
+        }
+        else
+        {
+          sysLogger.sysLog("GSHEET", "Skip: Voltage too low for network TX");
+        }
         esp_task_wdt_reset();
       }
     }
+    else if (network.isWiFiConnected())
+    {
+      blynk.keepAlive();
+    }
     esp_task_wdt_reset();
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    vTaskDelay(250 / portTICK_PERIOD_MS);
   }
 }
 
@@ -164,10 +182,17 @@ void setup()
 {
   Serial.begin(SERIAL_BAUD_RATE);
   delay(1000);
+  bool isScheduledReboot = false;
   if (crashMagic != 0xDEADBEEF)
   {
     crashCounter = 0;
     crashMagic = 0xDEADBEEF;
+    scheduledRebootFlag = 0;
+  }
+  else if (scheduledRebootFlag == 0xAB)
+  {
+    isScheduledReboot = true;
+    scheduledRebootFlag = 0;
   }
   esp_reset_reason_t reason = esp_reset_reason();
   if (reason == ESP_RST_POWERON || reason == ESP_RST_BROWNOUT)
@@ -218,6 +243,24 @@ void setup()
     err = nvs_flash_init();
   }
   sysLogger.begin();
+  {
+    const char *rrStr = "Unknown";
+    switch (reason)
+    {
+    case ESP_RST_POWERON:   rrStr = "Power-ON";    break;
+    case ESP_RST_SW:        rrStr = "Software";    break;
+    case ESP_RST_PANIC:     rrStr = "PANIC/Crash"; break;
+    case ESP_RST_INT_WDT:   rrStr = "Int-WDT";     break;
+    case ESP_RST_TASK_WDT:  rrStr = "Task-WDT";    break;
+    case ESP_RST_WDT:       rrStr = "WDT";         break;
+    case ESP_RST_BROWNOUT:  rrStr = "Brownout";    break;
+    case ESP_RST_DEEPSLEEP: rrStr = "DeepSleep";   break;
+    default: break;
+    }
+    char bootMsg[64];
+    snprintf(bootMsg, sizeof(bootMsg), "Boot: %s | FW:%s | Crashes:%d", rrStr, FW_VERSION, crashCounter);
+    sysLogger.sysLog("SYSTEM", bootMsg);
+  }
   if (err == ESP_OK)
   {
     Serial.println("[SYSTEM] NVS Initialized successfully.");
@@ -233,6 +276,8 @@ void setup()
   gsheet.begin(&sysLogger, &timer);
   dashboard.begin(&sysLogger, &light, &power, &temp, &fan, &mutexKey, FW_VERSION);
   blynk.begin(&sysLogger, &light, &power, &temp, &fan, &timer, &mutexKey, &ota, FW_VERSION);
+  if (isScheduledReboot)
+    blynk.setScheduledReboot(true);
 
   // Create Tasks
   esp_task_wdt_init(WDT_TIMEOUT, true);
