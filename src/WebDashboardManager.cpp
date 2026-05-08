@@ -43,16 +43,19 @@ void WebDashboardManager::begin(LogManager *sysLogger, LightManager *light, Powe
     server.on("/log", HTTP_GET, [this]() {
         if (m_logger != nullptr) {
             String logData = m_logger->getTailLogs(WEB_LOG_MAX_LENGTH);
-            
+            logData.replace("&", "&amp;");
+            logData.replace("<", "&lt;");
+            logData.replace(">", "&gt;");
+
             server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-            server.send(200, "text/html", ""); 
+            server.send(200, "text/html", "");
             server.sendContent("<html><body style='background:#0f172a;color:#10b981;font-family:monospace;padding:20px;white-space:pre-wrap;'>");
             server.sendContent(logData);
             server.sendContent("</body></html>");
             server.sendContent("");
         } else {
             server.send(500, "text/plain", "Logger not initialized");
-        } 
+        }
     });
 
     server.begin();

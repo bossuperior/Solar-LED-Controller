@@ -95,12 +95,12 @@ BLYNK_CONNECTED()
     {
         if (b_scheduledReboot)
         {
-            Blynk.virtualWrite(V8, "🔄 ระบบออนไลน์ รีบู๊ตระบบรายสัปดาห์เรียบร้อย\n");
+            Blynk.virtualWrite(V8, "🔄 รีบู๊ตระบบรายสัปดาห์เรียบร้อย\n");
             b_scheduledReboot = false;
         }
         else
         {
-            Blynk.virtualWrite(V8, "🔄 ระบบออนไลน์ โหลดข้อมูลจากคลาวด์สำเร็จ\n");
+            Blynk.virtualWrite(V8, "🔄 ระบบออนไลน์ โหลดข้อมูลสำเร็จ\n");
         }
     }
 }
@@ -132,7 +132,7 @@ BLYNK_WRITE(V9)
             b_fan->setManualOverride(switchState == 1);
             xSemaphoreGive(*b_mutex);
         }
-        Blynk.virtualWrite(V8, switchState == 1 ? "🌀 เปิดพัดลมแล้ว" : "🌀 ปิดพัดลม (กลับสู่โหมดออโต้)\n");
+        Blynk.virtualWrite(V8, switchState == 1 ? "🌀 เปิดพัดลมแล้ว\n" : "🌀 ปิดพัดลม (กลับสู่โหมดออโต้)\n");
     }
 }
 
@@ -237,7 +237,7 @@ void BlynkManager::handle()
 
 void BlynkManager::sendTelemetry()
 {
-    if (!b_power || !b_temp || !b_fan || !b_light || !b_time)
+    if (!b_power || !b_temp || !b_fan || !b_light)
         return;
     if (!Blynk.connected())
         return;
@@ -253,9 +253,11 @@ void BlynkManager::sendTelemetry()
     int days = uptimeSecs / 86400;
     int hours = (uptimeSecs % 86400) / 3600;
     int mins = (uptimeSecs % 3600) / 60;
+    String ssid = WiFi.SSID();
+    ssid.replace("|", "-");
     char sysInfo[128];
     snprintf(sysInfo, sizeof(sysInfo), "WiFi: %s | Uptime: %dd %dh %dm | FW: %s",
-             WiFi.SSID().c_str(), days, hours, mins, b_fwVer.c_str());
+             ssid.c_str(), days, hours, mins, b_fwVer.c_str());
 
     static float last_v = -100.0;
     static float last_tBuck = -100.0;

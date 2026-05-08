@@ -147,7 +147,7 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
     if (m_logger)
         m_logger->sysLog("OTA", "New version found! Starting download...");
     if (m_blynk)
-        m_blynk->sendLog("📡 พบเวอร์ชัน " + latestTag + " อย่าปิดเบรคเกอร์!");
+        m_blynk->sendLog("📡 พบอัปเดต " + latestTag + " อย่าปิดเบรคเกอร์!");
     httpUpdate.onProgress([](size_t current, size_t total)
                           { esp_task_wdt_reset(); });
     httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);

@@ -31,7 +31,7 @@ void LogManager::sysLog(const String &module, const String &message)
 
     if (_mutex == nullptr || xSemaphoreTake(_mutex, pdMS_TO_TICKS(20)) != pdTRUE)
         return;
-    int copyLen = min(len, (int)sizeof(logBuffer[headIndex]) - 1);
+    int copyLen = min((int)strnlen(entry, sizeof(entry)), (int)sizeof(logBuffer[headIndex]) - 1);
     memcpy(logBuffer[headIndex], entry, copyLen);
     logBuffer[headIndex][copyLen] = '\0';
     headIndex = (headIndex + 1) % MAX_LOG_LINES;

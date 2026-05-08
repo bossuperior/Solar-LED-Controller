@@ -32,7 +32,8 @@ String SystemMonitor::getAlert()
 
 void SystemMonitor::ScheduledReboot(TimeManager *tr)
 {
-    if (!_pendingReboot && tr->getDayOfWeek() == REBOOT_DAY_OF_WEEK && tr->getHour() == REBOOT_HOUR && tr->getMinute() == REBOOT_MINUTE && millis() > REBOOT_UPTIME_MIN_MS)
+    int _m = tr->getMinute();
+    if (!_pendingReboot && tr->getDayOfWeek() == REBOOT_DAY_OF_WEEK && tr->getHour() == REBOOT_HOUR && (_m == REBOOT_MINUTE || _m == REBOOT_MINUTE + 1) && millis() > REBOOT_UPTIME_MIN_MS)
     {
         addAlert("SYSTEM", "⚙️ Weekly maintenance reboot in progress...");
         _pendingReboot = true;

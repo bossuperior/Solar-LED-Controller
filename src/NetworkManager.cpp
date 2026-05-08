@@ -70,18 +70,20 @@ void NetworkManager::handle()
             WiFi.mode(WIFI_AP_STA);
             WiFi.setSleep(false);
             delay(100);
-            bool apStatus = WiFi.softAP("T_SOLAR_LED_AP", SECRET_AP_PASS);
+            bool apStatus = WiFi.softAP(AP_SSID, SECRET_AP_PASS);
             if (apStatus && m_logger != nullptr)
             {
                 char apMsg[64];
-                snprintf(apMsg, sizeof(apMsg), "AP Started: T_SOLAR_LED_AP, IP: %s", WiFi.softAPIP().toString().c_str());
+                snprintf(apMsg, sizeof(apMsg), "AP Started: %s, IP: %s", AP_SSID, WiFi.softAPIP().toString().c_str());
                 m_logger->sysLog("NETWORK", apMsg);
             }
             else if (m_logger != nullptr)
             {
                 m_logger->sysLog("NETWORK", "ERROR: Failed to start AP Mode!");
             }
-            _apModeStarted = true;
+            _apModeStarted = apStatus;
+            if (!apStatus)
+                _startAttemptTime = millis();
             lastScanTime = millis();
         }
     }

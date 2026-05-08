@@ -1,6 +1,5 @@
 #include "TempManager.h"
-#define ONE_WIRE_BUS 4
-OneWire oneWire(ONE_WIRE_BUS);
+OneWire oneWire(TEMP_ONE_WIRE_PIN);
 DallasTemperature sensors(&oneWire);
 
 void TempManager::begin(LogManager *sysLogger)

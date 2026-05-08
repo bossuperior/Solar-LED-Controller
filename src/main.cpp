@@ -92,9 +92,11 @@ void HardwareLoop(void *pvParameters)
 }
 void IRTask(void *pvParameters)
 {
+  esp_task_wdt_add(NULL);
   for (;;)
   {
     light.executeIR();
+    esp_task_wdt_reset();
     vTaskDelay(pdMS_TO_TICKS(20));
   }
 }

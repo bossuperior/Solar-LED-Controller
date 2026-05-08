@@ -1,7 +1,7 @@
 #pragma once
 
 // ========  SYSTEM CONFIGURATION ===========
-#define FW_VERSION        "0.2.7"
+#define FW_VERSION        "0.2.7.1"
 #define WDT_TIMEOUT       45
 #define LOG_INTERVAL      300000
 #define SERIAL_BAUD_RATE        115200
@@ -129,6 +129,9 @@
 #define BLYNK_DELTA_RAM_KB      1
 #define BLYNK_SAME_VOLT_COUNT   5
 
+
+// //  ========  NETWORK AP FALLBACK SETTINGS  ========
+#define AP_SSID                 "T_SOLAR_LED_AP"
 
 // //  ========  WEB DASHBOARD & SERVER SETTINGS  ========
 #define WEB_SERVER_PORT         80
