@@ -17,23 +17,23 @@ An industrial-grade, smart solar street light control system. Built with a Dual-
   * **Core 1 (Hardware):** Handles real-time IR lighting control, temperature monitoring, PWM fan speed, and power safety logic.
   * **Core 0 (Network):** Handles Wi-Fi connectivity, Blynk IoT interactions, Google Sheets logging, Local Dashboard API, and OTA updates.
   * *Data is synchronized safely across cores using FreeRTOS Mutex.*
-* ** Local Web Dashboard:** Sleek, responsive UI built with Vite, TypeScript, and Tailwind CSS. Hosted directly on the ESP32 via LittleFS for real-time monitoring schedule configuration and full temperature-based fan control without cloud dependency.
+* **Local Web Dashboard:** Sleek, responsive UI built with Vite, TypeScript, and Tailwind CSS. Hosted directly on the ESP32 via LittleFS for real-time monitoring schedule configuration and full temperature-based fan control without cloud dependency.
   
 <img width="1902" height="1080" alt="image" src="https://github.com/user-attachments/assets/83420c6a-9173-42f6-8ff6-22cf349f80d2" />
 
-* ** Offline AP Fallback:** Automatically activates a local Access Point (`T_SOLAR_LED_AP`) if primary Wi-Fi is lost, maintaining control via `192.168.4.1`
-* ** Power & Safety Management:** Continuously monitors LiFePO4 battery/solar voltage. Automatically turning light off if the power is deemed unsafe and recovers automatically when stable.
-* ** Active Thermal Control:** Reads temperatures from Buck converter to dynamically adjust cooling fan speed via PWM based on the highest temperature.
-* ** Smart Lighting:** Operates in AUTO mode based on real-time clock (RTC/NTP) schedules, with support for MANUAL override.
-* ** Blynk IoT Integration:** Full remote control and real-time monitoring via the Blynk app. Features include manual override, auto-schedule configuration, live telemetry (Voltage, Temp, Fan) integrated terminal for remote system logs and full temperature-based fan control.
+* **Offline AP Fallback:** Automatically activates a local Access Point (`T_SOLAR_LED_AP`) if primary Wi-Fi is lost, maintaining control via `192.168.4.1`
+* **Power & Safety Management:** Continuously monitors LiFePO4 battery/solar voltage. Automatically turning light off if the power is deemed unsafe and recovers automatically when stable.
+* **Active Thermal Control:** Reads temperatures from Buck converter to dynamically adjust cooling fan speed via PWM based on the highest temperature.
+* **Smart Lighting:** Operates in AUTO mode based on real-time clock (RTC/NTP) schedules, with support for MANUAL override.
+* **Blynk IoT Integration:** Full remote control and real-time monitoring via the Blynk app. Features include manual override, auto-schedule configuration, live telemetry (Voltage, Temp, Fan) integrated terminal for remote system logs and full temperature-based fan control.
 <div align="center">
-  <img width="300" alt="image" src="https://github.com/user-attachments/assets/b84a2eb8-f6a6-4a0b-b356-837e785ef2be" />
+ <img width="300" alt="image" src="https://github.com/user-attachments/assets/b75a91e9-45eb-4ebe-acc3-014ca23edacc" />
 </div>
 
-- ** Cloud Data Logging:** Automatically pushes telemetry data (Voltage, Temp, Fan Speed, Light Mode) to Google Sheets at scheduled intervals.
-- ** OTA Updates:** Supports Over-The-Air firmware updates with a built-in safety timer and auto-rollback for seamless maintenance without physical access to the board.
-- ** Watchdog Timer (WDT):** Integrated hardware watchdog on both CPU cores to prevent system lockups.
-- ** IR Transceiver:** Separated IR Transceiver environment function for reading and testing IR remote codes to ensure precise lighting control.
+- **Cloud Data Logging:** Automatically pushes telemetry data (Voltage, Temp, Fan Speed, Light Mode) to Google Sheets at scheduled intervals.
+- **OTA Updates:** Supports Over-The-Air firmware updates with a built-in safety timer and auto-rollback for seamless maintenance without physical access to the board.
+- **Watchdog Timer (WDT):** Integrated hardware watchdog on both CPU cores to prevent system lockups.
+- **IR Transceiver:** Separated IR Transceiver environment function for reading and testing IR remote codes to ensure precise lighting control.
 
 ##  Software Architecture
 
