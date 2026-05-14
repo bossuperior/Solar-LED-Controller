@@ -1,7 +1,7 @@
 #pragma once
 
 // ========  SYSTEM CONFIGURATION ===========
-#define FW_VERSION        "0.2.7.1"
+#define FW_VERSION        "0.2.7.5"
 #define WDT_TIMEOUT       45
 #define LOG_INTERVAL      300000
 #define SERIAL_BAUD_RATE        115200
@@ -79,6 +79,7 @@
 // //  ========  GOOGLE SHEETS API SETTINGS ========
 #define GSHEET_HTTP_TIMEOUT     8000
 #define GSHEET_JSON_BUFFER_SIZE 768 //Bytes
+#define GSHEET_HANDSHAKE_TIMEOUT 8
 
 // //  ========  OTA UPDATE SETTINGS ========
 #define OTA_HTTP_TIMEOUT        10000 
@@ -89,7 +90,7 @@
 // //  ========  TIME & NTP SETTINGS ========
 #define NTP_SERVER_1              "pool.ntp.org"
 #define NTP_SERVER_2              "time.nist.gov"
-#define NTP_GMT_OFFSET_SEC      (7 * 3600)  // GMT+7 (สำหรับประเทศไทย)
+#define NTP_GMT_OFFSET_SEC      (7 * 3600)  // GMT+7
 #define NTP_DAYLIGHT_OFFSET_SEC 0
 
 // //  ========  LOG SETTINGS ========
@@ -117,7 +118,7 @@
 #define ALERT_VOLTAGE_HIGH      3.8f
 #define BATT_CRITICAL_LOW_V     3.10f
 
-// //  ========  BLYNK TELEMETRY & UI SETTINGS ========
+// //  ========  BLYNK SETTINGS ========
 #define COLOR_NORMAL            "#00E676"
 #define COLOR_WARNING           "#FFB300"
 #define COLOR_CRITICAL          "#FF4444"
@@ -128,6 +129,8 @@
 #define BLYNK_DELTA_TEMP        0.2f
 #define BLYNK_DELTA_RAM_KB      1
 #define BLYNK_SAME_VOLT_COUNT   5
+#define BLYNK_RECONNECT_INTERVAL 10000
+#define BLYNK_CONNECT_TIMEOUT    500
 
 
 // //  ========  NETWORK AP FALLBACK SETTINGS  ========

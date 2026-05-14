@@ -31,6 +31,11 @@ String b_fwVer = "";
 static bool pendingOtaUpdate = false;
 static bool pendingOtaRollback = false;
 static bool b_scheduledReboot = false;
+static bool otaUpdateAwaitConfirm = false;
+static unsigned long otaUpdateConfirmMs = 0;
+static bool otaRollbackAwaitConfirm = false;
+static unsigned long otaRollbackConfirmMs = 0;
+static constexpr unsigned long OTA_CONFIRM_WINDOW_MS = 10000;
 
 // V0: switchonoff
 BLYNK_WRITE(V0)
@@ -73,7 +78,7 @@ BLYNK_WRITE(V1)
         }
 
         char msgBuffer[128];
-        snprintf(msgBuffer, sizeof(msgBuffer), "⏰ อัปเดตเวลาออโต้: %d:%02d น. ถึง %d:%02d น.\n", sH, sM, eH, eM);
+        snprintf(msgBuffer, sizeof(msgBuffer), "⏰ ตั้งเวลาเวลาออโต้: %d:%02d น. ถึง %d:%02d น.\n", sH, sM, eH, eM);
         Blynk.virtualWrite(V8, msgBuffer);
     }
     else
@@ -154,28 +159,49 @@ BLYNK_WRITE(V10)
     }
 }
 
-// V11: Check OTA from GitHub
+// V11: Check OTA
 BLYNK_WRITE(V11)
 {
-    if (param.isEmpty())
+    if (param.isEmpty() || param.asInt() != 1)
         return;
-    int state = param.asInt();
-    if (state == 1)
+    Blynk.virtualWrite(V11, 0);
+
+    unsigned long now = millis();
+    if (otaUpdateAwaitConfirm && (now - otaUpdateConfirmMs) < OTA_CONFIRM_WINDOW_MS)
     {
+        otaUpdateAwaitConfirm = false;
         pendingOtaUpdate = true;
-        Blynk.virtualWrite(V11, 0); // Reset button in UI
+        Blynk.virtualWrite(V8, "🔄 ยืนยันแล้ว! กำลังตรวจสอบอัพเดท...\n");
+    }
+    else
+    {
+        otaUpdateAwaitConfirm = true;
+        otaUpdateConfirmMs = now;
+        otaRollbackAwaitConfirm = false;
+        Blynk.virtualWrite(V8, "⚠️ กดซ้ำเพื่ออัพเดท (10 วิ)\n");
     }
 }
-// V12: Trigger OTA rollback
+
+// V12: Rollback
 BLYNK_WRITE(V12)
 {
-    if (param.isEmpty())
+    if (param.isEmpty() || param.asInt() != 1)
         return;
-    int state = param.asInt();
-    if (state == 1)
+    Blynk.virtualWrite(V12, 0);
+
+    unsigned long now = millis();
+    if (otaRollbackAwaitConfirm && (now - otaRollbackConfirmMs) < OTA_CONFIRM_WINDOW_MS)
     {
+        otaRollbackAwaitConfirm = false;
         pendingOtaRollback = true;
-        Blynk.virtualWrite(V12, 0); // Reset button in UI
+        Blynk.virtualWrite(V8, "⚠️ ยืนยันแล้ว! กำลังย้อนเวอร์ชัน...\n");
+    }
+    else
+    {
+        otaRollbackAwaitConfirm = true;
+        otaRollbackConfirmMs = now;
+        otaUpdateAwaitConfirm = false;
+        Blynk.virtualWrite(V8, "⚠️ กดซ้ำเพื่อย้อนเวอร์ชัน (10 วิ)\n");
     }
 }
 
@@ -210,11 +236,25 @@ void BlynkManager::begin(LogManager *logger, LightManager *light, PowerManager *
 
 void BlynkManager::handle()
 {
-    if (!Blynk.connected())
+    static unsigned long lastConnectAttempt = 0;
+    if (WiFi.status() == WL_CONNECTED)
     {
-        Blynk.connect(3000);
+        if (!Blynk.connected())
+        {
+            if (millis() - lastConnectAttempt >= BLYNK_RECONNECT_INTERVAL)
+            {
+                lastConnectAttempt = millis();
+                Blynk.connect(BLYNK_CONNECT_TIMEOUT);
+                if (b_logger)
+                {
+                    b_logger->sysLog("BLYNK", "Attempting to reconnect to Blynk server...");
+                }
+            }
+        }else
+        {
+            Blynk.run();
+        }
     }
-    Blynk.run();
 
     if (pendingOtaUpdate)
     {

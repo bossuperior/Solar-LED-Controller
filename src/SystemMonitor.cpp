@@ -3,30 +3,47 @@
 void SystemMonitor::begin(LogManager *sysLogger)
 {
     m_logger = sysLogger;
+    _alertMutex = xSemaphoreCreateMutex();
 }
 
 void SystemMonitor::addAlert(const String &module, const String &msg)
 {
-    if (_alertQueue.size() >= MONITOR_MAX_ALERTS)
+    if (_alertMutex != nullptr && xSemaphoreTake(_alertMutex, pdMS_TO_TICKS(50)) == pdTRUE)
     {
-        _alertQueue.pop();
+        if (_alertQueue.size() >= MONITOR_MAX_ALERTS)
+        {
+            _alertQueue.pop();
+        }
+        _alertQueue.push("[" + module + "] " + msg);
+        xSemaphoreGive(_alertMutex);
     }
-    _alertQueue.push("[" + module + "] " + msg);
     if (m_logger)
         m_logger->sysLog(module, msg);
 }
 
 bool SystemMonitor::hasAlert()
 {
-    return !_alertQueue.empty();
+    bool hasData = false;
+    if (_alertMutex != nullptr && xSemaphoreTake(_alertMutex, pdMS_TO_TICKS(10)) == pdTRUE)
+    {
+        hasData = !_alertQueue.empty();
+        xSemaphoreGive(_alertMutex);
+    }
+    return hasData;
 }
 
 String SystemMonitor::getAlert()
 {
-    if (_alertQueue.empty())
-        return "";
-    String msg = _alertQueue.front();
-    _alertQueue.pop();
+    String msg = "";
+    if (_alertMutex != nullptr && xSemaphoreTake(_alertMutex, pdMS_TO_TICKS(50)) == pdTRUE)
+    {
+        if (!_alertQueue.empty())
+        {
+            msg = _alertQueue.front();
+            _alertQueue.pop();
+        }
+        xSemaphoreGive(_alertMutex);
+    }
     return msg;
 }
 

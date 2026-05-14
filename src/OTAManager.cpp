@@ -185,7 +185,7 @@ void OTAManager::checkUpdate(String currentVersion, LogManager *sysLogger, Power
         if (m_logger)
             m_logger->sysLog("OTA", "Update successful! Rebooting...");
         if (m_blynk)
-            m_blynk->sendLog("✅ อัปเดตเรียบร้อย! กำลังรีสตาร์ทเป็นเวอร์ชัน " + latestTag);
+            m_blynk->sendLog("✅ อัปเดตเรียบร้อย! กำลังรีสตาร์ท(" + latestTag + ")");
         esp_task_wdt_reset();
         vTaskDelay(pdMS_TO_TICKS(OTA_DELAY_TIME));
         ESP.restart();

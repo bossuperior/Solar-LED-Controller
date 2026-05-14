@@ -111,7 +111,7 @@ void CommLoop(void *pvParameters)
     network.handle();
     if (cachedVoltage >= BATT_CRITICAL_LOW_V || !power.isInaAvailable())
       dashboard.handle();
-
+    blynk.keepAlive();
     if (network.isInternetAvailable())
     {
       esp_task_wdt_reset();
@@ -163,6 +163,7 @@ void CommLoop(void *pvParameters)
         if (send_v >= BATT_CRITICAL_LOW_V)
         {
           gsheet.sendData(send_v, send_buck_t, send_chip_t, send_fan, send_light);
+          blynk.keepAlive();
         }
         else
         {

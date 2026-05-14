@@ -1,6 +1,7 @@
 #pragma once
 #include <Arduino.h>
 #include <freertos/semphr.h>
+#include <WiFi.h>
 #include "LogManager.h"
 #include "LightManager.h"
 #include "PowerManager.h"

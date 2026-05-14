@@ -1,6 +1,4 @@
 #include "TempManager.h"
-OneWire oneWire(TEMP_ONE_WIRE_PIN);
-DallasTemperature sensors(&oneWire);
 
 void TempManager::begin(LogManager *sysLogger)
 {

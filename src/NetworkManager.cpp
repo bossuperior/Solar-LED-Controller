@@ -17,7 +17,8 @@ void NetworkManager::begin(LogManager *sysLogger)
     WiFi.disconnect(true, true);
     delay(100);
     WiFi.mode(WIFI_STA);
-    WiFi.setSleep(true);
+    WiFi.setAutoReconnect(true);
+    WiFi.setSleep(false);
     delay(100);
     wifiMulti.addAP(SECRET_SSID_HOME, SECRET_PASS_HOME);
     wifiMulti.addAP(SECRET_SSID_BOSS, SECRET_PASS_BOSS);
@@ -45,7 +46,7 @@ void NetworkManager::handle()
                 WiFi.softAPdisconnect(true);
                 delay(100);
                 WiFi.mode(WIFI_STA);
-                WiFi.setSleep(true);
+                WiFi.setSleep(false);
                 _apModeStarted = false;
                 _startAttemptTime = millis();
                 if (m_logger)
