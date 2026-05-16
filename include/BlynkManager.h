@@ -19,6 +19,6 @@ public:
     void handle();
     void keepAlive();
     void setScheduledReboot(bool wasScheduled);
-    void sendTelemetry();
+    void sendTelemetry(float v, float tBuck, float tChip, int fanSpeed);
     void sendLog(const String &msg);
 };

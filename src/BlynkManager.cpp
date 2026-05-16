@@ -275,17 +275,13 @@ void BlynkManager::handle()
     }
 }
 
-void BlynkManager::sendTelemetry()
+void BlynkManager::sendTelemetry(float v, float tBuck, float tChip, int fanSpeed)
 {
     if (!b_power || !b_temp || !b_fan || !b_light)
         return;
     if (!Blynk.connected())
         return;
 
-    float v = b_power->getVoltage();
-    float tBuck = b_temp->getBuckTemp();
-    float tChip = b_temp->getChipTemp();
-    int fanSpeed = b_fan->getFanSpeed();
     int freeRam_kB = ESP.getFreeHeap() / 1024;
 
     // System uptime
@@ -326,59 +322,52 @@ void BlynkManager::sendTelemetry()
         last_schActive = currentSchActive;
     }
 
-    String current_v_color;
-    if (v < BATT_CRITICAL_LOW_V)
+    if (!isnan(v))
     {
-        current_v_color = COLOR_CRITICAL;
-    }
-    else if (v >= BATT_CRITICAL_LOW_V && v < UI_BATT_WARN_V)
-    {
-        current_v_color = COLOR_WARNING;
-    }
-    else
-    {
-        current_v_color = COLOR_NORMAL;
-    }
-    if (current_v_color != last_v_color)
-    {
-        Blynk.setProperty(V2, "color", current_v_color);
-        last_v_color = current_v_color;
-    }
-    // Dashboard Update: Only send updates if values have changed significantly to reduce network traffic
-    bool volt_changed = fabsf(v - last_v) >= BLYNK_DELTA_VOLT;
-    same_v_count = volt_changed ? 0 : same_v_count + 1;
-    if (volt_changed || same_v_count >= BLYNK_SAME_VOLT_COUNT)
-    {
-        Blynk.virtualWrite(V2, v);
-        last_v = v;
-        same_v_count = 0;
+        String current_v_color;
+        if (v < BATT_CRITICAL_LOW_V)
+            current_v_color = COLOR_CRITICAL;
+        else if (v < UI_BATT_WARN_V)
+            current_v_color = COLOR_WARNING;
+        else
+            current_v_color = COLOR_NORMAL;
+        if (current_v_color != last_v_color)
+        {
+            Blynk.setProperty(V2, "color", current_v_color);
+            last_v_color = current_v_color;
+        }
+        // Dashboard Update: Only send updates if values have changed significantly to reduce network traffic
+        bool volt_changed = fabsf(v - last_v) >= BLYNK_DELTA_VOLT;
+        same_v_count = volt_changed ? 0 : same_v_count + 1;
+        if (volt_changed || same_v_count >= BLYNK_SAME_VOLT_COUNT)
+        {
+            Blynk.virtualWrite(V2, v);
+            last_v = v;
+            same_v_count = 0;
+        }
     }
 
-    float startTemp = b_fan->getTempStart();
-    float maxTemp = b_fan->getTempMax();
-    String current_t_color;
-
-    if (tBuck < startTemp)
+    if (!isnan(tBuck))
     {
-        current_t_color = COLOR_WHITE;
-    }
-    else if (tBuck >= startTemp && tBuck < maxTemp)
-    {
-        current_t_color = COLOR_WARNING;
-    }
-    else
-    {
-        current_t_color = COLOR_CRITICAL;
-    }
-    if (current_t_color != last_t_color)
-    {
-        Blynk.setProperty(V4, "color", current_t_color);
-        last_t_color = current_t_color;
-    }
-    if (fabsf(tBuck - last_tBuck) >= BLYNK_DELTA_TEMP)
-    {
-        Blynk.virtualWrite(V4, tBuck);
-        last_tBuck = tBuck;
+        float startTemp = b_fan->getTempStart();
+        float maxTemp = b_fan->getTempMax();
+        String current_t_color;
+        if (tBuck < startTemp)
+            current_t_color = COLOR_WHITE;
+        else if (tBuck < maxTemp)
+            current_t_color = COLOR_WARNING;
+        else
+            current_t_color = COLOR_CRITICAL;
+        if (current_t_color != last_t_color)
+        {
+            Blynk.setProperty(V4, "color", current_t_color);
+            last_t_color = current_t_color;
+        }
+        if (fabsf(tBuck - last_tBuck) >= BLYNK_DELTA_TEMP)
+        {
+            Blynk.virtualWrite(V4, tBuck);
+            last_tBuck = tBuck;
+        }
     }
 
     if (fanSpeed != last_fanSpeed)

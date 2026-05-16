@@ -151,7 +151,7 @@ void CommLoop(void *pvParameters)
       }
       if (millis() - lastTelemetryUpdate >= SEND_TELEMETRY_INTERVAL)
       {
-        blynk.sendTelemetry();
+        blynk.sendTelemetry(send_v, send_buck_t, send_chip_t, send_fan);
         lastTelemetryUpdate = millis();
       }
       if (doLog)

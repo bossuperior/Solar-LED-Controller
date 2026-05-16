@@ -1,7 +1,7 @@
 #pragma once
 
 // ========  SYSTEM CONFIGURATION ===========
-#define FW_VERSION        "0.2.7.6"
+#define FW_VERSION        "0.2.7.7"
 #define WDT_TIMEOUT       45
 #define LOG_INTERVAL      300000
 #define SERIAL_BAUD_RATE        115200
