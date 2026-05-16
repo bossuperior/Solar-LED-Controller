@@ -76,7 +76,7 @@ void HardwareLoop(void *pvParameters)
       int m = now.tm_min;
       temp.update();
       fan.handle(&temp);
-      light.handle(h, m, &temp);
+      light.handle(h, m);
       monitor.monitor(&power, &temp, &fan, &timer);
       xSemaphoreGive(mutexKey);
     }

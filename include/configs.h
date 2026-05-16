@@ -1,7 +1,7 @@
 #pragma once
 
 // ========  SYSTEM CONFIGURATION ===========
-#define FW_VERSION        "0.2.7.7"
+#define FW_VERSION        "0.2.7.8"
 #define WDT_TIMEOUT       45
 #define LOG_INTERVAL      300000
 #define SERIAL_BAUD_RATE        115200
@@ -40,11 +40,14 @@
 #define FAN_MIN_TEMP_LIMIT      30.0f
 
 // //  ========  LIGHT & IR SETTINGS (NEC) ========
+#define LIGHT_STIM_INTERVAL_MS  (2UL * 3600 * 1000) // resend every 2 hours
+#define LIGHT_STIM_CUTOFF_HOUR  12                   // stimulate only when hour >= 12 (evening before midnight)
+#define LIGHT_STIM_4AM_HOUR     4                    // one extra stimulate at 4:00 AM
 #define IR_BITS                 32
 #define IR_CODE_ON              0xFFC23D
 #define IR_CODE_OFF             0xFFB04F
-#define IR_CODE_FULL            0xFF5AA5 //Swap from IR_CODE_SEMI
-#define IR_CODE_SEMI            0xFF10EF
+// #define IR_CODE_FULL         0xFF10EF
+#define IR_CODE_SEMI            0xFF5AA5
 // #define IR_CODE_3H           0xFF22DD
 // #define IR_CODE_5H           0xFFA857
 // #define IR_CODE_8H           0xFF6897

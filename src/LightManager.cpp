@@ -36,7 +36,7 @@ void LightManager::begin(LogManager *sysLoggerPtr)
     }
 }
 
-void LightManager::handle(int currentHour, int currentMinute, TempManager *tm)
+void LightManager::handle(int currentHour, int currentMinute)
 {
     int currentTotalMinutes = currentHour * 60 + currentMinute;
     int startTotalMinutes = (startHour * 60) + startMinute;
@@ -68,48 +68,61 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm)
     {
         shouldBeOn = false;
     }
-    if (tm != nullptr)
+
+    // Periodic stimulation: resend IR to prevent dimmer from losing state
+    if (shouldBeOn && !isManualMode)
     {
-        float temp = tm->getBuckTemp();
-        if (temp > TEMP_THROTTLE_ON)
+        bool beforeMidnight = (currentHour >= LIGHT_STIM_CUTOFF_HOUR);
+        bool at4am = (currentHour == LIGHT_STIM_4AM_HOUR && currentMinute == 0);
+
+        if (beforeMidnight)
         {
-            isTempThrottled = true;
+            if (_lastStimulateMs == 0)
+            {
+                _lastStimulateMs = millis();
+            }
+            else if (millis() - _lastStimulateMs >= LIGHT_STIM_INTERVAL_MS)
+            {
+                _pendingStim = true;
+                _lastStimulateMs = millis();
+                if (m_logger)
+                    m_logger->sysLog("LIGHT", "Periodic stimulate (2h)");
+            }
         }
-        else if (!isnan(temp) && temp < TEMP_THROTTLE_OFF)
+        else if (at4am && !_stimulatedAt4am)
         {
-            isTempThrottled = false;
+            _pendingStim = true;
+            _stimulatedAt4am = true;
+            _lastStimulateMs = millis();
+            if (m_logger)
+                m_logger->sysLog("LIGHT", "Stimulate at 4AM");
         }
     }
+    else
+    {
+        _lastStimulateMs = 0;
+        _stimulatedAt4am = false;
+        _pendingStim = false;
+    }
 
-    bool needSemiLight = isTempThrottled;
     bool stateChanged = (shouldBeOn != lastOnState);
-    bool throttleChanged = (shouldBeOn && (needSemiLight != lastThrottleState));
 
-    if (stateChanged || throttleChanged || _forceUpdate)
+    if (stateChanged || _forceUpdate)
     {
         _forceUpdate = false;
+        _pendingStim = false; // state change takes priority, cancel any pending stim
         PendingIR newIR = IR_NONE;
         if (shouldBeOn)
         {
-            if (needSemiLight)
-            {
                 newIR = IR_ON_SEMI;
-                lightMode = "เปิด(ลดความสว่าง)";
+                lightMode = "เปิด";
                 if (m_logger)
-                    m_logger->sysLog("LIGHT", "Temperature Throttle: Switched to Semi Brightness");
-            }
-            else
-            {
-                newIR = IR_ON_FULL;
-                lightMode = "เปิด(สว่างสุด)";
-                if (m_logger)
-                    m_logger->sysLog("LIGHT", "Turning ON the Light (Full Brightness)");
-            }
+                    m_logger->sysLog("LIGHT", "Turning ON the Light");
         }
         else
         {
             newIR = IR_OFF;
-            lightMode = "ปิดไฟ";
+            lightMode = "ปิด";
             if (m_logger)
                 m_logger->sysLog("LIGHT", "Turning OFF the Light");
         }
@@ -117,7 +130,17 @@ void LightManager::handle(int currentHour, int currentMinute, TempManager *tm)
         {
             _pendingIR = newIR;
             _pendingNewOnState = shouldBeOn;
-            _pendingNewThrottleState = needSemiLight;
+            xSemaphoreGive(_irMutex);
+        }
+    }
+    else if (_pendingStim)
+    {
+        _pendingStim = false;
+        PendingIR stimIR = IR_STIM_SEMI;
+        if (_irMutex && xSemaphoreTake(_irMutex, pdMS_TO_TICKS(10)) == pdTRUE)
+        {
+            _pendingIR = stimIR;
+            _pendingNewOnState = lastOnState;
             xSemaphoreGive(_irMutex);
         }
     }
@@ -133,7 +156,6 @@ void LightManager::executeIR()
 
     PendingIR toExecute = _pendingIR;
     bool newOnState = _pendingNewOnState;
-    bool newThrottleState = _pendingNewThrottleState;
     _pendingIR = IR_NONE;
     xSemaphoreGive(_irMutex);
 
@@ -142,21 +164,7 @@ void LightManager::executeIR()
 
     switch (toExecute)
     {
-    case IR_ON_FULL:
-        irsend.sendNEC(IR_CODE_ON, IR_BITS);
-        vTaskDelay(pdMS_TO_TICKS(50));
-        irsend.sendNEC(IR_CODE_ON, IR_BITS);
-        vTaskDelay(pdMS_TO_TICKS(150));
-        irsend.sendNEC(IR_CODE_FULL, IR_BITS);
-        vTaskDelay(pdMS_TO_TICKS(50));
-        irsend.sendNEC(IR_CODE_FULL, IR_BITS);
-        vTaskDelay(pdMS_TO_TICKS(150));
-        break;
     case IR_ON_SEMI:
-        irsend.sendNEC(IR_CODE_ON, IR_BITS);
-        vTaskDelay(pdMS_TO_TICKS(50));
-        irsend.sendNEC(IR_CODE_ON, IR_BITS);
-        vTaskDelay(pdMS_TO_TICKS(150));
         irsend.sendNEC(IR_CODE_SEMI, IR_BITS);
         vTaskDelay(pdMS_TO_TICKS(50));
         irsend.sendNEC(IR_CODE_SEMI, IR_BITS);
@@ -170,11 +178,14 @@ void LightManager::executeIR()
         irsend.sendNEC(IR_CODE_OFF, IR_BITS);
         vTaskDelay(pdMS_TO_TICKS(150));
         break;
+    case IR_STIM_SEMI:
+        irsend.sendNEC(IR_CODE_SEMI, IR_BITS);
+        vTaskDelay(pdMS_TO_TICKS(150));
+        break;
     default:
         break;
     }
     lastOnState = newOnState;
-    lastThrottleState = newThrottleState;
 }
 
 void LightManager::setScheduleParams(int sHour, int sMin, int eHour, int eMin, bool enable)
